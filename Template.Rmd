@@ -28,3 +28,20 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+library(tidyverse)
+dane <- read_csv("Data/previous_application_new.csv")
+```
+
+## Intro
+
+The purpose of this project is to analyze previous application data to extract insights that can help in understanding customer behavior and improving decision-making processes.
+
+
+## Research Questions
+
+1. First question
+2. Second question
