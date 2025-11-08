@@ -5,6 +5,9 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+library(tidyverse)
+dane <- read_csv("Data/previous_application_new.csv")
 ```
 
 ## GitHub Documents
@@ -28,13 +31,6 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-```{r setup, include=FALSE}
-## Global options
-knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
-library(tidyverse)
-dane <- read_csv("Data/previous_application_new.csv")
-```
 
 ## Intro
 
