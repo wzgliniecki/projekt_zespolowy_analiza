@@ -7,6 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
 library(tidyverse)
+library(naniar)
 dane <- read_csv("Data/previous_application_new.csv")
 ```
 
@@ -42,6 +43,52 @@ The purpose of this project is to analyze previous application data to extract i
 2.  Second question
 
 ## Braki danych
+
+```{r}
+dim(dane)
+sum(is.na(dane))
+colSums(is.na(dane))
+vis_miss(dane, warn_large_data = FALSE)
+missing_summary <- data.frame(
+  variable = names(dane),
+  n_missing = colSums(is.na(dane)),
+  perc_missing = colMeans(is.na(dane)) * 100
+)
+missing_summary%>%
+  filter(n_missing>0)%>%
+  arrange(perc_missing)
+```
+
+Analizuje wiersze, które mają po 5589 braków
+```{r}
+dane_na_annuity <- dane[is.na(dane$AMT_ANNUITY), ]
+table(dane_na_annuity$NAME_CONTRACT_STATUS)
+```
+Powinniśmy chyba rozdzielić klientów, którzy mieli faktycznie wyliczoną ratę, od tych, którzy nie doszli do etapu umowy. NA to nie brak, tylko wynika z logiki procesu.
+
+
+
+Analizuje wiersze, które mają równo po 9940 braków - możliwe powiązanie
+
+```{r}
+table(dane$NAME_CONTRACT_STATUS, useNA = "ifany")
+dane_na <- dane[is.na(dane$DAYS_FIRST_DRAWING), ]
+table(dane_na$NAME_CONTRACT_STATUS)
+```
+Z 9940 braków w DAYS_FIRST_DRAWING, 99337 nie doszło do skutku, więc realnie mamy tylko 603 NA. Do analizy co z tym robimy, może warto rozdzielić klientów od tych których wniosek faktycznie był uruchomiony od tych którzy nie mają żadnej historii? Wydaje mi się że powinniśmy ich analizować osobno
+
+```{r}
+dane_goodp <- dane[is.na(dane$AMT_GOODS_PRICE), ]
+table(dane_goodp$NAME_CONTRACT_STATUS)
+```
+
+Nadal 632 NA to były zaakceptowane wnioski - do analizy co robimy.
+Pozostałe braki:
+NAME_TYPE_SUITE (kto towarzyszył klientowi) - Prawie połowa braków (49%), braki są naturalne, bo klient mógł przyjść sam albo bank nie zbierał tej informacji, do analizy co z tym
+
+AMT_DOWN_PAYMENT (wpłata własna) + RATE_DOWN_PAYMENT (procent wkładu własnego) - Ponad 53% braków, braki logiczne: jeśli klient nie wnosił wkładu własnego, pole pozostaje puste, możemy zamienić NA na 0 (brak wpłaty) albo zostawić jako NA
+
+RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED (oprocentowanie) - prawie 100% braków (99,7%) - to zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
 
 ```{r}
 naniar::vis_miss(dane)
