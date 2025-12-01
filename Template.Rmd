@@ -1,54 +1,154 @@
 ---
-title: "Untitled"
+title: "Identyfikacja docelowych odbiorców pożyczki"
+author: "Julia Labuda (191145), Wojciech Zgliniecki ()"
 output: github_document
+editor_options:
+  markdown:
+    wrap: 72
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+options(repos = c(CRAN = "https://cran.r-project.org"))
+```
+
+# **Wstęp**
+
+Studium przypadku „Kredyty – Identyfikacja docelowych odbiorców
+pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
+finansowania klientom. Wykorzystując techniki eksploracyjnej analizy
+danych (EDA), projekt ma na celu zrozumienie, w jaki sposób cechy
+konsumentów oraz parametry pożyczek wpływają na prawdopodobieństwo
+terminowej spłaty zobowiązań.
+
+Firmy udzielające pożyczek stoją przed podwójnym wyzwaniem: z jednej
+strony ryzykują utratę potencjalnych zysków, jeśli odrzucą wnioski
+klientów zdolnych do spłaty, z drugiej – mogą ponieść straty finansowe,
+jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
+Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
+wskaźnikami niewypłacalności.
+
+### Dane
+
+W niniejszym projekcie wykorzystane zostaną dane z pliku
+„previous_application_new.csv”, zawierającego informacje o decyzjach
+kredytowych (zatwierdzone, anulowane, odrzucone, niewykorzystane), oraz
+słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
+atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
+ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
+
+### Repozytorium na GitHub
+
+Prace zostały wykonane z użyciem systemu kontroli wersji Git, a jako
+zdalne miejsce do przechowania repozytorium wykorzystano platformę
+GitHub.
+
+Link do
+repozytorium:<https://github.com/wzgliniecki/projekt_zespolowy_analiza.git>
+
+### Użyte biblioteki
+
+Podczas analizy użyto następujących bibliotek:
+
+```{r message=FALSE}
+library(readr)
+library(gt)
 library(tidyverse)
 library(naniar)
+library(VIM)
+library(ggplot2)
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+library(corrplot)
+library(ggstatsplot)
+```
+
+#### Wczytanie i wizualizacja danych
+
+W tabeli pokazano 10 pierwszych wierszy zbioru danych. Można zauważyć,
+że w zbiorze występują brakujące dane.
+
+```{r}
 dane <- read_csv("Data/previous_application_new.csv")
 ```
 
-## GitHub Documents
+Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37
+zmiennych.
 
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+16 zmiennych jest typu tekstowego (chr) – np. NAME_CONTRACT_TYPE,
+WEEKDAY_APPR_PROCESS_START, FLAG_LAST_APPL_PER.
 
-## Including Code
+21 zmiennych to zmienne numeryczne (dbl) – np. SK_ID_PREV, SK_ID_CURR,
+AMT_ANNUITY, AMT_APPLICATION, AMT_CREDIT.
 
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-## Intro
-
-The purpose of this project is to analyze previous application data to extract insights that can help in understanding customer behavior and improving decision-making processes.
-
-## Research Questions
-
-1.  First question
-2.  Second question
-
-## Braki danych
+Dane obejmują zarówno informacje opisowe, jak i wartości liczbowe
+związane z kwotami i identyfikatorami. Dzięki temu możliwa jest analiza
+zarówno jakościowa, jak i ilościowa wniosków kredytowych.
 
 ```{r}
-dim(dane)
-sum(is.na(dane))
-colSums(is.na(dane))
-vis_miss(dane, warn_large_data = FALSE)
+gt(head(dane,10))
+```
+
+Tabela przedstawia pierwsze 10 wierszy zbioru danych. Widać, że liczba
+zmiennych jest duża (37 kolumn). Już na tym etapie można zauważyć
+obecność brakujących wartości (NA), co wskazuje na konieczność dalszej
+analizy braków danych i ich wpływu na wyniki.
+
+# **Data Cleansing, Wrangling**
+
+### Początkowa liczba i proporcje NA
+
+Najpierw sprawdzono liczbę braków w każdej kolumnie, aby zidentyfikować
+zmienne najbardziej narażone na problem niekompletnych informacji.
+
+```{r}
+kolumny_NA <- colSums(is.na(dane))
+sort(kolumny_NA[kolumny_NA>0])
+```
+
+Braki występują w wielu kolumnach, a ich skala jest zróżnicowana:
+
+-   Najmniej braków ma zmienna PRODUCT_COMBINATION – tylko 4 przypadki,
+    co oznacza, że praktycznie cała informacja jest dostępna.
+
+-   Średni poziom braków obserwujemy w zmiennych finansowych:
+
+    -   AMT_ANNUITY oraz CNT_PAYMENT – po 5589 braków każda,
+
+    -   AMT_GOODS_PRICE – 5754 braków.
+
+-   Znaczne braki pojawiają się w zmiennych związanych z terminami,
+    gdzie każda z poniższych kolumn ma dokładnie 9940 braków:
+
+    -   DAYS_FIRST_DRAWING,
+
+    -   DAYS_FIRST_DUE,
+
+    -   DAYS_LAST_DUE_1ST_VERSION,
+
+    -   DAYS_LAST_DUE,
+
+    -   DAYS_TERMINATION,
+
+    -   NFLAG_INSURED_ON_APPROVAL.
+
+-   Jeszcze większe braki występują w:
+
+    -   NAME_TYPE_SUITE – 12246 braków,
+
+    -   AMT_DOWN_PAYMENT oraz RATE_DOWN_PAYMENT – po 13261 braków każda.
+
+-   Najwięcej braków mają zmienne dotyczące stóp procentowych:
+
+    -   RATE_INTEREST_PRIMARY oraz RATE_INTEREST_PRIVILEGED – po 24922
+        braków każda, czyli niemal cały zbiór.
+
+```{r}
+kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
+vis_miss(dane[, kolumny_z_NA], warn_large_data = FALSE)
 missing_summary <- data.frame(
   variable = names(dane),
   n_missing = colSums(is.na(dane)),
@@ -60,13 +160,15 @@ missing_summary%>%
 ```
 
 Analizuje wiersze, które mają po 5589 braków
+
 ```{r}
 dane_na_annuity <- dane[is.na(dane$AMT_ANNUITY), ]
 table(dane_na_annuity$NAME_CONTRACT_STATUS)
 ```
-Powinniśmy chyba rozdzielić klientów, którzy mieli faktycznie wyliczoną ratę, od tych, którzy nie doszli do etapu umowy. NA to nie brak, tylko wynika z logiki procesu.
 
-
+Powinniśmy chyba rozdzielić klientów, którzy mieli faktycznie wyliczoną
+ratę, od tych, którzy nie doszli do etapu umowy. NA to nie brak, tylko
+wynika z logiki procesu.
 
 Analizuje wiersze, które mają równo po 9940 braków - możliwe powiązanie
 
@@ -75,7 +177,12 @@ table(dane$NAME_CONTRACT_STATUS, useNA = "ifany")
 dane_na <- dane[is.na(dane$DAYS_FIRST_DRAWING), ]
 table(dane_na$NAME_CONTRACT_STATUS)
 ```
-Z 9940 braków w DAYS_FIRST_DRAWING, 99337 nie doszło do skutku, więc realnie mamy tylko 603 NA. Do analizy co z tym robimy, może warto rozdzielić klientów od tych których wniosek faktycznie był uruchomiony od tych którzy nie mają żadnej historii? Wydaje mi się że powinniśmy ich analizować osobno
+
+Z 9940 braków w DAYS_FIRST_DRAWING, 99337 nie doszło do skutku, więc
+realnie mamy tylko 603 NA. Do analizy co z tym robimy, może warto
+rozdzielić klientów od tych których wniosek faktycznie był uruchomiony
+od tych którzy nie mają żadnej historii? Wydaje mi się że powinniśmy ich
+analizować osobno
 
 ```{r}
 dane_goodp <- dane[is.na(dane$AMT_GOODS_PRICE), ]
@@ -83,15 +190,21 @@ table(dane_goodp$NAME_CONTRACT_STATUS)
 ```
 
 Nadal 632 NA to były zaakceptowane wnioski - do analizy co robimy.
-Pozostałe braki:
-NAME_TYPE_SUITE (kto towarzyszył klientowi) - Prawie połowa braków (49%), braki są naturalne, bo klient mógł przyjść sam albo bank nie zbierał tej informacji, do analizy co z tym
+Pozostałe braki: NAME_TYPE_SUITE (kto towarzyszył klientowi) - Prawie
+połowa braków (49%), braki są naturalne, bo klient mógł przyjść sam albo
+bank nie zbierał tej informacji, do analizy co z tym
 
-AMT_DOWN_PAYMENT (wpłata własna) + RATE_DOWN_PAYMENT (procent wkładu własnego) - Ponad 53% braków, braki logiczne: jeśli klient nie wnosił wkładu własnego, pole pozostaje puste, możemy zamienić NA na 0 (brak wpłaty) albo zostawić jako NA
+AMT_DOWN_PAYMENT (wpłata własna) + RATE_DOWN_PAYMENT (procent wkładu
+własnego) - Ponad 53% braków, braki logiczne: jeśli klient nie wnosił
+wkładu własnego, pole pozostaje puste, możemy zamienić NA na 0 (brak
+wpłaty) albo zostawić jako NA
 
-RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED (oprocentowanie) - prawie 100% braków (99,7%) - to zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
+RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED (oprocentowanie) -
+prawie 100% braków (99,7%) - to zmienne praktycznie bezużyteczne – nie
+ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
 
 ```{r}
-naniar::vis_miss(dane)
+naniar::vis_miss(dane, warn_large_data = FALSE)
 library(VIM)
 aggr(dane, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(dane), cex.axis=.7, gap=3, ylab=c("Procent braków danych","Wzorzec braków danych"))
 ```
