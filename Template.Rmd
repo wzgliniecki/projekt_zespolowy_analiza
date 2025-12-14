@@ -1,6 +1,6 @@
 ---
 title: "Identyfikacja docelowych odbiorców pożyczki"
-author: "Julia Labuda (191145), Wojciech Zgliniecki ()"
+author: "Julia Labuda (191145), Wojciech Zgliniecki (154790)"
 output: github_document
 editor_options:
   markdown:
@@ -9,9 +9,37 @@ always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
-options(repos = c(CRAN = "https://cran.r-project.org"))
+
+# Ustaw mirror CRAN aby zapewnić, że instalacja pakietów działa
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Użyj pakietu here aby ustalić katalog główny projektu (gdzie znajduje się plik .Rproj)
+# Zapewnia to spójny katalog roboczy we wszystkich sekcjach
+if (!requireNamespace("here", quietly = TRUE)) {
+  install.packages("here", repos = "https://cloud.r-project.org")
+}
+library(here)
+
+# Ustaw katalog roboczy na katalog główny projektu
+setwd(here::here())
+
+# Auto-załaduj wszystkie pliki R z R/methods/ i visualizations/
+# To udostępnia wszystkie funkcje w całym dokumencie
+method_files <- list.files(here("R", "methods"), pattern = "\\.R$", full.names = TRUE)
+invisible(lapply(method_files, source))
+
+viz_files <- list.files(here("visualizations"), pattern = "\\.R$", full.names = TRUE)
+invisible(lapply(viz_files, source))
+
+# Globalne przechowywanie danych - będą załadowane w sekcji data_loading
+# i udostępnione wszystkim kolejnym sekcjom
+global_data <- list()
+```
+
+
+```{r child = 'sections/intro.Rmd'}
 ```
 
 # **Wstęp**
@@ -207,4 +235,18 @@ ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
 naniar::vis_miss(dane, warn_large_data = FALSE)
 library(VIM)
 aggr(dane, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(dane), cex.axis=.7, gap=3, ylab=c("Procent braków danych","Wzorzec braków danych"))
+```
+
+
+
+```{r child = 'sections/missing_data_analysis.Rmd'}
+```
+
+# Tutaj koniec analizy braków, trzeba to przenieść do odpowiednich rozdziałów. 
+
+## Predykcje
+Na podstawie załadowanych danych możemy przeprowadzić ich analizę oraz predykcję. 
+
+
+```{r child = 'sections/prediction_methods.Rmd'}
 ```
