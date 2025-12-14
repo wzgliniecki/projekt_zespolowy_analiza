@@ -1,0 +1,22 @@
+## Instalacja i Ładowanie Danych
+
+```{r load_data, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+library(tidyverse)
+library(naniar)
+library(VIM)
+library(here)
+
+# Załaduj dane używając here() dla spójnych ścieżek względem katalogu głównego projektu
+dane <- read_csv(here("Data", "previous_application_new.csv"))
+global_data$newdata <- dane
+
+# Jeśli masz dane treningowe, załaduj je też
+if (file.exists(here("Data", "train.csv"))) {
+  global_data$train <- read_csv(here("Data", "train.csv"))
+  cat("Dane treningowe załadowane.\n")
+}
+
+cat("Dane załadowane: ", nrow(dane), " wierszy x ", ncol(dane), " kolumn\n")
+```
