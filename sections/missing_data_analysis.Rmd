@@ -1,0 +1,72 @@
+## Braki danych
+
+```{r missing-data-overview}
+# Use global_data that was loaded in data_loading section
+dane <- global_data$newdata
+print_summary(dane)
+```
+
+```{r missing-viz}
+# Use visualization function from visualizations/missing_data_viz.R
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  plot_missing_heatmap(dane)
+}
+```
+
+```{r missing-summary}
+missing_summary <- data.frame(
+  variable = names(dane),
+  n_missing = colSums(is.na(dane)),
+  perc_missing = colMeans(is.na(dane)) * 100
+)
+missing_summary %>%
+  filter(n_missing > 0) %>%
+  arrange(desc(perc_missing))
+```
+
+### Analiza braków w AMT_ANNUITY
+
+```{r missing-annuity}
+dane_na_annuity <- dane[is.na(dane$AMT_ANNUITY), ]
+if (nrow(dane_na_annuity) > 0) {
+  table(dane_na_annuity$NAME_CONTRACT_STATUS)
+}
+```
+
+### Analiza braków w DAYS_FIRST_DRAWING
+
+```{r missing-days-drawing}
+table(dane$NAME_CONTRACT_STATUS, useNA = "ifany")
+dane_na <- dane[is.na(dane$DAYS_FIRST_DRAWING), ]
+if (nrow(dane_na) > 0) {
+  table(dane_na$NAME_CONTRACT_STATUS)
+}
+```
+
+### Analiza braków w AMT_GOODS_PRICE
+
+```{r missing-goods-price}
+dane_goodp <- dane[is.na(dane$AMT_GOODS_PRICE), ]
+if (nrow(dane_goodp) > 0) {
+  table(dane_goodp$NAME_CONTRACT_STATUS)
+}
+```
+
+### Podsumowanie braków
+
+Pozostałe braki:
+
+- **NAME_TYPE_SUITE** (kto towarzyszył klientowi) - Prawie połowa braków (49%), braki są naturalne, bo klient mógł przyjść sam albo bank nie zbierał tej informacji, do analizy co z tym
+
+- **AMT_DOWN_PAYMENT** (wpłata własna) + **RATE_DOWN_PAYMENT** (procent wkładu własnego) - Ponad 53% braków, braki logiczne: jeśli klient nie wnosił wkładu własnego, pole pozostaje puste, możemy zamienić NA na 0 (brak wpłaty) albo zostawić jako NA
+
+- **RATE_INTEREST_PRIMARY** i **RATE_INTEREST_PRIVILEGED** (oprocentowanie) - prawie 100% braków (99,7%) - to zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
+
+### Wizualizacja wzorców braków
+
+```{r missing-patterns, fig.width=10, fig.height=8}
+naniar::vis_miss(dane, warn_large_data = FALSE)
+aggr(dane, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, 
+     labels=names(dane), cex.axis=.7, gap=3, 
+     ylab=c("Procent braków danych","Wzorzec braków danych"))
+```

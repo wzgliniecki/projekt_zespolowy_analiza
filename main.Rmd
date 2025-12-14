@@ -1,0 +1,53 @@
+---
+title: "Analiza danych - Projekt zespołowy"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Ustaw lustro CRAN aby zapewnić, że instalacja pakietów działa
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Użyj pakietu here aby ustalić katalog główny projektu (gdzie znajduje się plik .Rproj)
+# Zapewnia to spójny katalog roboczy we wszystkich sekcjach
+if (!requireNamespace("here", quietly = TRUE)) {
+  install.packages("here", repos = "https://cloud.r-project.org")
+}
+library(here)
+
+# Ustaw katalog roboczy na katalog główny projektu
+setwd(here::here())
+
+# Auto-załaduj wszystkie pliki R z R/methods/ i visualizations/
+# To udostępnia wszystkie funkcje w całym dokumencie
+method_files <- list.files(here("R", "methods"), pattern = "\\.R$", full.names = TRUE)
+invisible(lapply(method_files, source))
+
+viz_files <- list.files(here("visualizations"), pattern = "\\.R$", full.names = TRUE)
+invisible(lapply(viz_files, source))
+
+# Globalne przechowywanie danych - będą załadowane w sekcji data_loading
+# i udostępnione wszystkim kolejnym sekcjom
+global_data <- list()
+```
+
+```{r child = 'sections/intro.Rmd'}
+```
+
+```{r child = 'sections/data_loading.Rmd'}
+```
+
+```{r child = 'sections/missing_data_analysis.Rmd'}
+```
+
+## Predykcje
+
+Wszystkie metody predykcji z `R/methods/` są automatycznie importowane i dostępne:
+
+### Predykcje Random Forest
+
+
+
+### Predykcje Regresji Logistycznej
+

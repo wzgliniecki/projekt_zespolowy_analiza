@@ -1,0 +1,8 @@
+## Wprowadzenie
+
+Celem tego projektu jest analiza danych poprzednich aplikacji w celu wyodrębnienia informacji, które mogą pomóc w zrozumieniu zachowania klientów i ulepszeniu procesów podejmowania decyzji.
+
+## Pytania Badawcze
+
+1. Pierwsze pytanie
+2. Drugie pytanie
