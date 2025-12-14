@@ -36,6 +36,12 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# Generated output files from Rmd (keep only source Rmd files)
+main.md
+Template.md
+main_files/
+Template_files/
+
 # R Environment Variables
 .Renviron
 
