@@ -4,7 +4,7 @@ W tabeli pokazano 10 pierwszych wierszy zbioru danych. Można zauważyć,
 że w zbiorze występują brakujące dane.
 
 ```{r}
-dane <- read_csv("Data/previous_application_new.csv")
+dane <- read_csv("../Data/previous_application_new.csv")
 ```
 
 Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37
