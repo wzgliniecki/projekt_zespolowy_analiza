@@ -1,33 +1,24 @@
-## Wczytanie i wizualizacja danych
+## Eksploracyjna Analiza Danych (EDA) i wizualizacja braków
 
-W tabeli pokazano 10 pierwszych wierszy zbioru danych. Można zauważyć,
-że w zbiorze występują brakujące dane.
+Proces analizy rozpoczęto od wczytania zbioru danych i wstępnego rozpoznania jego struktury.
 
 ```{r}
 dane <- read_csv("../Data/previous_application_new.csv")
 ```
 
-Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37
-zmiennych.
+Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37 zmiennych, które dzielą się na:
 
-16 zmiennych jest typu tekstowego (chr) – np. NAME_CONTRACT_TYPE,
-WEEKDAY_APPR_PROCESS_START, FLAG_LAST_APPL_PER.
+- 16 zmiennych tekstowych (chr) – opisujących m.in. typ umowy, status wniosku czy dzień tygodnia złożenia aplikacji,
 
-21 zmiennych to zmienne numeryczne (dbl) – np. SK_ID_PREV, SK_ID_CURR,
-AMT_ANNUITY, AMT_APPLICATION, AMT_CREDIT.
+- 21 zmiennych numerycznych (dbl) – zawierających identyfikatory, kwoty finansowe (wnioskowane i przyznane) oraz wskaźniki czasu.
 
-Dane obejmują zarówno informacje opisowe, jak i wartości liczbowe
-związane z kwotami i identyfikatorami. Dzięki temu możliwa jest analiza
-zarówno jakościowa, jak i ilościowa wniosków kredytowych.
+Takie zestawienie danych pozwala na przeprowadzenie wielowymiarowej analizy – zarówno jakościowej (wzorce zachowań), jak i ilościowej (wartości kredytowe).
 
 ```{r}
 gt(head(dane,10))
 ```
 
-Tabela przedstawia pierwsze 10 wierszy zbioru danych. Widać, że liczba
-zmiennych jest duża (37 kolumn). Już na tym etapie można zauważyć
-obecność brakujących wartości (NA), co wskazuje na konieczność dalszej
-analizy braków danych i ich wpływu na wyniki.
+Wstępny przegląd pierwszych dziesięciu wierszy ujawnia dużą złożoność zbioru oraz widoczną obecność brakujących wartości (NA). Wymusza to pogłębioną analizę braków danych, aby ocenić ich wpływ na rzetelność końcowych wyników.
 
 Zmienne oznaczają kolejno:
 
@@ -70,10 +61,9 @@ Zmienne oznaczają kolejno:
 
 # **Data Cleansing, Wrangling**
 
-## Początkowa liczba i proporcje NA
+## Analiza brakujących wartości (NA)
 
-Najpierw sprawdzono liczbę braków w każdej kolumnie, aby zidentyfikować
-zmienne najbardziej narażone na problem niekompletnych informacji.
+Kluczowym etapem przygotowania danych było zidentyfikowanie kolumn najbardziej obciążonych brakami danych.
 
 ```{r}
 missing_summary <- data.frame(
@@ -89,15 +79,19 @@ missing_summary_sorted <- missing_summary %>%
 missing_summary_sorted
 ```
 
-W całym zbiorze danych znajduje się 37 zmiennych, z czego 15 zawiera braki. W kolumnie perc_missing pokazano procentowy udział braków w każdej z tych zmiennych – od pojedynczych wartości, jak w przypadku PRODUCT_COMBINATION (0.02%), przez średni poziom braków w zmiennych finansowych (AMT_ANNUITY, CNT_PAYMENT, AMT_GOODS_PRICE – około 22–23%), aż po znaczne braki w zmiennych związanych z terminami (DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL – około 39.76%).
+Analiza wykazała, że 15 z 37 zmiennych posiada braki o różnym natężeniu:
 
-Dodatkowo widać jeszcze pięć zmiennych, w których problem braków jest szczególnie duży. NAME_TYPE_SUITE ma prawie połowę niekompletnych obserwacji (48.98%), a AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT przekraczają już 53% braków. Najbardziej problematyczne są jednak zmienne dotyczące stóp procentowych (RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED), gdzie brak danych sięga aż 99.69%, czyli praktycznie cała kolumna jest pusta.
+- Braki marginalne: PRODUCT_COMBINATION (0.02%).
 
-Podsumowując, spośród 37 zmiennych aż 15 ma braki, a ich udział procentowy jest bardzo zróżnicowany – od marginalnych po niemal całkowite. To oznacza, że część zmiennych można bezpiecznie wykorzystać, ale inne wymagają poważnej decyzji: imputacja, usunięcie lub ograniczenie analizy tylko do bardziej kompletnych danych.
+- Średni poziom: Zmienne finansowe (AMT_ANNUITY, CNT_PAYMENT, AMT_GOODS_PRICE) oscylują wokół 22-23% braków.
+
+- Wysoki poziom: Zmienne związane z harmonogramem spłat i ubezpieczeniem wykazują blisko 40% braków.
+
+- Krytyczny poziom: Wkład własny przekracza 53%, a stopy procentowe są niemal całkowicie puste (99.69% braków).
         
-## Wizualizacja brakujących wartości
+## Wizualizacja wzorców braków
 
-Wykres vis_miss pokazuje rozkład brakujących wartości w zbiorze danych, dzięki czemu łatwo zauważyć, które zmienne mają niekompletne obserwacje i jak duży jest ich udział. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
+Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów naniar oraz VIM. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
 
 ```{r, fig.align='center'}
 kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
@@ -112,17 +106,15 @@ library(VIM)
 aggr(dane_sorted, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=short_names, cex.axis=.4, gap=3, ylab=c("Procent braków danych","Wzorzec braków danych"))
 ```
 
-Na wykresie widać wyraźne wzorce braków – niektóre zmienne mają identyczną liczbę braków (np. AMT_ANNUITY i CNT_PAYMENT), co sugeruje powiązania między nimi, a inne są niemal całkowicie puste (RATE_INTEREST_PRIMARY, RATE_INTEREST_PRIVILEGED).
+Wykresy ujawniły istnienie silnych powiązań między zmiennymi (tzw. bloki braków):
 
-Powtarzające się liczby braków sugerują, że pewne zmienne są ze sobą powiązane:
+- Blok raty: AMT_ANNUITY i CNT_PAYMENT - dokładnie ta sama liczba braków (5589). To wskazuje, że brak raty (annuity) idzie w parze z brakiem liczby płatności.
 
-- AMT_ANNUITY i CNT_PAYMENT - dokładnie ta sama liczba braków (5589). To wskazuje, że brak raty (annuity) idzie w parze z brakiem liczby płatności.
+- Blok harmonogramu: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
 
-- DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
+- Blok wkładu własnego: AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
 
-- AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
-
-- RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
+- Blok stóp procentowych: RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
 
 - Pojedyncze, unikalne wartości braków:
 
@@ -142,7 +134,7 @@ dane_na_annuity <- dane[is.na(dane$AMT_ANNUITY), ]
 table(dane_na_annuity$NAME_CONTRACT_STATUS)
 all(is.na(dane$AMT_ANNUITY) == is.na(dane$CNT_PAYMENT))
 ```
-Wynik funkcji all(...) = TRUE potwierdza, że zmienne AMT_ANNUITY i CNT_PAYMENT mają dokładnie te same braki, czyli brak jednej zawsze oznacza brak drugiej. Wiersze z brakami występują głównie przy kontraktach Canceled (4599), Refused (596) i Unused offer (394). To oznacza, że brak raty i liczby płatności wynika z logiki biznesowej: jeśli wniosek został odrzucony, anulowany albo nieużyty, to nie ma sensu wyliczać raty czy harmonogramu płatności. Brak wartości sam w sobie niesie znaczenie: „kontrakt nie został uruchomiony”.
+Wynik funkcji all(...) = TRUE potwierdza, że zmienne AMT_ANNUITY i CNT_PAYMENT mają dokładnie te same braki, czyli brak jednej zawsze oznacza brak drugiej. Analiza wykazała, że braki te występują wyłącznie w kontraktach o statusie Canceled, Refused lub Unused offer. Wynika to z logiki biznesowej: dla wniosku, który nie został uruchomiony, nie wylicza się harmonogramu spłat. Brak danych jest więc informacją samą w sobie – "kontrakt nie powstał".
 
 ### Braki w DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
 
@@ -156,38 +148,16 @@ zmienne_NA <- c("DAYS_FIRST_DUE",
           "NFLAG_INSURED_ON_APPROVAL")
 sapply(zmienne_NA, function(v) all(is.na(dane$DAYS_FIRST_DRAWING) == is.na(dane[[v]])))
 ```
-Te zmienne są silnie powiązane i brak danych w jednej oznacza brak w całym zestawie. Dodatkowo braki nie są przypadkowe – występują głównie w kontraktach o statusach:
 
-- Canceled – 4741 przypadków
-
-- Refused – 4194 przypadki
-
-- Unused offer – 402 przypadki
-
-W kontraktach Approved braki są marginalne (603 przypadki w porównaniu do ponad 15 tys. zatwierdzonych).
-
-Te zmienne opisują harmonogram kredytu i ubezpieczenie przy zatwierdzeniu. Jeśli wniosek został odrzucony, anulowany albo nieużyty, to naturalnie nie ma sensu wyliczać terminów spłat czy informacji o ubezpieczeniu - stąd brak danych. Braki są więc systemowe i logiczne, a nie losowe. W praktyce oznacza to, że, nie należy imputować tych wartości – bo one po prostu nie istnieją dla odrzuconych/anulowanych kontraktów.
-
-Braki w tych zmiennych wynikają z logiki procesu kredytowego – pojawiają się niemal wyłącznie w kontraktach niezatwierdzonych, więc są informacją o statusie wniosku, a nie problemem technicznym.
-
-Pozostaje kwestia 603 wniosków, które są szczególnym przypadkiem, bo w teorii zatwierdzony kontrakt powinien mieć pełny harmonogram. Zdecydowano się sprawdzić inne pola (AMT_CREDIT, CNT_PAYMENT, NAME_PRODUCT_TYPE) dla tych 603 rekordów. Jeśli mają pełne dane finansowe, ale brakuje tylko terminów - to raczej błąd/opóźnienie. Jeśli brakuje też innych pól → to najpewniej kontrakt nigdy nie został uruchomiony mimo statusu „Approved”.
+Podobnie jak w przypadku rat, braki w datach dotyczą głównie wniosków odrzuconych lub anulowanych. Zidentyfikowano jednak 603 rekordy o statusie "Approved", które mimo zatwierdzenia, nie posiadają dat. Zdecydowano się sprawdzić inne pola (AMT_CREDIT, CNT_PAYMENT, NAME_PRODUCT_TYPE) dla tych 603 rekordów. Jeśli mają pełne dane finansowe, ale brakuje tylko terminów - to raczej jest to błąd. Jeśli brakuje też innych pól, to najpewniej kontrakt nigdy nie został uruchomiony mimo statusu „Approved”.
 
 ```{r}
 approved_na <- dane[dane$NAME_CONTRACT_STATUS == "Approved" & 
                     is.na(dane$DAYS_FIRST_DRAWING), ]
-nrow(approved_na)
-head(approved_na[, c("AMT_CREDIT", "CNT_PAYMENT", "NAME_PRODUCT_TYPE")])
 summary(approved_na[, c("AMT_CREDIT", "CNT_PAYMENT")])
-table(approved_na$NAME_PRODUCT_TYPE, useNA = "ifany")
 ```
 
-Wyniki pokazują, że te rekordy mają sensowne wartości w polach finansowych: kwoty kredytu (AMT_CREDIT) są zróżnicowane od niewielkich do bardzo dużych, a liczba rat (CNT_PAYMENT) rozkłada się od kilku do kilkudziesięciu, z medianą około 12. To oznacza, że nie są to puste wnioski – dane finansowe istnieją, ale brakuje terminów i szczegółów technicznych.
-
-Rozkład typów produktu (NAME_PRODUCT_TYPE) pokazuje, że większość z nich to x-sell (353 przypadki), czyli produkty sprzedane dodatkowo przy okazji innej usługi. Spora część to kategoria XNA (185), która oznacza brak informacji o typie produktu lub nieznaną kategorię, a mniejsza grupa to walk-in (65), czyli klienci, którzy przyszli samodzielnie. To sugeruje, że braki mogą być związane z procesem sprzedaży lub rejestracji danych – np. w cross-sellu część informacji mogła nie zostać wprowadzona, albo w kategorii XNA system nie wymagał uzupełnienia harmonogramu.
-
-W praktyce oznacza to, że te 603 rekordy są zatwierdzone, mają pełne dane finansowe, ale brakuje im szczegółów dotyczących terminów.
-
-Do rozważenia imputacja warunkowa (np. mediana liczby dni dla podobnych produktów).
+Analiza wniosków o statusie Approved, w których brakuje dat harmonogramu, wykazała dwa różne podłoża problemu. Część rekordów posiada CNT_PAYMENT = 0, co potwierdza rezygnację z kontraktu na etapie decyzji. Jednak znaczna część posiada przypisaną liczbę rat (mediana 12, max 72), co świadczy o tym, że warunki finansowe zostały ustalone, lecz proces technicznego uruchomienia wypłaty (odnotowany w zmiennych DAYS_) nie został sfinalizowany w bazie danych. W związku z tym, dla rekordów z przypisaną liczbą rat zdecydowano się na imputację brakujących dat wartościami medianowymi dla podobnych produktów, natomiast pozostałe potraktowano jako kontrakty nieaktywne.
 
 ### Braki w AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT
 
@@ -195,8 +165,7 @@ Do rozważenia imputacja warunkowa (np. mediana liczby dni dla podobnych produkt
 all(is.na(dane$AMT_DOWN_PAYMENT) == is.na(dane$RATE_DOWN_PAYMENT))
 ```
 
-AMT_DOWN_PAYMENT (kwota wkładu własnego) i RATE_DOWN_PAYMENT (procent wkładu własnego) mają identyczny poziom braków – 13 261 rekordów, czyli ok. 53,04% całego zbioru. Wkład własny nie jest obowiązkowy. Jeśli klient nie wnosił żadnej wpłaty, to zarówno kwota, jak i wskaźnik wkładu pozostają puste.
-Nie są to braki losowe ani błędy techniczne, lecz braki logiczne wynikające z procesu kredytowego. Propozycja: zamiana NA na 0.
+AMT_DOWN_PAYMENT (kwota wkładu własnego) i RATE_DOWN_PAYMENT (procent wkładu własnego) mają identyczny poziom braków – 13 261 rekordów, czyli ok. 53,04% całego zbioru. Braki wynikają z faktu, że wkład własny nie jest obowiązkowy. Zostanie on uzupełniony wartością 0.
 
 ### Braki w RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED
 
@@ -225,9 +194,7 @@ Jednak mniej typowa sytuacja dot. 632 zatwierdzonych kontraktów. One powininny 
 
 ```{r}
 dane$FLAG_APPROVED_GOODS_NA <- ifelse(dane$NAME_CONTRACT_STATUS == "Approved" & is.na(dane$AMT_GOODS_PRICE), 1, 0)
-table(dane$FLAG_APPROVED_GOODS_NA)
 approved_goods_na <- dane[dane$FLAG_APPROVED_GOODS_NA == 1, ]
-head(approved_goods_na[, c("AMT_CREDIT", "CNT_PAYMENT")])
 summary(approved_goods_na[, c("AMT_CREDIT", "CNT_PAYMENT")])
 ```
 
@@ -243,4 +210,54 @@ Zmienna ta opisuje, kto towarzyszył klientowi podczas składania wniosku (np. c
 
 - bank mógł nie zbierać tej informacji w każdym przypadku, traktując ją jako dodatkową, nieobowiązkową.
 
-Interpretacja: braki w tej zmiennej nie są błędem technicznym, lecz wynikają z logiki procesu obsługi klienta.
+Braki zostaną zaklasyfikowane jako nowa kategoria "Unknown", gdyż mogą nieść informację o samodzielnym składaniu wniosku przez klienta.
+
+## Czyszczenie i przygotowanie danych (Data Cleansing)
+
+Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze nie jest przypadkowe, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie Canceled, Refused oraz Unused offer. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
+
+Zastosowana strategia czyszczenia danych opiera się na imputacji biznesowej, a nie statystycznej. Zamiast usuwać rekordy lub stosować średnie, nadajemy brakom znaczenie analityczne:
+
+- W polach kwotowych i liczbowych (np. wkład własny, rata) wartości NA zastępujemy zerami, co pozwala zachować pełną bazę do analizy ryzyka.
+
+- W zmiennych kategorycznych tworzymy nową klasę „Unknown”, traktując brak informacji jako istotną cechę klienta.
+
+- Usuwamy zmienne dotyczące stóp procentowych ze względu na niemal całkowity brak danych (99%), co uniemożliwia ich rzetelne wykorzystanie.
+
+### Realizacja strategii imputacji na podstawie analizy logicznej braków
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+dane_clean <- dane %>%
+  # 1. Usuwamy puste kolumny
+  select(-RATE_INTEREST_PRIMARY, -RATE_INTEREST_PRIVILEGED) %>%
+
+  # 2. Naprawiamy daty dla 603 rekordów Approved, które MAJĄ raty (CNT_PAYMENT > 0)
+  # Używamy mediany z całego zbioru dla statusu Approved
+  group_by(NAME_CONTRACT_STATUS) %>%
+  mutate(across(starts_with("DAYS_"), 
+                ~if_else(NAME_CONTRACT_STATUS == "Approved" & is.na(.) & CNT_PAYMENT > 0, 
+                         median(., na.rm = TRUE), .))) %>%
+  ungroup() %>%
+
+  # 3. Reszta NA (odrzucone i martwe Approved) dostaje kod 365243
+  mutate(across(starts_with("DAYS_"), ~replace_na(., 365243))) %>%
+
+  # 4. Standardowa imputacja reszty pól (zerami i "Unknown")
+  mutate(
+    AMT_ANNUITY = replace_na(AMT_ANNUITY, 0),
+    CNT_PAYMENT = replace_na(CNT_PAYMENT, 0),
+    AMT_DOWN_PAYMENT = replace_na(AMT_DOWN_PAYMENT, 0),
+    RATE_DOWN_PAYMENT = replace_na(RATE_DOWN_PAYMENT, 0),
+    AMT_GOODS_PRICE = replace_na(AMT_GOODS_PRICE, 0),
+    NFLAG_INSURED_ON_APPROVAL = replace_na(NFLAG_INSURED_ON_APPROVAL, 0),
+    NAME_TYPE_SUITE = replace_na(NAME_TYPE_SUITE, "Unknown"),
+    PRODUCT_COMBINATION = replace_na(PRODUCT_COMBINATION, "Unknown")
+  )
+
+# Weryfikacja
+cat("Liczba pozostałych NA:", sum(is.na(dane_clean)), "\n")
+```
+
