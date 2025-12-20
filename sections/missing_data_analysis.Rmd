@@ -212,6 +212,35 @@ Zmienna ta opisuje, kto towarzyszył klientowi podczas składania wniosku (np. c
 
 Braki zostaną zaklasyfikowane jako nowa kategoria "Unknown", gdyż mogą nieść informację o samodzielnym składaniu wniosku przez klienta.
 
+### Braki nieoznaczone jako "NA"
+
+Podczas eksploracji danych zauważono, że w zmiennej AMT_APPLICATION (kwota wniosku) występują wartości równe 0. Wartość ta nie jest oznaczona jako NA, ale logicznie wskazuje na brak faktycznej kwoty wniosku. Sprawdzamy, ile takich rekordów istnieje i jaki mają status kontraktu.
+
+```{r}
+sum(dane$AMT_APPLICATION <= 0)
+sum(dane$AMT_APPLICATION == 0)
+table(dane$NAME_CONTRACT_STATUS[dane$AMT_APPLICATION == 0])
+summary(dane$AMT_CREDIT[dane$AMT_APPLICATION == 0])
+
+dane %>%
+  filter(AMT_APPLICATION == 0 & AMT_CREDIT > 0) %>%
+  count(NAME_CONTRACT_STATUS)
+
+dane%>%
+  filter(AMT_APPLICATION == 0 & AMT_CREDIT > 0) %>%
+  count(CNT_PAYMENT)
+```
+W większości przypadków są to kontrakty Anulowane/Odrzucone, gdzie brak kwoty wnioskowanej jest logiczny.
+
+Jednak mamy też anomalię: zatwierdzone kontrakty z AMT_APPLICATION = 0, ale z dodatnią kwotą kredytu (AMT_CREDIT > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
+
+Strategia czyszczenia
+Jeśli AMT_APPLICATION = 0 i AMT_CREDIT = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
+
+Jeśli AMT_APPLICATION = 0 i AMT_CREDIT > 0, to imputujemy AMT_APPLICATION wartością z AMT_CREDIT. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
+
+W pozostałych przypadkach zostawiamy wartość bez zmian.
+
 ## Czyszczenie i przygotowanie danych (Data Cleansing)
 
 Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze nie jest przypadkowe, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie Canceled, Refused oraz Unused offer. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
@@ -255,6 +284,15 @@ dane_clean <- dane %>%
     NFLAG_INSURED_ON_APPROVAL = replace_na(NFLAG_INSURED_ON_APPROVAL, 0),
     NAME_TYPE_SUITE = replace_na(NAME_TYPE_SUITE, "Unknown"),
     PRODUCT_COMBINATION = replace_na(PRODUCT_COMBINATION, "Unknown")
+  ) %>%
+
+  # 5. Czyszczenie AMT_APPLICATION
+  mutate(
+    AMT_APPLICATION = case_when(
+      AMT_APPLICATION == 0 & AMT_CREDIT == 0 ~ NA_real_,       # brak danych
+      AMT_APPLICATION == 0 & AMT_CREDIT > 0 ~ AMT_CREDIT,      # imputacja z przyznanej kwoty
+      TRUE ~ AMT_APPLICATION                                   # pozostaw bez zmian
+    )
   )
 
 # Weryfikacja

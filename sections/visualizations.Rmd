@@ -1,0 +1,167 @@
+---
+title: "visualizations"
+output: html_document
+---
+
+# Wizualizacje
+
+W tej sekcji przedstawiamy graficzne podsumowania danych.
+
+1. Rozkład statusów kontraktu
+
+```{r}
+status_map <- c(
+  "Approved"   = "Zatwierdzony",
+  "Canceled"   = "Anulowany",
+  "Refused"    = "Odmowa",
+  "Unused offer" = "Niewykorzystana oferta"
+)
+
+# Zmieniam etykiety w danych na polskie
+dane_clean <- dane_clean %>%
+  mutate(NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map))
+
+ggplot(dane_clean, aes(x = fct_infreq(NAME_CONTRACT_STATUS_PL), fill = NAME_CONTRACT_STATUS_PL)) +
+  geom_bar() +
+  labs(title = "Rozkład statusów kontraktu",
+       x = "Status kontraktu", y = "Liczba wniosków") +
+  theme_minimal()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),  legend.position = "none")
+```
+
+2. Kwota kredytu vs. status kontraktu
+Czy większe kwoty częściej kończą się odmową?
+
+```{r}
+ggplot(dane_clean, aes(x = NAME_CONTRACT_STATUS_PL, y = AMT_CREDIT, fill = NAME_CONTRACT_STATUS_PL)) +
+  geom_boxplot() +
+  labs(title = "Kwoty kredytów wg statusu kontraktu (skala log)",
+       x = "Status kontraktu", y = "Kwota kredytu") +
+  scale_y_log10() +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+```
+
+3. Typ klienta vs. ryzyko
+Czy nowi klienci częściej mają problemy ze spłatą?
+
+```{r}
+# Mapowanie typów klientów na polskie nazwy
+client_map <- c(
+  "New" = "Nowy",
+  "Refreshed" = "Reaktywowany",
+  "Repeater" = "Powtarzający",
+  "XNA" = "Nieznany"
+)
+
+dane_clean <- dane_clean %>%
+  mutate(NAME_CLIENT_TYPE_PL = dplyr::recode(NAME_CLIENT_TYPE, !!!client_map))
+
+ggplot(dane_clean, aes(x = NAME_CLIENT_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL)) +
+  geom_bar(position = "fill") +
+  labs(title = "Status kontraktu wg typu klienta",
+       x = "Typ klienta", y = "Proporcja", fill = "Status kontraktu") +
+  theme_minimal()
+```
+
+4. Facetowanie wg dnia tygodnia
+Czy dzień złożenia wniosku ma wpływ na zatwierdzenie?
+
+```{r}
+
+library(dplyr)
+
+# Mapowanie dni tygodnia na polskie nazwy
+days_map <- c(
+  "MONDAY"    = "Poniedziałek",
+  "TUESDAY"   = "Wtorek",
+  "WEDNESDAY" = "Środa",
+  "THURSDAY"  = "Czwartek",
+  "FRIDAY"    = "Piątek",
+  "SATURDAY"  = "Sobota",
+  "SUNDAY"    = "Niedziela"
+)
+
+dane_clean <- dane_clean %>%
+  mutate(WEEKDAY_PL = dplyr::recode(WEEKDAY_APPR_PROCESS_START, !!!days_map))
+
+dane_clean <- dane_clean %>%
+  mutate(
+    WEEKDAY_PL = factor(
+      dplyr::recode(WEEKDAY_APPR_PROCESS_START, !!!days_map),
+      levels = c("Poniedziałek", "Wtorek", "Środa", "Czwartek",
+                 "Piątek", "Sobota", "Niedziela")
+    )
+  )
+
+ggplot(dane_clean, aes(x = AMT_APPLICATION, fill = NAME_CONTRACT_STATUS_PL)) +
+  geom_density(alpha = 0.4) +
+  scale_x_log10() +
+  facet_wrap(~WEEKDAY_PL) +
+  labs(title = "Rozkład kwot wnioskowanych wg dnia tygodnia",
+       x = "Kwota wnioskowana (log10)", y = "Gęstość",  fill = "Status kontraktu") +
+  theme_minimal()
+```
+5. Liczba rat vs. status kontraktu
+Czy długość spłaty wpływa na ryzyko?
+
+```{r}
+ggplot(dane_clean, aes(x = CNT_PAYMENT, fill = NAME_CONTRACT_STATUS_PL)) +
+  geom_histogram(binwidth = 6, position = "dodge") +
+  labs(title = "Liczba rat wg statusu kontraktu",
+       x = "Liczba rat", y = "Liczba wniosków", fill = "Status kontraktu") +
+  theme_minimal()
+```
+
+6. Interaktywny scatter plot (plotly)
+Kwota kredytu vs. liczba rat, kolor = status.
+
+```{r}
+library(plotly)
+plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
+        color = ~NAME_CONTRACT_STATUS_PL, type = "scatter", mode = "markers") %>%
+  layout(
+    xaxis = list(title = "Liczba rat"),
+    yaxis = list(title = "Kwota kredytu")
+  )
+```
+
+7. Heatmapa korelacji zmiennych liczbowych
+Pokazuje, które zmienne są silnie powiązane z innymi (np. kwoty, liczba rat, dni decyzji).
+
+```{r}
+num_vars <- dane_clean %>% select(where(is.numeric))
+corr_matrix <- cor(num_vars, use = "pairwise.complete.obs")
+corrplot(corr_matrix, method = "color", type = "upper", tl.cex = 0.6)
+```
+
+8. Sankey diagram
+Pokazuje przepływ między typem produktu a statusem kontraktu.
+
+```{r}
+# Mapowanie typów produktów na polskie nazwy
+product_type_map <- c(
+  "XNA"     = "Nieznany typ produktu",
+  "x-sell"  = "Sprzedaż krzyżowa",
+  "walk-in" = "Klient z ulicy / zakup bezpośredni"
+)
+
+dane_clean <- dane_clean %>%
+  mutate(NAME_PRODUCT_TYPE_PL = dplyr::recode(NAME_PRODUCT_TYPE, !!!product_type_map))
+
+links <- dane_clean %>%
+  count(NAME_PRODUCT_TYPE_PL, NAME_CONTRACT_STATUS_PL, name = "Value") %>%
+  rename(Source = NAME_PRODUCT_TYPE_PL, Target = NAME_CONTRACT_STATUS_PL)
+
+nodes <- data.frame(name = unique(c(links$Source, links$Target)))
+
+links$Source <- match(links$Source, nodes$name) - 1
+links$Target <- match(links$Target, nodes$name) - 1
+
+library(networkD3)
+sankeyNetwork(Links = links, Nodes = nodes,
+              Source = "Source", Target = "Target",
+              Value = "Value", NodeID = "name",
+              fontSize = 12, nodeWidth = 30)
+```
+

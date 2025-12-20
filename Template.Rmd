@@ -92,14 +92,24 @@ library(dplyr)
 library(tidyr)
 library(corrplot)
 library(ggstatsplot)
+library(plotly)
+library(dplyr)
+library(forcats)
+library(corrplot)
+library(networkD3)
 ```
 
-#### Wczytanie i wizualizacja danych
+#### Wczytanie i czyszczenie danych
 
 ```{r child = 'sections/missing_data_analysis.Rmd'}
 ```
 
 # Tutaj koniec analizy braków, trzeba to przenieść do odpowiednich rozdziałów. 
+
+#### Wizualizacja danych
+
+```{r child = 'sections/visualizations.Rmd'}
+```
 
 ## Predykcje
 Na podstawie załadowanych danych możemy przeprowadzić ich analizę oraz predykcję. 
