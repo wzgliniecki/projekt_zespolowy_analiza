@@ -25,14 +25,6 @@ library(here)
 # Ustaw katalog roboczy na katalog główny projektu
 setwd(here::here())
 
-# Auto-załaduj wszystkie pliki R z R/methods/ i visualizations/
-# To udostępnia wszystkie funkcje w całym dokumencie
-method_files <- list.files(here("R", "methods"), pattern = "\\.R$", full.names = TRUE)
-invisible(lapply(method_files, source))
-
-viz_files <- list.files(here("visualizations"), pattern = "\\.R$", full.names = TRUE)
-invisible(lapply(viz_files, source))
-
 # Globalne przechowywanie danych - będą załadowane w sekcji data_loading
 # i udostępnione wszystkim kolejnym sekcjom
 global_data <- list()
@@ -42,78 +34,11 @@ global_data <- list()
 ```{r child = 'sections/intro.Rmd'}
 ```
 
-# **Wstęp**
-
-Studium przypadku „Kredyty – Identyfikacja docelowych odbiorców
-pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
-finansowania klientom. Wykorzystując techniki eksploracyjnej analizy
-danych (EDA), projekt ma na celu zrozumienie, w jaki sposób cechy
-konsumentów oraz parametry pożyczek wpływają na prawdopodobieństwo
-terminowej spłaty zobowiązań.
-
-Firmy udzielające pożyczek stoją przed podwójnym wyzwaniem: z jednej
-strony ryzykują utratę potencjalnych zysków, jeśli odrzucą wnioski
-klientów zdolnych do spłaty, z drugiej – mogą ponieść straty finansowe,
-jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
-Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
-wskaźnikami niewypłacalności.
-
-### Dane
-
-W niniejszym projekcie wykorzystane zostaną dane z pliku
-„previous_application_new.csv”, zawierającego informacje o decyzjach
-kredytowych (zatwierdzone, anulowane, odrzucone, niewykorzystane), oraz
-słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
-atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
-ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
-
-### Repozytorium na GitHub
-
-Prace zostały wykonane z użyciem systemu kontroli wersji Git, a jako
-zdalne miejsce do przechowania repozytorium wykorzystano platformę
-GitHub.
-
-Link do
-repozytorium:<https://github.com/wzgliniecki/projekt_zespolowy_analiza.git>
-
-### Użyte biblioteki
-
-Podczas analizy użyto następujących bibliotek:
-
-```{r message=FALSE}
-library(readr)
-library(gt)
-library(tidyverse)
-library(naniar)
-library(VIM)
-library(ggplot2)
-library(kableExtra)
-library(dplyr)
-library(tidyr)
-library(corrplot)
-library(ggstatsplot)
-library(plotly)
-library(dplyr)
-library(forcats)
-library(corrplot)
-library(networkD3)
-```
-
-#### Wczytanie i czyszczenie danych
 
 ```{r child = 'sections/missing_data_analysis.Rmd'}
 ```
 
-# Tutaj koniec analizy braków, trzeba to przenieść do odpowiednich rozdziałów. 
-
-#### Wizualizacja danych
 
 ```{r child = 'sections/visualizations.Rmd'}
 ```
 
-## Predykcje
-Na podstawie załadowanych danych możemy przeprowadzić ich analizę oraz predykcję. 
-
-
-```{r child = 'sections/prediction_methods.Rmd'}
-```

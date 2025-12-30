@@ -3,7 +3,7 @@ title: "visualizations"
 output: html_document
 ---
 
-# Wizualizacje
+## Wizualizacje
 
 W tej sekcji przedstawiamy graficzne podsumowania danych.
 
