@@ -38,6 +38,7 @@ vignettes/*.pdf
 
 # Generated output files from Rmd (keep only source Rmd files)
 Main.md
+Main.html
 main_files/
 Template_files/
 

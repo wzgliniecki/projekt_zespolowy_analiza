@@ -9,7 +9,7 @@ W tej sekcji przedstawiamy graficzne podsumowania danych.
 
 1. Rozkład statusów kontraktu
 
-```{r}
+```{r wykres_status_kontraktu}
 status_map <- c(
   "Approved"   = "Zatwierdzony",
   "Canceled"   = "Anulowany",
@@ -32,7 +32,7 @@ ggplot(dane_clean, aes(x = fct_infreq(NAME_CONTRACT_STATUS_PL), fill = NAME_CONT
 2. Kwota kredytu vs. status kontraktu
 Czy większe kwoty częściej kończą się odmową?
 
-```{r}
+```{r wykres_kwota_wg_statusu}
 ggplot(dane_clean, aes(x = NAME_CONTRACT_STATUS_PL, y = AMT_CREDIT, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_boxplot() +
   labs(title = "Kwoty kredytów wg statusu kontraktu (skala log)",
@@ -45,7 +45,7 @@ ggplot(dane_clean, aes(x = NAME_CONTRACT_STATUS_PL, y = AMT_CREDIT, fill = NAME_
 3. Typ klienta vs. ryzyko
 Czy nowi klienci częściej mają problemy ze spłatą?
 
-```{r}
+```{r wykres_typ_klienta_ryzyko}
 # Mapowanie typów klientów na polskie nazwy
 client_map <- c(
   "New" = "Nowy",
@@ -67,7 +67,7 @@ ggplot(dane_clean, aes(x = NAME_CLIENT_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL))
 4. Facetowanie wg dnia tygodnia
 Czy dzień złożenia wniosku ma wpływ na zatwierdzenie?
 
-```{r}
+```{r wykres_dzien_tygodnia_kwoty}
 
 library(dplyr)
 
@@ -105,7 +105,7 @@ ggplot(dane_clean, aes(x = AMT_APPLICATION, fill = NAME_CONTRACT_STATUS_PL)) +
 5. Liczba rat vs. status kontraktu
 Czy długość spłaty wpływa na ryzyko?
 
-```{r}
+```{r wykres_liczba_rat}
 ggplot(dane_clean, aes(x = CNT_PAYMENT, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_histogram(binwidth = 6, position = "dodge") +
   labs(title = "Liczba rat wg statusu kontraktu",
@@ -116,7 +116,9 @@ ggplot(dane_clean, aes(x = CNT_PAYMENT, fill = NAME_CONTRACT_STATUS_PL)) +
 6. Interaktywny scatter plot (plotly)
 Kwota kredytu vs. liczba rat, kolor = status.
 
-```{r}
+> **Nota:** Ten wykres jest interaktywny i widoczny tylko w wersji HTML.
+
+```{r wykres_interaktywny_scatter}
 library(plotly)
 plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
         color = ~NAME_CONTRACT_STATUS_PL, type = "scatter", mode = "markers") %>%
@@ -129,7 +131,7 @@ plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
 7. Heatmapa korelacji zmiennych liczbowych
 Pokazuje, które zmienne są silnie powiązane z innymi (np. kwoty, liczba rat, dni decyzji).
 
-```{r}
+```{r mapa_korelacji}
 num_vars <- dane_clean %>% select(where(is.numeric))
 corr_matrix <- cor(num_vars, use = "pairwise.complete.obs")
 corrplot(corr_matrix, method = "color", type = "upper", tl.cex = 0.6)
@@ -138,7 +140,9 @@ corrplot(corr_matrix, method = "color", type = "upper", tl.cex = 0.6)
 8. Sankey diagram
 Pokazuje przepływ między typem produktu a statusem kontraktu.
 
-```{r}
+> **Nota:** Ten diagram jest interaktywny i widoczny tylko w wersji HTML.
+
+```{r diagram_sankey}
 # Mapowanie typów produktów na polskie nazwy
 product_type_map <- c(
   "XNA"     = "Nieznany typ produktu",

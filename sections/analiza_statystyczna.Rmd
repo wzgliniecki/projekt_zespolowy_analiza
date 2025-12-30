@@ -1,0 +1,6 @@
+## Analiza Statystyczna
+
+W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze danych, aby lepiej zrozumieć rozkłady i powiązania między zmiennymi a statusem kontraktu.
+
+### Statystyki Opisowe - Zmienne Numeryczne
+TODO

@@ -1,6 +1,6 @@
 # **Wstęp**
 
-Studium przypadku „Kredyty – Identyfikacja docelowych odbiorców
+Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
 pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
 finansowania klientom. Wykorzystując techniki eksploracyjnej analizy
 danych (EDA), projekt ma na celu zrozumienie, w jaki sposób cechy
@@ -9,7 +9,7 @@ terminowej spłaty zobowiązań.
 
 Firmy udzielające pożyczek stoją przed podwójnym wyzwaniem: z jednej
 strony ryzykują utratę potencjalnych zysków, jeśli odrzucą wnioski
-klientów zdolnych do spłaty, z drugiej – mogą ponieść straty finansowe,
+klientów zdolnych do spłaty, z drugiej - mogą ponieść straty finansowe,
 jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
 Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
 wskaźnikami niewypłacalności.
@@ -23,20 +23,11 @@ słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
 atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
 ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
 
-### Repozytorium na GitHub
-
-Prace zostały wykonane z użyciem systemu kontroli wersji Git, a jako
-zdalne miejsce do przechowania repozytorium wykorzystano platformę
-GitHub.
-
-Link do
-repozytorium:<https://github.com/wzgliniecki/projekt_zespolowy_analiza.git>
-
 ### Użyte biblioteki
 
 Podczas analizy użyto następujących bibliotek:
 
-```{r message=FALSE}
+```{r zaladuj_biblioteki, message=FALSE}
 library(readr)
 library(gt)
 library(tidyverse)

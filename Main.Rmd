@@ -1,7 +1,9 @@
 ---
 title: "Identyfikacja docelowych odbiorców pożyczki"
 author: "Julia Labuda (191145), Wojciech Zgliniecki (154790)"
-output: github_document
+output:
+  html_document: default
+  github_document: default
 editor_options:
   markdown:
     wrap: 72
@@ -42,3 +44,8 @@ global_data <- list()
 ```{r child = 'sections/visualizations.Rmd'}
 ```
 
+```{r child = 'sections/analiza_statystyczna.Rmd'}
+```
+
+```{r child = 'sections/outro.Rmd'}
+```
