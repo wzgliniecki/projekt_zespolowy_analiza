@@ -1,0 +1,44 @@
+---
+title: "Identyfikacja docelowych odbiorców pożyczki"
+author: "Julia Labuda (191145), Wojciech Zgliniecki (154790)"
+output: github_document
+editor_options:
+  markdown:
+    wrap: 72
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+
+# Ustaw mirror CRAN aby zapewnić, że instalacja pakietów działa
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Użyj pakietu here aby ustalić katalog główny projektu (gdzie znajduje się plik .Rproj)
+# Zapewnia to spójny katalog roboczy we wszystkich sekcjach
+if (!requireNamespace("here", quietly = TRUE)) {
+  install.packages("here", repos = "https://cloud.r-project.org")
+}
+library(here)
+
+# Ustaw katalog roboczy na katalog główny projektu
+setwd(here::here())
+
+# Globalne przechowywanie danych - będą załadowane w sekcji data_loading
+# i udostępnione wszystkim kolejnym sekcjom
+global_data <- list()
+```
+
+
+```{r child = 'sections/intro.Rmd'}
+```
+
+
+```{r child = 'sections/missing_data_analysis.Rmd'}
+```
+
+
+```{r child = 'sections/visualizations.Rmd'}
+```
+

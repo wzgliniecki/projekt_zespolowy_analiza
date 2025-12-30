@@ -1,11 +1,10 @@
-# projekt_zespolowy_analiza
-Projekt zespołowy - Analiza danych w R
+# Projekt zespołowy - analiza danych
+Analiza danych kredytowych 
 =======================================
 ## Opis Projektu:
-Celem tego projektu jest analiza danych i nauka ekosystemu R.
+Celem tego projektu jest analiza i wizualizacja danych kredytowych.
 
-## Od Julii:
-Pozdrawiam Was serdecznie!
-
-## Od Weroniki:
-Cześć!
+Główne etapy:
+- Czyszczenie danych
+- Wizualizacja
+- Analiza statystyczna
