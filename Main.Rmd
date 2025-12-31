@@ -26,10 +26,6 @@ library(here)
 
 # Ustaw katalog roboczy na katalog główny projektu
 setwd(here::here())
-
-# Globalne przechowywanie danych - będą załadowane w sekcji data_loading
-# i udostępnione wszystkim kolejnym sekcjom
-global_data <- list()
 ```
 
 
