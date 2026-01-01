@@ -3,4 +3,246 @@
 W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze danych, aby lepiej zrozumieć rozkłady i powiązania między zmiennymi a statusem kontraktu.
 
 ### Statystyki Opisowe - Zmienne Numeryczne
-TODO
+
+```{r podstawowe_statystyki}
+library(dplyr)
+library(moments) # dla kurtozy i skośności
+library(knitr)
+
+# Wybór kluczowych zmiennych numerycznych
+numeric_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
+                  "AMT_DOWN_PAYMENT", "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT",
+                  "DAYS_DECISION", "CNT_PAYMENT", "DAYS_FIRST_DRAWING",
+                  "DAYS_FIRST_DUE", "DAYS_LAST_DUE", "DAYS_TERMINATION")
+
+# Funkcja do obliczenia wszystkich statystyk
+calculate_stats <- function(x) {
+  x_clean <- x[!is.na(x) & !is.infinite(x)]
+  
+  result <- c(
+    Mean = ifelse(length(x_clean) == 0, NA, mean(x_clean)),
+    Median = ifelse(length(x_clean) == 0, NA, median(x_clean)),
+    SD = ifelse(length(x_clean) == 0, NA, sd(x_clean)),
+    Min = ifelse(length(x_clean) == 0, NA, min(x_clean)),
+    Max = ifelse(length(x_clean) == 0, NA, max(x_clean)),
+    Skewness = ifelse(length(x_clean) == 0, NA, skewness(x_clean)),
+    Kurtosis = ifelse(length(x_clean) == 0, NA, kurtosis(x_clean)),
+    Q1 = ifelse(length(x_clean) == 0, NA, quantile(x_clean, 0.25)),
+    Q3 = ifelse(length(x_clean) == 0, NA, quantile(x_clean, 0.75))
+  )
+  
+  return(result)
+}
+
+# Obliczenie statystyk dla każdej zmiennej - używamy dane_clean zamiast ładować ponownie
+stats_summary <- dane_clean %>%
+  select(all_of(numeric_vars[numeric_vars %in% names(dane_clean)])) %>%
+  summarise(across(everything(), ~list(calculate_stats(.)))) %>%
+  tidyr::pivot_longer(everything(), names_to = "variable", values_to = "stats") %>%
+  tidyr::unnest_wider(stats)
+
+kable(stats_summary, digits = 2, caption = "Podstawowe statystyki opisowe zmiennych numerycznych")
+```
+
+### Standaryzacja Zmiennych - Wartości Z
+
+```{r standaryzacja_zmiennych}
+# Przygotowanie danych - fokus na zmiennych związanych z kwotami i ratami
+key_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
+              "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
+
+# Filtracja do istniejących kolumn
+key_vars_exist <- key_vars[key_vars %in% names(dane_clean)]
+
+# Standaryzacja (Z-score) GLOBALNIE na całym zbiorze danych - używamy dane_clean
+data_for_standardization <- dane_clean %>%
+  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+  select(NAME_CONTRACT_STATUS, all_of(key_vars_exist))
+
+# Standaryzacja każdej zmiennej globalnie (bez grupowania)
+data_standardized <- data_for_standardization %>%
+  mutate(across(all_of(key_vars_exist), 
+                ~ scale(.)[,1], 
+                .names = "Z_{.col}"))
+
+# Obliczenie średnich wartości Z dla każdego statusu
+z_summary <- data_standardized %>%
+  group_by(NAME_CONTRACT_STATUS) %>%
+  summarise(across(starts_with("Z_"), 
+                   ~ mean(., na.rm = TRUE), 
+                   .names = "{.col}"))
+
+kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
+```
+
+### Testy Istotności Statystycznej (t-test)
+
+Sprawdzamy, czy obserwowane różnice między zatwierdzonymi a odrzuconymi wnioskami są statystycznie istotne.
+
+```{r testy_t_studenta}
+# Przygotowanie danych dla testów
+approved_data <- data_for_standardization %>% filter(NAME_CONTRACT_STATUS == "Approved")
+refused_data <- data_for_standardization %>% filter(NAME_CONTRACT_STATUS == "Refused")
+
+# Wykonanie testów t-Studenta dla każdej zmiennej
+t_test_results <- data.frame(
+  Variable = character(),
+  t_statistic = numeric(),
+  p_value = numeric(),
+  mean_approved = numeric(),
+  mean_refused = numeric(),
+  significant = character(),
+  stringsAsFactors = FALSE
+)
+
+for (var in key_vars_exist) {
+  # Pobierz dane dla zmiennej i usuń NA
+  approved_vals <- approved_data[[var]][!is.na(approved_data[[var]])]
+  refused_vals <- refused_data[[var]][!is.na(refused_data[[var]])]
+  
+  # Sprawdź czy są wystarczające dane (minimum 2 obserwacje w każdej grupie)
+  if (length(approved_vals) >= 2 && length(refused_vals) >= 2) {
+    # Wykonaj test t-Studenta
+    test_result <- t.test(approved_vals, refused_vals)
+    
+    # Dodaj wyniki do tabeli
+    t_test_results <- rbind(t_test_results, data.frame(
+      Variable = var,
+      t_statistic = test_result$statistic,
+      p_value = test_result$p.value,
+      mean_approved = mean(approved_vals),
+      mean_refused = mean(refused_vals),
+      significant = ifelse(test_result$p.value < 0.001, "***", 
+                          ifelse(test_result$p.value < 0.01, "**",
+                                ifelse(test_result$p.value < 0.05, "*", "ns")))
+    ))
+  } else {
+    # Nie ma wystarczających danych dla testu
+    t_test_results <- rbind(t_test_results, data.frame(
+      Variable = var,
+      t_statistic = NA,
+      p_value = NA,
+      mean_approved = mean(approved_data[[var]], na.rm = TRUE),
+      mean_refused = mean(refused_data[[var]], na.rm = TRUE),
+      significant = "N/A"
+    ))
+  }
+}
+
+# Sortuj według wartości p
+t_test_results <- t_test_results %>% arrange(p_value)
+
+kable(t_test_results, digits = 4, 
+      caption = "Wyniki testów t-Studenta: Approved vs Refused (*** p<0.001, ** p<0.01, * p<0.05, ns = not significant)")
+```
+
+### Wizualizacja Rozkładów Kwot według Statusu
+
+```{r boxplot_kwoty_status, fig.width=12, fig.height=8}
+library(ggplot2)
+
+# Przygotowanie danych w formacie długim
+plot_data <- data_for_standardization %>%
+  select(NAME_CONTRACT_STATUS, AMT_APPLICATION, AMT_CREDIT, AMT_ANNUITY, AMT_GOODS_PRICE) %>%
+  tidyr::pivot_longer(cols = -NAME_CONTRACT_STATUS, 
+                      names_to = "Variable", 
+                      values_to = "Amount") %>%
+  filter(!is.na(Amount) & Amount > 0)
+
+# Boxplot z logarytmiczną skalą (ze względu na duży rozrzut wartości)
+ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS, y = Amount, fill = NAME_CONTRACT_STATUS)) +
+  geom_boxplot(outlier.alpha = 0.3, outlier.size = 1) +
+  facet_wrap(~ Variable, scales = "free_y", ncol = 2) +
+  scale_y_log10(labels = scales::comma) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  labs(
+    title = "Rozkład kwot finansowych według statusu kontraktu",
+    subtitle = "Skala logarytmiczna - porównanie median i rozrzutu wartości",
+    x = "Status kontraktu",
+    y = "Kwota (skala logarytmiczna)",
+    fill = "Status"
+  ) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+### Porównanie Wartości Z-score między Grupami
+
+```{r wykres_z_scores, fig.width=10, fig.height=6}
+# Wykres słupkowy porównujący średnie wartości Z
+z_plot_data <- data_standardized %>%
+  select(NAME_CONTRACT_STATUS, starts_with("Z_")) %>%
+  group_by(NAME_CONTRACT_STATUS) %>%
+  summarise(across(starts_with("Z_"), ~ mean(., na.rm = TRUE))) %>%
+  tidyr::pivot_longer(cols = starts_with("Z_"), 
+                      names_to = "Variable", 
+                      values_to = "Mean_Z") %>%
+  mutate(Variable = gsub("Z_", "", Variable))
+
+ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS)) +
+  geom_col(position = "dodge", color = "black", size = 0.3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", size = 0.8) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  labs(
+    title = "Średnie wartości Z-score według statusu kontraktu",
+    subtitle = "Wartości dodatnie = powyżej średniej globalnej, ujemne = poniżej średniej",
+    x = "Zmienna",
+    y = "Średnia wartość Z-score",
+    fill = "Status kontraktu"
+  ) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10)
+  ) +
+  coord_flip()
+```
+
+### Interpretacja Wyników
+
+#### Kluczowe Różnice między Grupami Statusów
+
+Analiza wartości Z-score ujawnia **istotne różnice** w profilach finansowych wniosków kredytowych w zależności od decyzji banku:
+
+**1. Odrzucone wnioski (Refused) charakteryzują się:**
+
+- **Wyższymi kwotami wnioskowanymi** - wartość Z dla AMT_APPLICATION wynosi 0.545 (ponad pół odchylenia standardowego powyżej średniej), podczas gdy dla zatwierdzonych wynosi jedynie 0.015
+- **Wyższymi kwotami kredytu** - Z_AMT_CREDIT = 0.561 vs 0.017 dla zatwierdzonych
+- **Droższymi towarami** - Z_AMT_GOODS_PRICE = 0.488 vs -0.132 dla zatwierdzonych
+- **Wyższymi ratami** - Z_AMT_ANNUITY = 0.296 vs -0.077 dla zatwierdzonych
+
+**2. Zatwierdzone wnioski (Approved) charakteryzują się:**
+
+- Wartościami bliskimi średniej globalnej (wartości Z bliskie 0)
+- **Niższymi cenami towarów** - Z = -0.132 (poniżej średniej)
+- **Wyższym wskaźnikiem wkładu własnego** - Z_RATE_DOWN_PAYMENT = 0.026 vs -0.199 dla odrzuconych
+
+**3. Anulowane wnioski (Canceled) wyróżniają się:**
+
+- **Bardzo wysokimi cenami towarów** - Z = 1.381 (najwyższa wartość ze wszystkich grup!)
+- **Bardzo niskimi kwotami kredytu** - Z_AMT_CREDIT = -0.552
+- **Wysokimi ratami** - Z_AMT_ANNUITY = 0.983
+
+Ta rozbieżność sugeruje, że **klienci często anulują wnioski, gdy bank przyznaje znacznie niższe kwoty** niż wnioskowane (szczególnie przy drogich towarach).
+
+#### Wnioski Biznesowe
+
+1. **Wysokość wnioskowanej kwoty jest kluczowym czynnikiem odrzucenia** - różnica -0.545 w Z-score dla AMT_CREDIT między zatwierdzonymi a odrzuconymi wskazuje, że bank konsekwentnie odrzuca wnioski o wyższe kredyty.
+
+2. **Rozsądna wycena towaru zwiększa szansę zatwierdzenia** - różnica -0.620 dla AMT_GOODS_PRICE pokazuje, że wnioski dotyczące droższych produktów są częściej odrzucane.
+
+3. **Wkład własny ma znaczenie** - choć różnica jest mniejsza (0.225), wyższy RATE_DOWN_PAYMENT koreluje pozytywnie z zatwierdzeniem.
+
+4. **Zmienność w grupach** - odrzucone wnioski mają największe odchylenia standardowe (SD > 1.4 dla kwot), co wskazuje na bardzo zróżnicowany profil odrzuconych klientów.
+
+#### Obserwacje dotyczące rozkładów
+
+Wartości **kurtozy > 3** w podstawowych statystykach sygnalizują rozkłady leptokurtyczne (z ciężkimi ogonami), co wskazuje na obecność:
+- Wartości ekstremalnych w danych kredytowych
+- Segmentów klientów o bardzo różnych potrzebach finansowych  
+- Potrzebę ostrożności przy modelowaniu - średnie mogą nie być reprezentatywne dla całej populacji

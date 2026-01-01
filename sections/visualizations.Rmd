@@ -116,15 +116,35 @@ ggplot(dane_clean, aes(x = CNT_PAYMENT, fill = NAME_CONTRACT_STATUS_PL)) +
 6. Interaktywny scatter plot (plotly)
 Kwota kredytu vs. liczba rat, kolor = status.
 
-> **Nota:** Ten wykres jest interaktywny i widoczny tylko w wersji HTML.
-
 ```{r wykres_interaktywny_scatter}
-plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
-        color = ~NAME_CONTRACT_STATUS_PL, type = "scatter", mode = "markers") %>%
-  layout(
-    xaxis = list(title = "Liczba rat"),
-    yaxis = list(title = "Kwota kredytu")
-  )
+# Sprawdź format wyjściowy
+is_html_output <- knitr::is_html_output()
+
+if (is_html_output) {
+  # Renderuj interaktywny wykres plotly dla HTML
+  p <- plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
+          color = ~NAME_CONTRACT_STATUS_PL, type = "scatter", mode = "markers") %>%
+    layout(
+      xaxis = list(title = "Liczba rat"),
+      yaxis = list(title = "Kwota kredytu")
+    )
+  
+  # === SAVE PLOT TO FILE (comment out after first run) ===
+  # Create a static ggplot version for placeholder
+  # library(ggplot2)
+  # p_static <- ggplot(dane_clean, aes(x = CNT_PAYMENT, y = AMT_CREDIT, color = NAME_CONTRACT_STATUS_PL)) +
+  #   geom_point(alpha = 0.5) +
+  #   labs(x = "Liczba rat", y = "Kwota kredytu", color = "Status kontraktu", 
+  #        title = "Kwota kredytu vs. liczba rat (wersja statyczna)") +
+  #   theme_minimal()
+  # ggsave("../placeholder_images/placeholder_scatter.png", p_static, width = 10, height = 6, dpi = 150, create.dir = TRUE)
+  # ========================================================
+  
+  p
+} else {
+  # Użyj placeholder dla markdown
+  knitr::include_graphics("../placeholder_images/placeholder_scatter.png")
+}
 ```
 
 7. Heatmapa korelacji zmiennych liczbowych
@@ -139,20 +159,43 @@ corrplot(corr_matrix, method = "color", type = "upper", tl.cex = 0.6)
 8. Sankey diagram
 Pokazuje przepływ między typem produktu a statusem kontraktu.
 
-> **Nota:** Ten diagram jest interaktywny i widoczny tylko w wersji HTML.
-
 ```{r diagram_sankey}
-links <- dane_clean %>%
-  count(NAME_PRODUCT_TYPE_PL, NAME_CONTRACT_STATUS_PL, name = "Value") %>%
-  rename(Source = NAME_PRODUCT_TYPE_PL, Target = NAME_CONTRACT_STATUS_PL)
+# Sprawdź format wyjściowy
+is_html_output <- knitr::is_html_output()
 
-nodes <- data.frame(name = unique(c(links$Source, links$Target)))
-
-links$Source <- match(links$Source, nodes$name) - 1
-links$Target <- match(links$Target, nodes$name) - 1
-
-sankeyNetwork(Links = links, Nodes = nodes,
-              Source = "Source", Target = "Target",
-              Value = "Value", NodeID = "name",
-              fontSize = 12, nodeWidth = 30)
+if (is_html_output) {
+  # Renderuj interaktywny diagram Sankey dla HTML
+  links <- dane_clean %>%
+    count(NAME_PRODUCT_TYPE_PL, NAME_CONTRACT_STATUS_PL, name = "Value") %>%
+    rename(Source = NAME_PRODUCT_TYPE_PL, Target = NAME_CONTRACT_STATUS_PL)
+  
+  nodes <- data.frame(name = unique(c(links$Source, links$Target)))
+  
+  links$Source <- match(links$Source, nodes$name) - 1
+  links$Target <- match(links$Target, nodes$name) - 1
+  
+  s <- sankeyNetwork(Links = links, Nodes = nodes,
+                Source = "Source", Target = "Target",
+                Value = "Value", NodeID = "name",
+                fontSize = 12, nodeWidth = 30)
+  
+  # === SAVE PLOT TO FILE (comment out after first run) ===
+  # Create a static ggplot version for placeholder (Sankey is complex, so just save a simple bar chart)
+  # library(ggplot2)
+  # s_static <- dane_clean %>%
+  #   count(NAME_PRODUCT_TYPE_PL, NAME_CONTRACT_STATUS_PL) %>%
+  #   ggplot(aes(x = NAME_PRODUCT_TYPE_PL, y = n, fill = NAME_CONTRACT_STATUS_PL)) +
+  #   geom_col(position = "stack") +
+  #   labs(x = "Typ produktu", y = "Liczba", fill = "Status kontraktu",
+  #        title = "Typ produktu vs. status kontraktu (wersja statyczna)") +
+  #   theme_minimal() +
+  #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  # ggsave("../placeholder_images/placeholder_sankey.png", s_static, width = 10, height = 6, dpi = 150, create.dir = TRUE)
+  # ========================================================
+  
+  s
+} else {
+  # Użyj placeholder dla markdown
+  knitr::include_graphics("../placeholder_images/placeholder_sankey.png")
+}
 ```
