@@ -235,8 +235,6 @@ Zamiast porównywania tylko Approved vs Refused, przeprowadzamy ANOVA aby zbada�
 
 ```{r anova_analysis, error=TRUE}
 tryCatch({
-  library(multcomp)
-  
   # Sprawdź czy dane są dostępne
   cat("=== DEBUG INFO: anova_analysis chunk ===\n")
   cat("dane exists:", exists("dane"), "\n")
@@ -263,7 +261,7 @@ tryCatch({
   }
 
 # Przygotowanie danych dla ANOVA
-data_for_anova <- dane_clean %>%
+data_for_anova <- dane %>%
   filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
   select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
   mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
@@ -309,6 +307,9 @@ anova_results <- anova_results %>% arrange(p_value)
 
 kable(anova_results, digits = 4,
       caption = "Wyniki ANOVA: Zmienne numeryczne vs Status Kontraktu (*** p<0.001, ** p<0.01, * p<0.05)")
+}, error = function(e) {
+  cat("Error w anova_analysis:", e$message, "\n")
+})
 ```
 
 ### Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
@@ -321,6 +322,17 @@ if(!exists("anova_results") || nrow(anova_results) == 0) {
   key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
                       "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
   key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
+  
+  # Inicjalizuj anova_results
+  anova_results <- data.frame(
+    Variable = character(),
+    F_statistic = numeric(),
+    p_value = numeric(),
+    df_between = numeric(),
+    df_within = numeric(),
+    significant = character(),
+    stringsAsFactors = FALSE
+  )
   
   data_for_anova <- dane %>%
     filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
@@ -363,8 +375,8 @@ if(length(significant_vars) > 0) {
     if(!exists("data_for_anova")) {
       key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
                           "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
-      key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane_clean)]
-      data_for_anova <- dane_clean %>%
+      key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
+      data_for_anova <- dane %>%
         filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
         select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
         mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
@@ -444,8 +456,8 @@ z_plot_data <- data_standardized %>%
   mutate(Variable = gsub("Z_", "", Variable))
 
 ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS)) +
-  geom_col(position = "dodge", color = "black", size = 0.3) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red", size = 0.8) +
+  geom_col(position = "dodge", color = "black", linewidth = 0.3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
   scale_fill_brewer(palette = "Set2") +
   theme_minimal() +
   labs(
