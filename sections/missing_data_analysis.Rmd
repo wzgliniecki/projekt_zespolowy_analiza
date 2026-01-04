@@ -286,12 +286,11 @@ dane_clean <- dane %>%
     PRODUCT_COMBINATION = replace_na(PRODUCT_COMBINATION, "Unknown")
   ) %>%
 
-  # 5. Czyszczenie AMT_APPLICATION
+  # 5. Czyszczenie AMT_APPLICATION - imputacja z AMT_CREDIT jeśli dostępne
   mutate(
     AMT_APPLICATION = case_when(
-      AMT_APPLICATION == 0 & AMT_CREDIT == 0 ~ NA_real_,       # brak danych
       AMT_APPLICATION == 0 & AMT_CREDIT > 0 ~ AMT_CREDIT,      # imputacja z przyznanej kwoty
-      TRUE ~ AMT_APPLICATION                                   # pozostaw bez zmian
+      TRUE ~ AMT_APPLICATION                                   # pozostaw bez zmian (w tym 0)
     )
   )
 
