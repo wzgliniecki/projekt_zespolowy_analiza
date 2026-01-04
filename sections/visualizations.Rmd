@@ -42,14 +42,14 @@ product_type_map <- c(
 # Wszystkie transformacje w jednym miejscu
 dane_clean <- dane_clean %>%
   mutate(
-    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map),
-    NAME_CLIENT_TYPE_PL = dplyr::recode(NAME_CLIENT_TYPE, !!!client_map),
+    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map, .default = NAME_CONTRACT_STATUS),
+    NAME_CLIENT_TYPE_PL = dplyr::recode(NAME_CLIENT_TYPE, !!!client_map, .default = NAME_CLIENT_TYPE),
     WEEKDAY_PL = factor(
-      dplyr::recode(WEEKDAY_APPR_PROCESS_START, !!!days_map),
+      dplyr::recode(WEEKDAY_APPR_PROCESS_START, !!!days_map, .default = WEEKDAY_APPR_PROCESS_START),
       levels = c("Poniedziałek", "Wtorek", "Środa", "Czwartek",
                  "Piątek", "Sobota", "Niedziela")
     ),
-    NAME_PRODUCT_TYPE_PL = dplyr::recode(NAME_PRODUCT_TYPE, !!!product_type_map)
+    NAME_PRODUCT_TYPE_PL = dplyr::recode(NAME_PRODUCT_TYPE, !!!product_type_map, .default = NAME_PRODUCT_TYPE)
   )
 ```
 

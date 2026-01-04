@@ -34,9 +34,9 @@ calculate_stats <- function(x) {
   return(result)
 }
 
-# Obliczenie statystyk dla każdej zmiennej - używamy dane_clean zamiast ładować ponownie
-stats_summary <- dane_clean %>%
-  select(all_of(numeric_vars[numeric_vars %in% names(dane_clean)])) %>%
+# Obliczenie statystyk dla każdej zmiennej
+stats_summary <- dane %>%
+  select(all_of(numeric_vars[numeric_vars %in% names(dane)])) %>%
   summarise(across(everything(), ~list(calculate_stats(.)))) %>%
   tidyr::pivot_longer(everything(), names_to = "variable", values_to = "stats") %>%
   tidyr::unnest_wider(stats)
@@ -52,10 +52,10 @@ key_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT",
               "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
 
 # Filtracja do istniejących kolumn
-key_vars_exist <- key_vars[key_vars %in% names(dane_clean)]
+key_vars_exist <- key_vars[key_vars %in% names(dane)]
 
-# Standaryzacja (Z-score) GLOBALNIE na całym zbiorze danych - używamy dane_clean
-data_for_standardization <- dane_clean %>%
+# Standaryzacja (Z-score) GLOBALNIE na całym zbiorze danych - używamy dane
+data_for_standardization <- dane %>%
   filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
   select(NAME_CONTRACT_STATUS, all_of(key_vars_exist))
 
@@ -73,6 +73,99 @@ z_summary <- data_standardized %>%
                    .names = "{.col}"))
 
 kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
+```
+
+### Macierz Korelacji - Zmienne Numeryczne
+
+```{r korelacja_zmiennych, fig.width=10, fig.height=8}
+library(corrplot)
+
+# Przygotowanie danych do analizy korelacji
+data_for_correlation <- dane %>%
+  select(all_of(key_vars_exist)) %>%
+  filter(complete.cases(.))
+
+# Obliczenie macierzy korelacji
+cor_matrix <- cor(data_for_correlation, method = "pearson", use = "complete.obs")
+
+# Wizualizacja macierzy korelacji
+par(mar = c(5, 5, 5, 5))
+corrplot(cor_matrix, 
+         method = "color", 
+         type = "upper",
+         order = "hclust",
+         tl.col = "black",
+         tl.srt = 45,
+         addCoef.col = "black",
+         diag = TRUE,
+         number.cex = 0.8,
+         main = "Macierz Korelacji Pearsona - Zmienne Numeryczne")
+
+# Tabela korelacji
+cor_df <- as.data.frame(cor_matrix) %>%
+  rownames_to_column("Zmienna1") %>%
+  pivot_longer(cols = -Zmienna1, names_to = "Zmienna2", values_to = "Korelacja") %>%
+  filter(Zmienna1 < Zmienna2) %>%
+  arrange(desc(abs(Korelacja)))
+
+kable(cor_df, digits = 3, caption = "Współczynniki korelacji między zmiennymi (posortowane malejąco)")
+```
+
+**Interpretacja:** Wysokie korelacje (>0.7 lub <-0.7) sugerują multikolinearność, którą należy uwzględnić w modelowaniu.
+
+### Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
+
+```{r testy_chi_kwadrat}
+library(vcd)
+
+# Zmienne kategoryczne do analizy
+categorical_vars <- c("NAME_CONTRACT_TYPE", "NAME_CLIENT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR")
+categorical_vars_exist <- categorical_vars[categorical_vars %in% names(dane)]
+
+# Przygotowanie danych dla testów chi-kwadrat
+data_for_chi <- dane %>%
+  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+  select(NAME_CONTRACT_STATUS, all_of(categorical_vars_exist))
+
+# Wykonanie testów chi-kwadrat
+chi_test_results <- data.frame(
+  Variable = character(),
+  Chi_Square = numeric(),
+  p_value = numeric(),
+  df = numeric(),
+  significant = character(),
+  stringsAsFactors = FALSE
+)
+
+for (var in categorical_vars_exist) {
+  contingency_table <- table(data_for_chi[[var]], data_for_chi$NAME_CONTRACT_STATUS)
+  test_result <- chisq.test(contingency_table)
+  
+  chi_test_results <- rbind(chi_test_results, data.frame(
+    Variable = var,
+    Chi_Square = test_result$statistic,
+    p_value = test_result$p.value,
+    df = test_result$parameter,
+    significant = ifelse(test_result$p.value < 0.001, "***", 
+                        ifelse(test_result$p.value < 0.01, "**",
+                              ifelse(test_result$p.value < 0.05, "*", "ns")))
+  ))
+}
+
+chi_test_results <- chi_test_results %>% arrange(p_value)
+
+kable(chi_test_results, digits = 4, 
+      caption = "Wyniki testów Chi-kwadrat: Zmienne kategoryczne vs Status Kontraktu")
+
+# Pokaż tablicę krzyżową dla najważniejszej zmiennej
+if(nrow(chi_test_results) > 0) {
+  most_significant_var <- chi_test_results$Variable[1]
+  contingency_most_sig <- table(data_for_chi[[most_significant_var]], data_for_chi$NAME_CONTRACT_STATUS)
+  contingency_prop <- round(prop.table(contingency_most_sig, margin = 1) * 100, 2)
+  
+  kable(contingency_prop, 
+        caption = paste("Rozkład procentowy statusów dla", most_significant_var, "(% w wierszach)"))
+}
 ```
 
 ### Testy Istotności Statystycznej (t-test)
@@ -134,6 +227,173 @@ t_test_results <- t_test_results %>% arrange(p_value)
 
 kable(t_test_results, digits = 4, 
       caption = "Wyniki testów t-Studenta: Approved vs Refused (*** p<0.001, ** p<0.01, * p<0.05, ns = not significant)")
+```
+
+### Analiza Wariancji (ANOVA) - Porównanie wszystkich trzech grup statusów
+
+Zamiast porównywania tylko Approved vs Refused, przeprowadzamy ANOVA aby zbadać różnice między wszystkimi trzema grupami.
+
+```{r anova_analysis, error=TRUE}
+tryCatch({
+  library(multcomp)
+  
+  # Sprawdź czy dane są dostępne
+  cat("=== DEBUG INFO: anova_analysis chunk ===\n")
+  cat("dane exists:", exists("dane"), "\n")
+  if(exists("dane")) {
+    cat("dane class:", class(dane), "\n")
+    cat("dane nrows:", nrow(dane), "\n")
+    cat("dane colnames:", paste(names(dane)[1:10], collapse=", "), "...\n")
+  }
+  
+  if(!exists("dane") || nrow(dane) == 0) {
+    stop("dane nie jest dostępna. Sprawdź czy dane zostały wczytane w sekcji missing_data_analysis.")
+  }
+  
+  # Redefiniuj zmienne na wypadek braku dostępu ze wcześniejszych chunks
+  key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
+                      "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
+  key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
+  
+  cat("key_vars_anova found:", length(key_vars_anova), "zmienne\n")
+  cat("key_vars_anova:", paste(key_vars_anova, collapse=", "), "\n")
+  
+  if(length(key_vars_anova) == 0) {
+    stop("Żadna ze zmiennych ANOVA nie istnieje w danych")
+  }
+
+# Przygotowanie danych dla ANOVA
+data_for_anova <- dane_clean %>%
+  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+  select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
+  mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
+
+# Wykonanie ANOVA dla każdej zmiennej
+anova_results <- data.frame(
+  Variable = character(),
+  F_statistic = numeric(),
+  p_value = numeric(),
+  df_between = numeric(),
+  df_within = numeric(),
+  significant = character(),
+  stringsAsFactors = FALSE
+)
+
+for (var in key_vars_anova) {
+  # Usuń NA wartości
+  data_clean_var <- data_for_anova %>%
+    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
+    filter(!is.na(!!sym(var)))
+  
+  if(nrow(data_clean_var) > 3) {
+    # Przeprowadź ANOVA
+    anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
+    anova_summary <- summary(anova_model)[[1]]
+    
+    # Dodaj wyniki
+    anova_results <- rbind(anova_results, data.frame(
+      Variable = var,
+      F_statistic = anova_summary["NAME_CONTRACT_STATUS", "F value"],
+      p_value = anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"],
+      df_between = anova_summary["NAME_CONTRACT_STATUS", "Df"],
+      df_within = anova_summary["Residuals", "Df"],
+      significant = ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.001, "***",
+                          ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.01, "**",
+                                ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.05, "*", "ns")))
+    ))
+  }
+}
+
+# Sortuj według wartości p
+anova_results <- anova_results %>% arrange(p_value)
+
+kable(anova_results, digits = 4,
+      caption = "Wyniki ANOVA: Zmienne numeryczne vs Status Kontraktu (*** p<0.001, ** p<0.01, * p<0.05)")
+```
+
+### Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
+
+Dla zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
+
+```{r post_hoc_tukey, warning=FALSE}
+# Sprawdź czy anova_results istnieje, jeśli nie przeprowadź ANOVA ponownie
+if(!exists("anova_results") || nrow(anova_results) == 0) {
+  key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
+                      "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
+  key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
+  
+  data_for_anova <- dane %>%
+    filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+    select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
+    mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
+  
+  # Jeśli wyniki ANOVA nie są dostępne, przelicz ANOVA na bieżące dane
+  for (var in key_vars_anova) {
+    data_clean_var <- data_for_anova %>%
+      select(NAME_CONTRACT_STATUS, all_of(var)) %>%
+      filter(!is.na(!!sym(var)))
+    
+    if(nrow(data_clean_var) > 3) {
+      anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
+      anova_summary <- summary(anova_model)[[1]]
+      
+      anova_results <- rbind(anova_results, data.frame(
+        Variable = var,
+        F_statistic = anova_summary["NAME_CONTRACT_STATUS", "F value"],
+        p_value = anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"],
+        df_between = anova_summary["NAME_CONTRACT_STATUS", "Df"],
+        df_within = anova_summary["Residuals", "Df"],
+        significant = ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.001, "***",
+                            ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.01, "**",
+                                  ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.05, "*", "ns")))
+      ))
+    }
+  }
+  anova_results <- anova_results %>% arrange(p_value)
+}
+
+# Przeprowadzenie testów Tukey'a HSD dla zmiennych istotnych (p < 0.05)
+significant_vars <- anova_results %>%
+  filter(p_value < 0.05) %>%
+  pull(Variable)
+
+if(length(significant_vars) > 0) {
+  for (var in significant_vars[1:min(3, length(significant_vars))]) {
+    # Przygotuj dane jeśli nie istnieją
+    if(!exists("data_for_anova")) {
+      key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
+                          "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
+      key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane_clean)]
+      data_for_anova <- dane_clean %>%
+        filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+        select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
+        mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
+    }
+    
+    data_clean_var <- data_for_anova %>%
+      select(NAME_CONTRACT_STATUS, all_of(var)) %>%
+      filter(!is.na(!!sym(var)))
+    
+    # ANOVA model
+    anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
+    
+    # Tukey HSD test
+    tukey_result <- TukeyHSD(anova_model)
+    
+    # Konwertuj na tabelę
+    tukey_df <- as.data.frame(tukey_result[["NAME_CONTRACT_STATUS"]]) %>%
+      rownames_to_column("Comparison")
+    tukey_df$significant <- ifelse(tukey_df$`p adj` < 0.001, "***",
+                                   ifelse(tukey_df$`p adj` < 0.01, "**",
+                                          ifelse(tukey_df$`p adj` < 0.05, "*", "ns")))
+    
+    cat("\n\n**Test Tukey'a HSD dla zmiennej:", var, "\n\n")
+    print(kable(tukey_df, digits = 4,
+          caption = paste("Post-hoc: porównania pairwise dla", var)))
+  }
+} else {
+  cat("Brak zmiennych istotnych statystycznie (p < 0.05) dla testów post-hoc.")
+}
 ```
 
 ### Wizualizacja Rozkładów Kwot według Statusu
@@ -230,6 +490,16 @@ Analiza wartości Z-score ujawnia **istotne różnice** w profilach finansowych 
 
 Ta rozbieżność sugeruje, że **klienci często anulują wnioski, gdy bank przyznaje znacznie niższe kwoty** niż wnioskowane (szczególnie przy drogich towarach).
 
+#### Obserwacje ze standardowych testów statystycznych
+
+**Test t-Studenta** (Approved vs Refused) pokazuje, że różnice między obiema grupami są statystycznie istotne dla większości zmiennych finansowych.
+
+**ANOVA i test Tukey'a HSD** ujawniają bardziej złożony obraz, porównując wszystkie trzy grupy statusów jednocześnie. Wyniki post-hoc testów wskazują, które pary grup statusów różnią się znacząco i czy różnice są praktycznie istotne.
+
+**Testy Chi-kwadrat** dla zmiennych kategorycznych pokazują, czy rozkład kategorii różni się między statusami kontraktu. Wysokie statystyki chi-kwadrat wskazują na silne powiązanie między zmienną kategoryczną a decyzją kredytową.
+
+**Macierz korelacji** ujawnia multikolinearność między zmiennymi - zmienne wysoce skorelowane mogą zawierać redundantne informacje i wpływać na stabilność modeli predykcyjnych. Szczególnie ważne dla modelowania: zmienne mocno skorelowane z AMT_CREDIT mogą mieć ograniczoną dodatkową wartość predykcyjną.
+
 #### Wnioski Biznesowe
 
 1. **Wysokość wnioskowanej kwoty jest kluczowym czynnikiem odrzucenia** - różnica -0.545 w Z-score dla AMT_CREDIT między zatwierdzonymi a odrzuconymi wskazuje, że bank konsekwentnie odrzuca wnioski o wyższe kredyty.
@@ -246,3 +516,4 @@ Wartości **kurtozy > 3** w podstawowych statystykach sygnalizują rozkłady lep
 - Wartości ekstremalnych w danych kredytowych
 - Segmentów klientów o bardzo różnych potrzebach finansowych  
 - Potrzebę ostrożności przy modelowaniu - średnie mogą nie być reprezentatywne dla całej populacji
+

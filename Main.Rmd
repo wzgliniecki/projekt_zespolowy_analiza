@@ -11,8 +11,16 @@ always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+# Enable error display - don't stop on first error
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, error = TRUE)
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+
+# Increase error context for better debugging
+options(error = function() {
+  cat("\n=== DETAILED ERROR INFORMATION ===\n")
+  print(traceback(5))
+  cat("====================================\n")
+})
 
 # Ustaw mirror CRAN aby zapewnić, że instalacja pakietów działa
 options(repos = c(CRAN = "https://cloud.r-project.org"))
@@ -29,19 +37,19 @@ setwd(here::here())
 ```
 
 
-```{r child = 'sections/intro.Rmd'}
+```{r child_intro, child = 'sections/intro.Rmd'}
 ```
 
 
-```{r child = 'sections/missing_data_analysis.Rmd'}
+```{r child_missing_data, child = 'sections/missing_data_analysis.Rmd'}
 ```
 
 
-```{r child = 'sections/visualizations.Rmd'}
+```{r child_visualizations, child = 'sections/visualizations.Rmd'}
 ```
 
-```{r child = 'sections/analiza_statystyczna.Rmd'}
+```{r child_analiza_statystyczna, child = 'sections/analiza_statystyczna.Rmd'}
 ```
 
-```{r child = 'sections/outro.Rmd'}
+```{r child_outro, child = 'sections/outro.Rmd'}
 ```
