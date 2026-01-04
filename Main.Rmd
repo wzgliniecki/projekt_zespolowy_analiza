@@ -34,6 +34,9 @@ library(here)
 
 # Ustaw katalog roboczy na katalog główny projektu
 setwd(here::here())
+
+# Wykresy wyśrodkowane
+knitr::opts_chunk$set(fig.align = "center")
 ```
 
 
