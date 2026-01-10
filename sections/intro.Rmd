@@ -1,4 +1,4 @@
-# **Wstęp**
+# **Wprowadzenie**
 
 Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
 pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
@@ -12,7 +12,16 @@ strony ryzykują utratę potencjalnych zysków, jeśli odrzucą wnioski
 klientów zdolnych do spłaty, z drugiej - mogą ponieść straty finansowe,
 jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
 Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
-wskaźnikami niewypłacalności.
+wskaźnikami niewypłacalności. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
+
+-	Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo odmowy, anulowania lub niewykorzystania oferty?
+
+-	W jaki sposób status kontraktu (zatwierdzony, anulowany, odmowa, niewykorzystana oferta) odzwierciedla potencjalne trudności klienta ze spłatą rat?
+
+-	Czy istnieją wzorce w danych dotyczące liczby rat lub harmonogramu spłat, które mogą sygnalizować ryzyko problemów ze spłatą?
+
+-	Jakie kombinacje czynników (np. kwota kredytu + typ klienta + status kontraktu) najlepiej przewidują trudności ze spłatą?
+
 
 ### Dane
 
@@ -44,4 +53,5 @@ library(dplyr)
 library(forcats)
 library(corrplot)
 library(networkD3)
+library(scales)
 ```

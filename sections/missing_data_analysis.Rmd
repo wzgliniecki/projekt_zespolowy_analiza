@@ -48,7 +48,7 @@ Zmienne oznaczają kolejno:
 24. NAME_PORTFOLIO: Portfel produktu (np. CASH, POS, CAR)
 25. NAME_PRODUCT_TYPE: Typ produktu (np. cross-sell, walk-in)
 26. CHANNEL_TYPE: Kanał pozyskania klienta
-27. SELLERPLACE_AREA: Obszar sprzedaży poprzedniej aplikacj (miejsce)
+27. SELLERPLACE_AREA: Obszar sprzedaży poprzedniej aplikacji (miejsce)
 28. NAME_SELLER_INDUSTRY: Branża sprzedawcy
 29. CNT_PAYMENT: Liczba rat kredytu w aplikacji
 30. NAME_YIELD_GROUP: Grupa oprocentowania (niska, średnia, wysoka)
@@ -67,15 +67,15 @@ Kluczowym etapem przygotowania danych było zidentyfikowanie kolumn najbardziej 
 
 ```{r podsumowanie_brakow}
 missing_summary <- data.frame(
-  variable = names(dane),
-  n_missing = colSums(is.na(dane)),
-  perc_missing = colMeans(is.na(dane)) * 100
+  Nazwa_zmiennej = names(dane),
+  Liczba_NA = colSums(is.na(dane)),
+  Procent_NA = colMeans(is.na(dane)) * 100
 )
 missing_summary <- as_tibble(missing_summary)
 missing_summary_sorted <- missing_summary %>%
-  filter(n_missing>0)%>%
-  arrange(perc_missing)%>%
-  mutate(perc_missing = paste0(round(perc_missing, 2), "%"))
+  filter(Liczba_NA>0)%>%
+  arrange(Procent_NA)%>%
+  mutate(Procent_NA = paste0(round(Procent_NA, 2), "%"))
 missing_summary_sorted
 ```
 
@@ -95,7 +95,7 @@ Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów naniar oraz VIM
 
 ```{r wizualizuj_braki, fig.align='center'}
 kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
-missing_order <- missing_summary_sorted$variable
+missing_order <- missing_summary_sorted$Nazwa_zmiennej
 dane_sorted <- dane[, missing_order]
 vis_miss(dane_sorted, warn_large_data = FALSE)+
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
@@ -234,7 +234,6 @@ W większości przypadków są to kontrakty Anulowane/Odrzucone, gdzie brak kwot
 
 Jednak mamy też anomalię: zatwierdzone kontrakty z AMT_APPLICATION = 0, ale z dodatnią kwotą kredytu (AMT_CREDIT > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
 
-Strategia czyszczenia
 Jeśli AMT_APPLICATION = 0 i AMT_CREDIT = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
 
 Jeśli AMT_APPLICATION = 0 i AMT_CREDIT > 0, to imputujemy AMT_APPLICATION wartością z AMT_CREDIT. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
@@ -297,4 +296,3 @@ dane_clean <- dane %>%
 # Weryfikacja
 cat("Liczba pozostałych NA:", sum(is.na(dane_clean)), "\n")
 ```
-
