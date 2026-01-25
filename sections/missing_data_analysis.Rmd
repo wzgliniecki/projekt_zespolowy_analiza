@@ -2,7 +2,7 @@
 
 Proces analizy rozpoczęto od wczytania zbioru danych i wstępnego rozpoznania jego struktury.
 
-```{r zaladuj_dane}
+```{r zaladuj_dane, echo=FALSE}
 dane <- read_csv("../Data/previous_application_new.csv")
 ```
 
@@ -65,7 +65,7 @@ Zmienne oznaczają kolejno:
 
 Kluczowym etapem przygotowania danych było zidentyfikowanie kolumn najbardziej obciążonych brakami danych.
 
-```{r podsumowanie_brakow}
+```{r podsumowanie_brakow, echo=FALSE}
 missing_summary <- data.frame(
   Nazwa_zmiennej = names(dane),
   Liczba_NA = colSums(is.na(dane)),
@@ -93,7 +93,7 @@ Analiza wykazała, że 15 z 37 zmiennych posiada braki o różnym natężeniu:
 
 Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów naniar oraz VIM. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
 
-```{r wizualizuj_braki, fig.align='center'}
+```{r wizualizuj_braki, fig.align='center', echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
 missing_order <- missing_summary_sorted$Nazwa_zmiennej
 dane_sorted <- dane[, missing_order]

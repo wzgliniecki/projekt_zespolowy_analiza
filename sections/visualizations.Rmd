@@ -2,7 +2,7 @@
 
 Po przeprowadzeniu procesu czyszczenia danych kolejnym krokiem jest ich wizualna eksploracja. Wykresy umożliwiają szybkie uchwycenie zależności pomiędzy zmiennymi, identyfikację nietypowych obserwacji oraz porównanie rozkładów w różnych grupach klientów. Graficzne przedstawienie danych pozwala nie tylko na lepsze zrozumienie struktury zbioru, ale także na wskazanie czynników ryzyka, które mogą wpływać na decyzje kredytowe.
 
-```{r przygotowanie_danych_wizualizacje}
+```{r przygotowanie_danych_wizualizacje, echo=FALSE}
 library(tidyverse)
 
 # Przygotowanie danych: tworzenie zmiennych z polskimi etykietami
@@ -112,9 +112,9 @@ dane_clean <- dane_clean %>%
   )
 ```
 
-1. Rozkład statusów kontraktu
+1.  **Rozkład statusów kontraktu**
 
-```{r wykres_status_kontraktu}
+```{r wykres_status_kontraktu, echo=FALSE}
 # Podsumowanie danych z procentami
 status_summary <- dane_clean %>%
   count(NAME_CONTRACT_STATUS_PL) %>%
@@ -146,9 +146,9 @@ ggplot(status_summary, aes(x = fct_reorder(NAME_CONTRACT_STATUS_PL, n, .desc = T
 
 Wykres rozkładu statusów kontraktu pokazuje, że zdecydowana większość wniosków kończy się zatwierdzeniem, co sugeruje, że proces oceny zdolności kredytowej działa skutecznie i większość klientów spełnia wymagania instytucji finansowej. Jednocześnie widoczna jest znaczna liczba aplikacji anulowanych oraz odrzuconych, co wskazuje na obecność ryzyka w procesie decyzyjnym i sygnalizuje konieczność dalszej analizy czynników, które odróżniają te grupy od zatwierdzonych kontraktów. Niewielki udział niewykorzystanych ofert świadczy o tym, że sytuacje, w których klient nie skorzystał z przyznanego kredytu, są raczej incydentalne i nie mają dużego wpływu na ogólny obraz. Warto jednak pamiętać, że status „zatwierdzony” nie zawsze oznacza uruchomienie kredytu, ponieważ część takich wniosków nie posiada harmonogramu ani rat, co może wymagać dodatkowej segmentacji i odrębnego traktowania w dalszej analizie.
 
-2. Kwota kredytu vs. status kontraktu. Czy większe kwoty częściej kończą się odmową?
+2.  **Kwota kredytu vs. status kontraktu. Czy większe kwoty częściej kończą się odmową?**
 
-```{r wykres_kwota_wg_statusu, warning=FALSE}
+```{r wykres_kwota_wg_statusu, warning=FALSE, echo=FALSE}
 ggplot(dane_clean %>% filter(AMT_CREDIT > 0),
        aes(x = NAME_CONTRACT_STATUS_PL, y = AMT_CREDIT, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_boxplot() +
@@ -163,9 +163,9 @@ ggplot(dane_clean %>% filter(AMT_CREDIT > 0),
 
 Wykres pokazujący zależność między kwotą kredytu a statusem kontraktu ujawnia, że najwyższe kwoty pojawiają się wśród wniosków anulowanych. Oznacza to, że klienci często rezygnują z dużych zobowiązań jeszcze w trakcie procesu zatwierdzania – albo zmieniają zdanie co do pożyczki, albo nie akceptują gorszych warunków cenowych wynikających z wyższego ryzyka. Wnioski zatwierdzone obejmują szeroki zakres kwot, ale ich mediana jest niższa niż w anulowanych, co wskazuje, że w praktyce zatwierdzane są raczej kredyty średniej wielkości, a bardzo wysokie kwoty częściej kończą się rezygnacją. Odmowy dotyczą wniosków o kwoty wyższe niż przeciętne zatwierdzone, co sugeruje, że firma jest bardziej restrykcyjna wobec klientów starających się o większe kredyty i częściej odrzuca takie aplikacje, gdy nie spełniają wymagań instytucji. Niewykorzystana oferta to kategoria marginalna, ale jej rozkład kwot jest zbliżony do zatwierdzonych, co potwierdza, że klient miał zdolność kredytową, lecz zrezygnował z uruchomienia pożyczki na późniejszym etapie procesu. Całość wskazuje, że im wyższa kwota kredytu, tym większe prawdopodobieństwo, że wniosek zakończy się anulowaniem lub odmową, natomiast zatwierdzane są głównie kredyty o umiarkowanej wartości.
 
-3. Typ klienta vs. ryzyko. Czy nowi klienci częściej mają problemy ze spłatą?
+3.  **Typ klienta vs. ryzyko. Czy nowi klienci częściej mają problemy ze spłatą?**
 
-```{r wykres_typ_klienta_ryzyko}
+```{r wykres_typ_klienta_ryzyko, echo=FALSE}
 # ile zatwierdzonych ma każdy typ klienta
 client_order <- dane_clean %>%
   filter(NAME_CONTRACT_STATUS_PL == "Zatwierdzony") %>%
@@ -194,9 +194,9 @@ Klienci oznaczeni jako „Nieznany” mają najwyższy udział odmów i najniżs
 
 Całość wskazuje, że typ klienta istotnie wpływa na decyzję kredytową: nowi klienci są najczęściej zatwierdzani, ale niekoniecznie oznacza to niższe ryzyko — może to być efekt strategii produktowej lub ograniczonej kwoty kredytu. Stały klient częściej rezygnuje, a nieznany jest najczęściej odrzucany.
 
-4. Facetowanie wg dnia tygodnia. Czy dzień złożenia wniosku ma wpływ na zatwierdzenie?
+4.  **Facetowanie wg dnia tygodnia. Czy dzień złożenia wniosku ma wpływ na zatwierdzenie?**
 
-```{r wykres_dzien_tygodnia_kwoty, warning=FALSE}
+```{r wykres_dzien_tygodnia_kwoty, warning=FALSE, echo=FALSE}
 ggplot(dane_clean, aes(x = AMT_APPLICATION, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_density(alpha = 0.4) +
   scale_x_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
@@ -212,9 +212,9 @@ ggplot(dane_clean, aes(x = AMT_APPLICATION, fill = NAME_CONTRACT_STATUS_PL)) +
 
 Rozkład kwot wnioskowanych w ciągu tygodnia jest zasadniczo podobny – dominują niższe wartości, a wyższe kwoty pojawiają się rzadziej i nie zmieniają kształtu gęstości. Różnice dotyczą głównie statusów kontraktu: w weekendy oraz w czwartek częściej pojawiają się anulowane wnioski, co może wynikać z większej liczby prób składanych online, które nie są finalizowane. W pozostałe dni, zwłaszcza w poniedziałek i piątek, widoczny jest szerszy zakres kwot i większy udział zatwierdzonych kontraktów. Czwartek wyróżnia się tym, że jego profil przypomina weekend – mniej wysokich kwot i relatywnie więcej anulowanych wniosków.
 
-5. Liczba rat vs. status kontraktu. Czy długość spłaty wpływa na ryzyko?
+5.  **Liczba rat vs. status kontraktu. Czy długość spłaty wpływa na ryzyko?**
 
-```{r wykres_liczba_rat}
+```{r wykres_liczba_rat, echo=FALSE}
 ggplot(dane_clean, aes(x = CNT_PAYMENT, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_histogram(binwidth = 3, position = "dodge") +
   scale_y_continuous(labels = label_comma()) +
@@ -230,10 +230,9 @@ Niewykorzystane oferty (żółty) pojawiają się w różnych przedziałach licz
 
 Ogólnie rzecz biorąc, krótsze okresy spłaty są częściej zatwierdzane, a dłuższe wiążą się z większym udziałem odmów i anulowań, co warto uwzględnić w analizie ryzyka oraz w projektowaniu oferty kredytowej.
 
-6. Interaktywny scatter plot (plotly)
-Kwota kredytu vs. liczba rat, kolor = status.
+6.  **Interaktywny scatter plot (plotly) Kwota kredytu vs. liczba rat, kolor = status.**
 
-```{r wykres_interaktywny_scatter}
+```{r wykres_interaktywny_scatter, echo=FALSE}
 # Sprawdź format wyjściowy
 is_html_output <- knitr::is_html_output()
 
@@ -270,10 +269,9 @@ if (is_html_output) {
 
 Z wykresu wynika, że zatwierdzone kontrakty (zielony) najczęściej dotyczą umiarkowanych kwot i liczby rat — szczególnie od 10 do 40. Odmowy (czerwony) częściej pojawiają się przy wyższych kwotach i dłuższych okresach spłaty, co może wskazywać na większe ryzyko. Anulowane (szary) i niewykorzystane oferty (żółty) występują w różnych przedziałach, ale częściej przy niższych kwotach. Widoczne skupienie wokół typowych planów spłaty (12, 24, 36, 48, 60) sugeruje preferencje klientów i standardy ofertowe.
 
-7. Heatmapa korelacji zmiennych liczbowych
-Pokazuje, które zmienne są silnie powiązane z innymi (np. kwoty, liczba rat, dni decyzji).
+7.  **Heatmapa korelacji zmiennych liczbowych Pokazuje, które zmienne są silnie powiązane z innymi (np. kwoty, liczba rat, dni decyzji).**
 
-```{r mapa_korelacji}
+```{r mapa_korelacji, echo=FALSE}
 # wybieramy tylko zmienne numeryczne
 num_vars <- dane_clean %>% select(where(is.numeric))
 
@@ -300,10 +298,9 @@ corrplot(filtered_matrix, method = "color", type = "upper", tl.cex = 0.6, tl.col
 
 Macierz korelacji pokazuje silne związki między kwotą kredytu (AMT_CREDIT), wnioskowaną kwotą (AMT_APPLICATION) i ceną towaru (AMT_GOODS_PRICE), co potwierdza spójność danych. Rata (AMT_ANNUITY) silnie koreluje z liczbą rat (CNT_PAYMENT) i kwotą kredytu (AMT_CREDIT). Zmienne harmonogramowe (DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE, DAYS_TERMINATION) tworzą spójny blok czasowy. Wskaźniki procentowe (RATE_DOWN_PAYMENT, RATE_INTEREST_PRIMARY, RATE_INTEREST_PRIVILEGED) oraz flagi (NFLAG_LAST_APPL_IN_DAY, NFLAG_INSURED_ON_APPROVAL) mają słabe korelacje, co sugeruje ich niezależność i dodatkową wartość w modelach.
 
-8. Sankey diagram
-Pokazuje przepływ między typem produktu a statusem kontraktu.
+8.  **Sankey diagram Pokazuje przepływ między typem produktu a statusem kontraktu.**
 
-```{r diagram_sankey}
+```{r diagram_sankey, echo=FALSE}
 # Sprawdź format wyjściowy
 is_html_output <- knitr::is_html_output()
 
@@ -359,9 +356,9 @@ if (is_html_output) {
 
 Największa liczba kontraktów pochodzi z kategorii „Nieznany typ produktu”, a tylko w tej grupie występują niewykorzystane oferty (żółty), co może wskazywać na problem z klasyfikacją lub mniejszą atrakcyjność oferty. Odmowy (czerwony) i anulowania (szary) pojawiają się we wszystkich typach produktów, ale ich udział jest szczególnie widoczny w grupie nieznanej. W pozostałych kategoriach („sprzedaż krzyżowa”, „klient z ulicy / zakup bezpośredni”) dominują zatwierdzone kontrakty, co sugeruje, że bardziej jednoznacznie zdefiniowane produkty częściej kończą się pozytywną decyzją.
 
-9. Status kontraktu vs. branża sprzedawcy. Czy branża wpływa na decyzję kredytową?
+9.  **Status kontraktu vs. branża sprzedawcy. Czy branża wpływa na decyzję kredytową?**
 
-```{r wykres_branza_sprzedawcy}
+```{r wykres_branza_sprzedawcy, echo=FALSE}
 ggplot(dane_clean, aes(x = NAME_SELLER_INDUSTRY_PL, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_bar(position = "fill") +
   scale_fill_manual(values = status_colors) +
@@ -374,10 +371,9 @@ ggplot(dane_clean, aes(x = NAME_SELLER_INDUSTRY_PL, fill = NAME_CONTRACT_STATUS_
 
 Branża turystyki wyróżnia się tym, że wszystkie kontrakty zostały w niej zatwierdzone — nie odnotowano żadnych odmów, anulowań ani niewykorzystanych ofert. W pozostałych branżach struktura odmów jest stosunkowo podobna, co sugeruje, że decyzje negatywne nie są silnie zależne od sektora sprzedawcy. Najwięcej anulowań występuje wśród partnerów MLM oraz w kategorii „Pozostałe”, co może wskazywać na większą niestabilność lub niejednoznaczność ofert w tych grupach.
 
-10. Status kontraktu vs. kanał pozyskania klienta. Czy kanał sprzedaży wpływa na decyzję kredytową?
+10. **Status kontraktu vs. kanał pozyskania klienta. Czy kanał sprzedaży wpływa na decyzję kredytową?**
 
-
-```{r wykres_kanal_sprzedazy}}
+```{r wykres_kanal_sprzedazy, echo=FALSE}
 ggplot(dane_clean, aes(x = CHANNEL_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_bar(position = "fill") +
   scale_fill_manual(values = status_colors) +
@@ -390,9 +386,9 @@ ggplot(dane_clean, aes(x = CHANNEL_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL)) +
 
 Najlepsze wyniki osiągają kanały Sklep oraz Regionalny/Lokalny, gdzie dominują zatwierdzone kontrakty, a udział odmów jest niewielki. Z kolei Kanał sprzedaży korporacyjnej oraz Dealer samochodowy charakteryzują się wyraźnie wyższym udziałem odmów, co może wskazywać na większe ryzyko lub bardziej wymagające profile klientów. Najwięcej anulowań występuje w kanałach Biura kredytowe i gotówkowe oraz Centrum kontaktu, co może świadczyć o niestabilności procesu lub częstszej rezygnacji klientów na późniejszym etapie.
 
-11. Najczęstsze powody odmowy aplikacji
+11. **Najczęstsze powody odmowy aplikacji**
 
-```{r wykres_powody_odmow}}
+```{r wykres_powody_odmow, echo=FALSE}
 dane_clean %>%
   filter(NAME_CONTRACT_STATUS_PL == "Odmowa") %>%
   count(CODE_REJECT_REASON_PL) %>%
@@ -406,9 +402,9 @@ dane_clean %>%
 
 Najczęstszym powodem odrzucenia jest historia kredytowa, co może wskazywać na dużą liczbę klientów z negatywną historią lub brak zdolności kredytowej. Kolejne dominujące przyczyny to przekroczony limit oraz ocena punktowa, co sugeruje, że wiele aplikacji odpada na etapie scoringu lub limitów wewnętrznych. Powody takie jak brama punktowa, brak weryfikacji czy błąd systemowy występują znacznie rzadziej, ale mogą wskazywać na problemy techniczne lub niedopełnienie formalności
 
-12. Status kontraktu vs. typ umowy. Czy rodzaj umowy wpływa na decyzję kredytową?
+12. **Status kontraktu vs. typ umowy. Czy rodzaj umowy wpływa na decyzję kredytową?**
 
-```{r wykres_typ_umowy}
+```{r wykres_typ_umowy, echo=FALSE}
 ggplot(
   subset(dane_clean, NAME_CONTRACT_TYPE != "XNA"),
   aes(x = NAME_CONTRACT_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL)
@@ -424,9 +420,9 @@ ggplot(
 
 Umowy konsumenckie mają najwyższy udział zatwierdzonych kontraktów, co wskazuje na ich dużą skuteczność i akceptowalność w procesie kredytowym. Umowy gotówkowe i ratalne charakteryzują się większym udziałem anulowań i odmów, co może wskazywać na wyższe ryzyko lub mniej stabilny profil klienta.
 
-13. Godzina aplikacji vs. status kontraktu. Czy godzina złożenia wniosku ma wpływ na decyzję kredytową?
+13. **Godzina aplikacji vs. status kontraktu. Czy godzina złożenia wniosku ma wpływ na decyzję kredytową?**
 
-```{r wykres_godzina_aplikacji}
+```{r wykres_godzina_aplikacji, echo=FALSE}
 ggplot(dane_clean, aes(x = HOUR_APPR_PROCESS_START)) +
   geom_histogram(binwidth = 1, fill = "white", color = "black") +
   facet_wrap(~NAME_CONTRACT_STATUS_PL, ncol = 2) +
@@ -440,9 +436,9 @@ ggplot(dane_clean, aes(x = HOUR_APPR_PROCESS_START)) +
 
 Zatwierdzone wnioski najczęściej pojawiają się między godziną 11 a 19, z wyraźnym szczytem około 12:00–13:00. To może wskazywać na optymalny czas składania aplikacji. Odmowy również koncentrują się wokół godziny 13:00, co może sugerować, że system scoringowy działa intensywnie w tym przedziale. Anulowania są bardziej rozproszone, ale również mają lokalny szczyt około 13:00, co może wskazywać na decyzje systemowe lub rezygnacje klientów. Niewykorzystane oferty są najrzadsze, ale też pojawiają się głównie w godzinach 11–14, co może oznaczać, że klienci rezygnują tuż po otrzymaniu decyzji.
 
-14. Cena towaru vs. status kontraktu i ubezpieczenie. Czy ubezpieczenie wpływa na cenę towaru?
+14. **Cena towaru vs. status kontraktu i ubezpieczenie. Czy ubezpieczenie wpływa na cenę towaru?**
 
-```{r}
+```{r wykres cena_vs_status, echo=FALSE}
 ggplot(dane_clean, aes(x = NAME_CONTRACT_STATUS_PL,
                        y = log10(AMT_GOODS_PRICE),
                        fill = factor(NFLAG_INSURED_ON_APPROVAL, labels = c("Bez ubezp.", "Z ubezp.")))) +
@@ -455,9 +451,9 @@ ggplot(dane_clean, aes(x = NAME_CONTRACT_STATUS_PL,
 
 Wśród zatwierdzonych wniosków, aplikacje z ubezpieczeniem mają wyższą medianę ceny towaru niż te bez. Zatwierdzone bez ubezpieczenia wykazują dużo skrajnych, bardzo wysokich wartości — większy rozrzut, mniej stabilny profil.
 
-15. Kwota wnioskowana vs. typ klienta i kanał pozyskania. Czy typ klienta i kanał wpływają na kwotę wnioskowaną?
+15. **Kwota wnioskowana vs. typ klienta i kanał pozyskania. Czy typ klienta i kanał wpływają na kwotę wnioskowaną?**
 
-```{r wykres_kwota_typ_klienta_kanal}
+```{r wykres_kwota_typ_klienta_kanal, echo=FALSE}
 ggplot(dane_clean, aes(x = CHANNEL_TYPE_PL, y = AMT_APPLICATION/1000, fill = CHANNEL_TYPE_PL)) +
   geom_boxplot() +
   facet_wrap(~NAME_CLIENT_TYPE_PL) +
@@ -470,4 +466,3 @@ ggplot(dane_clean, aes(x = CHANNEL_TYPE_PL, y = AMT_APPLICATION/1000, fill = CHA
 ```
 
 Stały klient wnioskuje o najwyższe kwoty u dealerów objazdowych i w kanałach sprzedaży korporacyjnej. W tych kanałach mediany są wyraźnie wyższe niż w pozostałych, choć rozrzut wartości jest również większy, co wskazuje na zróżnicowany profil klientów. Nowi klienci utrzymują niższe mediany, ale w kanałach typu „Dealer objazdowy” pojawiają się skrajnie wysokie wartości. Reaktywowany klient ma rozkład zbliżony do nowego, lecz bardziej przewidywalny. Nieznany typ klienta nie wykazuje ani wysokich median, ani skrajnych wartości — jego profil jest raczej neutralny.
-
