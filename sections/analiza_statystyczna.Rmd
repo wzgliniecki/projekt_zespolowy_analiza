@@ -254,7 +254,7 @@ tryCatch({
   }
 
 # Przygotowanie danych dla ANOVA
-data_for_anova <- dane %>%
+data_for_anova <- dane_clean %>%
   filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
   select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
   mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
@@ -309,97 +309,63 @@ kable(anova_results, digits = 4,
 
 Dla zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
 
-```{r post_hoc_tukey, warning=FALSE}
-# Sprawdź czy anova_results istnieje, jeśli nie przeprowadź ANOVA ponownie
-if(!exists("anova_results") || nrow(anova_results) == 0) {
-  key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-                      "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
-  key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
-  
-  # Inicjalizuj anova_results
-  anova_results <- data.frame(
-    Variable = character(),
-    F_statistic = numeric(),
-    p_value = numeric(),
-    df_between = numeric(),
-    df_within = numeric(),
-    significant = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  data_for_anova <- dane %>%
-    filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
-    select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
-    mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
-  
-  # Jeśli wyniki ANOVA nie są dostępne, przelicz ANOVA na bieżące dane
-  for (var in key_vars_anova) {
-    data_clean_var <- data_for_anova %>%
-      select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-      filter(!is.na(!!sym(var)))
-    
-    if(nrow(data_clean_var) > 3) {
-      anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
-      anova_summary <- summary(anova_model)[[1]]
-      
-      anova_results <- rbind(anova_results, data.frame(
-        Variable = var,
-        F_statistic = anova_summary["NAME_CONTRACT_STATUS", "F value"],
-        p_value = anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"],
-        df_between = anova_summary["NAME_CONTRACT_STATUS", "Df"],
-        df_within = anova_summary["Residuals", "Df"],
-        significant = ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.001, "***",
-                            ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.01, "**",
-                                  ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.05, "*", "ns")))
-      ))
-    }
-  }
-  anova_results <- anova_results %>% arrange(p_value)
-}
+```{r post_hoc_tukey, warning=FALSE, echo=FALSE, results='asis'}
+library(dplyr)
+library(gt)
+library(tibble)
 
-# Zmienna - ładna etykieta do nagłówka
+# Ładne nazwy do nagłówków
 pretty_names <- c(
-  "AMT_ANNUITY" = "Rata miesięczna (AMT_ANNUITY)",
+  "AMT_ANNUITY"     = "Rata miesięczna (AMT_ANNUITY)",
   "AMT_APPLICATION" = "Kwota wnioskowana (AMT_APPLICATION)",
-  "AMT_CREDIT" = "Kwota kredytu (AMT_CREDIT)"
+  "AMT_CREDIT"      = "Kwota kredytu (AMT_CREDIT)"
 )
 
-if(length(significant_vars) > 0) {
-  for (var in significant_vars[1:min(3, length(significant_vars))]) {
-    # Przygotuj dane jeśli nie istnieją
-    if(!exists("data_for_anova")) {
-      key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-                          "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
-      key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
-      data_for_anova <- dane %>%
-        filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
-        select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
-        mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
-    }
-    
-    data_clean_var <- data_for_anova %>%
-      select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-      filter(!is.na(!!sym(var)))
-    
-    # ANOVA model
-    anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
-    
-    # Tukey HSD test
-    tukey_result <- TukeyHSD(anova_model)
-    
-    # Konwertuj na tabelę
-    tukey_df <- as.data.frame(tukey_result[["NAME_CONTRACT_STATUS"]]) %>%
-      rownames_to_column("Comparison")
-    tukey_df$significant <- ifelse(tukey_df$`p adj` < 0.001, "***",
-                                   ifelse(tukey_df$`p adj` < 0.01, "**",
-                                          ifelse(tukey_df$`p adj` < 0.05, "*", "ns")))
-    
-    cat("\n\n**Test Tukey'a HSD dla zmiennej:", var, "\n\n")
-    print(kable(tukey_df, digits = 4,
-          caption = paste("Post-hoc: porównania pairwise dla", var)))
-  }
-} else {
-  cat("Brak zmiennych istotnych statystycznie (p < 0.05) dla testów post-hoc.")
+# Zmienne, które chcemy pokazać (3 najważniejsze)
+vars_to_show <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT")
+
+for (var in vars_to_show) {
+
+  # Dane dla tej zmiennej
+  data_clean_var <- data_for_anova %>%
+    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
+    filter(!is.na(!!sym(var)))
+
+  # ANOVA
+  anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), 
+                     data = data_clean_var)
+
+  # Tukey
+  tukey_df <- TukeyHSD(anova_model)$NAME_CONTRACT_STATUS %>%
+    as.data.frame() %>%
+    rownames_to_column("Porównanie") %>%
+    mutate(
+      Porównanie = Porównanie %>%
+        gsub("Approved", "Zatwierdzony", .) %>%
+        gsub("Refused", "Odmowa", .) %>%
+        gsub("Canceled", "Anulowany", .),
+      Różnica = diff,
+      Dolny_przedział = lwr,
+      Górny_przedział = upr,
+      p = `p adj`,
+      Istotność = case_when(
+        p < 0.001 ~ "***",
+        p < 0.01  ~ "**",
+        p < 0.05  ~ "*",
+        TRUE ~ "ns"
+      )
+    ) %>%
+    select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
+
+  # Tabela GT
+  gt(tukey_df) %>%
+    fmt_number(columns = where(is.numeric), decimals = 2) %>%
+    tab_header(
+      title = paste("Test Tukey'a HSD —", pretty_names[var]),
+      subtitle = "Porównania pairwise między statusami kontraktu"
+    ) %>%
+    tab_options(table.font.size = "small") %>%
+    print()
 }
 ```
 
@@ -408,35 +374,33 @@ if(length(significant_vars) > 0) {
 ```{r boxplot_kwoty_status, fig.width=12, fig.height=8, echo=FALSE}
 library(ggplot2)
 
-# Przygotowanie danych w formacie długim
+# Dodanie polskich nazw statusów
 plot_data <- data_for_standardization %>%
-  select(NAME_CONTRACT_STATUS, AMT_APPLICATION, AMT_CREDIT, AMT_ANNUITY, AMT_GOODS_PRICE) %>%
-  tidyr::pivot_longer(cols = -NAME_CONTRACT_STATUS, 
-                      names_to = "Variable", 
-                      values_to = "Amount") %>%
+  mutate(
+    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map),
+    NAME_CONTRACT_STATUS_PL = factor(NAME_CONTRACT_STATUS_PL,
+                                     levels = names(status_colors))
+    ) %>%
+  select(NAME_CONTRACT_STATUS_PL, AMT_APPLICATION, AMT_CREDIT, AMT_ANNUITY, AMT_GOODS_PRICE) %>%
+  pivot_longer(
+    cols = -NAME_CONTRACT_STATUS_PL,
+    names_to = "Variable",
+    values_to = "Amount" ) %>%
   filter(!is.na(Amount) & Amount > 0)
 
 # Boxplot z logarytmiczną skalą (ze względu na duży rozrzut wartości)
-ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS, y = Amount, fill = NAME_CONTRACT_STATUS)) +
+ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS_PL, y = Amount, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_boxplot(outlier.alpha = 0.3, outlier.size = 1) +
   facet_wrap(~ Variable, scales = "free_y", ncol = 2) +
   scale_y_log10(labels = scales::comma) +
-  scale_fill_brewer(
-    palette = "Set2",
-    labels = c(
-      "Approved" = "Zatwierdzony",
-      "Refused" = "Odmowa",
-      "Canceled" = "Anulowany"
-    )
-  ) +
-  theme_minimal() +
+  scale_fill_manual(values = status_colors) +
   labs(
     title = "Rozkład kwot finansowych według statusu kontraktu",
-    subtitle = "Skala logarytmiczna - porównanie median i rozrzutu wartości",
+    subtitle = "Skala logarytmiczna — porównanie median i rozrzutu wartości",
     x = "Status kontraktu",
     y = "Kwota (skala logarytmiczna)",
-    fill = "Status"
-  ) +
+    fill = "Status kontraktu"
+    ) +
   theme(
     legend.position = "bottom",
     plot.title = element_text(size = 14, face = "bold"),
@@ -449,18 +413,23 @@ ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS, y = Amount, fill = NAME_CONTRACT
 ```{r wykres_z_scores, fig.width=10, fig.height=6, echo=FALSE}
 # Wykres słupkowy porównujący średnie wartości Z
 z_plot_data <- data_standardized %>%
-  select(NAME_CONTRACT_STATUS, starts_with("Z_")) %>%
-  group_by(NAME_CONTRACT_STATUS) %>%
+  mutate(
+    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map),
+    NAME_CONTRACT_STATUS_PL = factor(NAME_CONTRACT_STATUS_PL,
+                                     levels = names(status_colors))
+    ) %>%
+  select(NAME_CONTRACT_STATUS_PL, starts_with("Z_")) %>%
+  group_by(NAME_CONTRACT_STATUS_PL) %>%
   summarise(across(starts_with("Z_"), ~ mean(., na.rm = TRUE))) %>%
   tidyr::pivot_longer(cols = starts_with("Z_"), 
                       names_to = "Variable", 
                       values_to = "Mean_Z") %>%
   mutate(Variable = gsub("Z_", "", Variable))
 
-ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS)) +
+ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS_PL)) +
   geom_col(position = "dodge", color = "black", linewidth = 0.3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
-  scale_fill_brewer(palette = "Set2") +
+  scale_fill_manual(values = status_colors) +
   theme_minimal() +
   labs(
     title = "Średnie wartości Z-score według statusu kontraktu",
