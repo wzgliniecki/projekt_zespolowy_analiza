@@ -1,3 +1,64 @@
 ## Wnioski i Podsumowanie
 
-TODO
+Przeprowadzona analiza eksploracyjna zbioru danych dotyczącego poprzednich aplikacji kredytowych (25,000 obserwacji, 37 zmiennych) ujawniła kluczowe wzorce i czynniki ryzyka w procesie udzielania kredytów. Wyniki wskazują na możliwości znacznej optymalizacji procesu decyzyjnego.
+
+### Główne Ustalenia
+
+#### 1. Nierównomierny Rozkład Statusów Kontraktów
+Zdecydowana większość wniosków (ok. 75-80%) kończy się zatwierdzeniem, podczas gdy anulowane stanowią ok. 15-20%, a odmowy stanowią mniejszą część. Wysoki odsetek zatwierdzeń sugeruje, że proces oceny zdolności kredytowej skutecznie identyfikuje klientów spełniających kryteria, jednak duża liczba anulowań wskazuje na konieczność przeglądu warunków wynikających z procesu zatwierdzania (np. oprocentowanie, harmonogramy spłaty). Istotnym spostrzeżeniem jest fakt, że 603 kontrakty zatwierdzone posiadają status „zatwierdzony", ale brakuje im harmonogramu spłat i umów – wskazuje to na kontrakty nie w pełni uruchomione, które mogą wymagać osobnego traktowania w dalszych modelach.
+
+#### 2. Paradoks Wysokich Kwot – Wnioski o Wyższe Sumy Częściej Anulowane
+Wbrew intuicji, wnioski anulowane charakteryzują się medianową kwotą kredytu wyższą niż zatwierdzone (mediana ~21,754 zł dla anulowanych vs wyższa dla zatwierdzonych). Świadczy to o tym, że klienci chętnie aplikują o wysokie kwoty, ale w momencie zatwierdzenia często rezygnują – prawdopodobnie ze względu na wyższe oprocentowanie lub bardziej rygorystyczne warunki towarzyszące wyższemu ryzyku. Odmowy dotyczą kwot średnio wyższych (~376,000 zł) niż zatwierdzone (~203,000 zł), co wskazuje na bardziej konserwatywne podejście instytucji wobec dużych kredytów. **Rekomendacja**: głębsza analiza warunków cenowych dla wysokich kwot; rozważenie bardziej konkurencyjnych stawek mogących zmniejszyć liczbę anulowań.
+
+#### 3. Typ Klienta a Ryzyko
+Analiza ujawnia zmienne ryzyko w zależności od typu klienta:
+- **Nowi klienci** wykazują zdecydowanie wyższą stopę zatwierdzenia (94%) w porównaniu do klientów stałych (54%) – nowo pozyskana klientela wykazuje znacznie wyższy odsetek pozytywnych decyzji, jednak może to sygnalizować mniejszą głęboką weryfikację.
+- **Klienci stali** częściej doświadczają odmowy (21%) i anulowania (24%), co wskazuje na historię powtarzających się, nieefektywnych aplikacji lub niższą jakość wniosków.
+- **Klienci reaktywowani** (powrót po przerwie) wykazują udział w zatwierdzeniach na poziomie 9% – pośrednie ryzyko.
+- Podział po kanałach dystrybucji pokazuje, że zakupy bezpośrednie i kanały regionalne mają lepsze wskaźniki zatwierdzenia, podczas gdy niektóre kanały mogą wymagać bardziej selektywnego podejścia.
+
+#### 4. Długość Okresu Spłaty a Decyzje Kredytowe
+Krótkie okresy spłaty (6-24 raty) dominują wśród zatwierdzeń; średnia liczba rat w zatwierdzonychkontraktach wynosi 14.08 rat. Różnice między statusami są niezwykle silne statystycznie (Welch ANOVA: p < 2.23e-308, ω² = 0.79):
+- Zatwierdzone kontrakty: średnio 14 rat
+- Odrzucone: średnio 20 rat
+- Anulowane i niewykorzystane: średnio 1.16 i 0.21 rat
+
+Dłuższe okresy (powyżej 24 rat) wykazują wyższy odsetek odmów i anulowań. Wskazuje to na preferencję instytucji wobec kredytów krótkoterminowych; jednak może również sugerować, że klienci zainteresowani kredytami długoterminowymi mogą być bardziej ryzykowni.
+
+#### 5. Problemy Z Jakością Danych
+Znaczna część zmiennych zawiera brakujące wartości ze względu na strukturę umów:
+- **99.69%** brakujących wartości w zmiennych związanych ze stopą procentową (niemal wszystkie rekordy) – ta zmienna nie niesie praktycznie żadnej informacji predykcyjnej.
+- **40%** brakujących wartości w harmonogramach dat i liczbie rat – dotyczy głównie kontraktów niewykonanych.
+- **22%** brakujących wartości w ratach i rocznych zbliżeniach rat – związane z niezatwierdzonymi aplikacjami.
+
+**Rekomendacja**: Podczas budowy modeli predykcyjnych należy traktować „brakujące wartości" jako wskaźnik statusu kontraktu, ponieważ często odzwierciedlają rzeczywisty stan umowy, a nie zwykłe braki danych.
+
+#### 6. Korelacje i Zależności
+- Niezwykle silna korelacja (r = 0.99, p < 2.23e-308) między kwotą wnioskowaną a przyznaną kwotą kredytu – banki przyznają dokładnie taką kwotę, o jaką klient wnioskuje, co świadczy o dobrze skalibrowanym procesie oceny.
+- Silne korelacje (> 0.7) między kwotą aplikacji, kwotą kredytu i kwotą towarów (sugeruje to konsystencję danych).
+- Silna korelacja między liczbą rat a kwotą raty (naturalne).
+- Słabsze korelacje zmiennych demograficznych z kwotami kredytów – sugeruje to, że decyzje kredytowe bazują głównie na wielkości wniosku, a nie na cechach klienta.
+
+#### 7. Czynniki Ryzyka Ujawnione w Wizualizacjach
+- **Godzina aplikacji**: Aplikacje złożone w określonych godzinach (szczególnie ok. godz. 13:00) wykazują lepsze wskaźniki zatwierdzenia – może to sugerować efekt czasu obsługi lub preferencji procesów (np. bardziej doświadczeni pracownicy w pewnych godzinach) lub intensywną pracę systemu scoringowego.
+- **Branża sprzedawcy**: Turystyka wykazuje 100% zatwierdzenie (należy być ostrożnym – mała próba), a sektory MLM oraz inne wykazują wyższe anulowania (~zwiększone ryzyko) – może to sygnalizować ryzyka związane z branżą towarów.
+- **Typ produktu**: Kredyty konsumenckie mają najlepszą stopę zatwierdzenia; kredyty gotówkowe i produkty ratalne wykazują wyższe odmowy i anulowania.
+- **Ubezpieczenie**: Ubezpieczone zobowiązania wykazują wyższe mediany ceny towaru niż те bez ubezpieczenia – może to być wynikiem polisy, która zmniejsza ryzyko dla instytucji, lub efekt selekcji (wyższe kwoty częściej ubezpieczane).
+
+### Rekomendacje Dla Dalszych Działań
+
+1. **Budowa Modelu Predykcyjnego**: Na bazie obecnych zmiennych można zbudować model klasyfikacyjny przewidujący ryzyko anulowania lub odmowy, uwzględniając braki danych jako zmienne informacyjne.
+
+2. **Optymalizacja Procesów**: Przegląd warunków wynikających z zatwierdzenia – wysokie anulowania mogą być symptomem niekonkurencyjnych warunków cenowych dla wysokich kwot lub długich okresów spłaty.
+
+3. **Segmentacja Klientów**: Różne strategie dla nowych klientów, stałych klientów i reaktywowanych – każda grupa wykazuje odmienne wzorce ryzyka.
+
+4. **Przegląd Danych**: Usunięcie zmiennych z > 90% brakujących wartości (takie jak stopa procentowa) z przyszłych analiz; potraktowanie pozostałych brakujących wartości jako wskaźnika kontekstu kontraktu.
+
+5. **Analiza Branż i Kanałów**: Głębotsza segmentacja branż sprzedawcy i kanałów dystrybucji; identyfikacja branż/kanałów wysokiego ryzyka wymaga osobliwych procedur.
+
+6. **Testy A/B**: Testowanie alternatywnych warunków cenowych dla grup wysokiego ryzyka w celu zmniejszenia liczby anulowań bez pogarszania profilu zdolności kredytowej.
+
+### Podsumowanie
+
+Analiza eksploracyjna ujawniła, że podejmowanie decyzji kredytowych w instytucie jest w dużej mierze kierowane wielkością wniosku i typem produktu, z mniejszym uwzględnieniem cech demograficznych klienta. Wysoka liczba anulowań, szczególnie dla wysokich kwot, sugeruje, że warunki wynikające z zatwierdzenia mogą być zbyt rygorystyczne w stosunku do oczekiwań rynku. Dalsze działania powinny skoncentrować się na optymalizacji warunków, segmentacji ryzyka i budowie modeli predykcyjnych w celu poprawy konwersji wniosków oraz zmniejszenia ryzyka portfela kredytowego.
