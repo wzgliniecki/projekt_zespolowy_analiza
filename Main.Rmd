@@ -12,7 +12,7 @@ always_allow_html: true
 
 ```{r setup, include=FALSE}
 # Enable error display - don't stop on first error
-knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, error = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = TRUE)
 knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
 
 # Increase error context for better debugging
