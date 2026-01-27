@@ -224,44 +224,40 @@ kable(t_test_results, digits = 4,
 
 ## Analiza Wariancji (ANOVA) - Porównanie średnich zmiennych ilościowych między grupami
 
-Zamiast porównywania tylko Approved vs Refused, przeprowadzamy ANOVA aby zbadać różnice między wszystkimi trzema grupami.
+ANOVA służy do porównania średnich zmiennej ilościowej (Y) między grupami zmiennej kategorycznej (X). Poniżej przedstawiamy wyniki dla wybranych par zmiennych o znaczeniu biznesowym.
 
-```{r anova_analysis, error=FALSE, echo=FALSE}
-tryCatch({
-  # Sprawdź czy dane są dostępne
-  cat("=== DEBUG INFO: anova_analysis chunk ===\n")
-  cat("dane exists:", exists("dane"), "\n")
-  if(exists("dane")) {
-    cat("dane class:", class(dane), "\n")
-    cat("dane nrows:", nrow(dane), "\n")
-    cat("dane colnames:", paste(names(dane)[1:10], collapse=", "), "...\n")
-  }
-  
-  if(!exists("dane") || nrow(dane) == 0) {
-    stop("dane nie jest dostępna. Sprawdź czy dane zostały wczytane w sekcji missing_data_analysis.")
-  }
-  
-  # Redefiniuj zmienne na wypadek braku dostępu ze wcześniejszych chunks
-  key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-                      "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
-  key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
-  
-  cat("key_vars_anova found:", length(key_vars_anova), "zmienne\n")
-  cat("key_vars_anova:", paste(key_vars_anova, collapse=", "), "\n")
-  
-  if(length(key_vars_anova) == 0) {
-    stop("Żadna ze zmiennych ANOVA nie istnieje w danych")
-  }
+```{r anova_analysis, echo=FALSE}
+library(dplyr)
+library(knitr)
 
-# Przygotowanie danych dla ANOVA
+# Definicja par zmiennych dla ANOVA: Y (ilościowa) ~ X (kategoryczna)
+anova_pairs <- list(
+  list(y = "AMT_CREDIT", x = "NAME_CONTRACT_STATUS", 
+       opis = "Kwota kredytu vs Status kontraktu"),
+  list(y = "AMT_CREDIT", x = "NAME_CLIENT_TYPE", 
+       opis = "Kwota kredytu vs Typ klienta"),
+  list(y = "DAYS_DECISION", x = "NAME_CONTRACT_STATUS", 
+       opis = "Czas decyzji vs Status kontraktu"),
+  list(y = "AMT_APPLICATION", x = "NAME_CONTRACT_TYPE", 
+       opis = "Kwota wnioskowana vs Typ umowy"),
+  list(y = "CNT_PAYMENT", x = "NAME_CLIENT_TYPE", 
+       opis = "Liczba rat vs Typ klienta")
+)
+
+# Przygotowanie danych - filtrujemy tylko główne statusy
 data_for_anova <- dane_clean %>%
   filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
-  select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
-  mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
+  mutate(
+    NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS),
+    NAME_CLIENT_TYPE = factor(NAME_CLIENT_TYPE),
+    NAME_CONTRACT_TYPE = factor(NAME_CONTRACT_TYPE)
+  )
 
-# Wykonanie ANOVA dla każdej zmiennej
+# Tabela wyników ANOVA
 anova_results <- data.frame(
-  Zmienna = character(),
+  Para_zmiennych = character(),
+  Y_ilościowa = character(),
+  X_kategoryczna = character(),
   Statystyka_F = numeric(),
   p = numeric(),
   df_między = numeric(),
@@ -270,103 +266,130 @@ anova_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-for (var in key_vars_anova) {
-  # Usuń NA wartości
-  data_clean_var <- data_for_anova %>%
-    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-    filter(!is.na(!!sym(var)))
+for (pair in anova_pairs) {
+  # Sprawdź czy zmienne istnieją
+  if (!(pair$y %in% names(data_for_anova)) || !(pair$x %in% names(data_for_anova))) next
   
-  if(nrow(data_clean_var) > 3) {
+  # Przygotuj dane dla tej pary
+  data_pair <- data_for_anova %>%
+    select(all_of(c(pair$y, pair$x))) %>%
+    filter(!is.na(!!sym(pair$y)), !is.na(!!sym(pair$x)))
+  
+  if (nrow(data_pair) > 10) {
     # Przeprowadź ANOVA
-    anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
+    formula_anova <- as.formula(paste(pair$y, "~", pair$x))
+    anova_model <- aov(formula_anova, data = data_pair)
     anova_summary <- summary(anova_model)[[1]]
     
     # Dodaj wyniki
     anova_results <- rbind(anova_results, data.frame(
-      Zmienna = var,
-      Statystyka_F = anova_summary["NAME_CONTRACT_STATUS", "F value"],
-      p = anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"],
-      df_między = anova_summary["NAME_CONTRACT_STATUS", "Df"],
-      df_wewnątrz = anova_summary["Residuals", "Df"],
-      Istotność = ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.001, "***",
-                          ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.01, "**",
-                                ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.05, "*", "ns")))
+      Para_zmiennych = pair$opis,
+      Y_ilościowa = pair$y,
+      X_kategoryczna = pair$x,
+      Statystyka_F = round(anova_summary[1, "F value"], 2),
+      p = anova_summary[1, "Pr(>F)"],
+      df_między = anova_summary[1, "Df"],
+      df_wewnątrz = anova_summary[2, "Df"],
+      Istotność = ifelse(anova_summary[1, "Pr(>F)"] < 0.001, "***",
+                          ifelse(anova_summary[1, "Pr(>F)"] < 0.01, "**",
+                                ifelse(anova_summary[1, "Pr(>F)"] < 0.05, "*", "ns")))
     ))
   }
 }
 
-# Sortuj według wartości p
-anova_results <- anova_results %>% arrange(p)
-
 kable(anova_results, digits = 4,
-      caption = "Wyniki ANOVA: Zmienne numeryczne vs Status Kontraktu (*** p<0.001, ** p<0.01, * p<0.05)")
-}, error = function(e) {
-  cat("Error w anova_analysis:", e$message, "\n")
-})
+      caption = "Wyniki ANOVA: Zmienna ilościowa (Y) vs Zmienna kategoryczna (X)")
 ```
 
 ## Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
 
-Dla zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
+Dla par zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
 
 ```{r post_hoc_tukey, warning=FALSE, echo=FALSE, results='asis'}
 library(dplyr)
 library(gt)
 library(tibble)
 
-# Ładne nazwy do nagłówków
-pretty_names <- c(
-  "AMT_ANNUITY"     = "Rata miesięczna (AMT_ANNUITY)",
-  "AMT_APPLICATION" = "Kwota wnioskowana (AMT_APPLICATION)",
-  "AMT_CREDIT"      = "Kwota kredytu (AMT_CREDIT)"
-)
+# Test Tukey dla: AMT_CREDIT ~ NAME_CONTRACT_STATUS
+anova_model_1 <- aov(AMT_CREDIT ~ NAME_CONTRACT_STATUS, data = data_for_anova)
+tukey_df_1 <- TukeyHSD(anova_model_1)$NAME_CONTRACT_STATUS %>%
+  as.data.frame() %>%
+  rownames_to_column("Porównanie") %>%
+  mutate(
+    Porównanie = Porównanie %>%
+      gsub("Approved", "Zatwierdzony", .) %>%
+      gsub("Refused", "Odmowa", .) %>%
+      gsub("Canceled", "Anulowany", .),
+    Różnica = diff,
+    Dolny_przedział = lwr,
+    Górny_przedział = upr,
+    p = `p adj`,
+    Istotność = case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "ns")
+  ) %>%
+  select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
 
-# Zmienne, które chcemy pokazać (3 najważniejsze)
-vars_to_show <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT")
+gt(tukey_df_1) %>%
+  fmt_number(columns = where(is.numeric), decimals = 2) %>%
+  tab_header(
+    title = "Test Tukey'a HSD — Kwota kredytu vs Status kontraktu",
+    subtitle = "AMT_CREDIT ~ NAME_CONTRACT_STATUS"
+  ) %>%
+  tab_options(table.font.size = "small") %>%
+  print()
 
-for (var in vars_to_show) {
+# Test Tukey dla: AMT_CREDIT ~ NAME_CLIENT_TYPE
+anova_model_2 <- aov(AMT_CREDIT ~ NAME_CLIENT_TYPE, data = data_for_anova)
+tukey_df_2 <- TukeyHSD(anova_model_2)$NAME_CLIENT_TYPE %>%
+  as.data.frame() %>%
+  rownames_to_column("Porównanie") %>%
+  mutate(
+    Porównanie = Porównanie %>%
+      gsub("New", "Nowy", .) %>%
+      gsub("Repeater", "Stały", .) %>%
+      gsub("Refreshed", "Reaktywowany", .),
+    Różnica = diff,
+    Dolny_przedział = lwr,
+    Górny_przedział = upr,
+    p = `p adj`,
+    Istotność = case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "ns")
+  ) %>%
+  select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
 
-  # Dane dla tej zmiennej
-  data_clean_var <- data_for_anova %>%
-    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-    filter(!is.na(!!sym(var)))
+gt(tukey_df_2) %>%
+  fmt_number(columns = where(is.numeric), decimals = 2) %>%
+  tab_header(
+    title = "Test Tukey'a HSD — Kwota kredytu vs Typ klienta",
+    subtitle = "AMT_CREDIT ~ NAME_CLIENT_TYPE"
+  ) %>%
+  tab_options(table.font.size = "small") %>%
+  print()
 
-  # ANOVA
-  anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), 
-                     data = data_clean_var)
+# Test Tukey dla: DAYS_DECISION ~ NAME_CONTRACT_STATUS
+anova_model_3 <- aov(DAYS_DECISION ~ NAME_CONTRACT_STATUS, data = data_for_anova)
+tukey_df_3 <- TukeyHSD(anova_model_3)$NAME_CONTRACT_STATUS %>%
+  as.data.frame() %>%
+  rownames_to_column("Porównanie") %>%
+  mutate(
+    Porównanie = Porównanie %>%
+      gsub("Approved", "Zatwierdzony", .) %>%
+      gsub("Refused", "Odmowa", .) %>%
+      gsub("Canceled", "Anulowany", .),
+    Różnica = diff,
+    Dolny_przedział = lwr,
+    Górny_przedział = upr,
+    p = `p adj`,
+    Istotność = case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "ns")
+  ) %>%
+  select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
 
-  # Tukey
-  tukey_df <- TukeyHSD(anova_model)$NAME_CONTRACT_STATUS %>%
-    as.data.frame() %>%
-    rownames_to_column("Porównanie") %>%
-    mutate(
-      Porównanie = Porównanie %>%
-        gsub("Approved", "Zatwierdzony", .) %>%
-        gsub("Refused", "Odmowa", .) %>%
-        gsub("Canceled", "Anulowany", .),
-      Różnica = diff,
-      Dolny_przedział = lwr,
-      Górny_przedział = upr,
-      p = `p adj`,
-      Istotność = case_when(
-        p < 0.001 ~ "***",
-        p < 0.01  ~ "**",
-        p < 0.05  ~ "*",
-        TRUE ~ "ns"
-      )
-    ) %>%
-    select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
-
-  # Tabela GT
-  gt(tukey_df) %>%
-    fmt_number(columns = where(is.numeric), decimals = 2) %>%
-    tab_header(
-      title = paste("Test Tukey'a HSD —", pretty_names[var]),
-      subtitle = "Porównania pairwise między statusami kontraktu"
-    ) %>%
-    tab_options(table.font.size = "small") %>%
-    print()
-}
+gt(tukey_df_3) %>%
+  fmt_number(columns = where(is.numeric), decimals = 2) %>%
+  tab_header(
+    title = "Test Tukey'a HSD — Czas decyzji vs Status kontraktu",
+    subtitle = "DAYS_DECISION ~ NAME_CONTRACT_STATUS"
+  ) %>%
+  tab_options(table.font.size = "small") %>%
+  print()
 ```
 
 ## Wizualizacja Rozkładów Kwot według Statusu
