@@ -1,3 +1,26 @@
+```{r setup_packages, include=FALSE, echo=FALSE}
+# Lista wymaganych pakietów
+required_packages <- c("tidyverse", "knitr", "MASS", "broom", "pROC", "ggstatsplot", "moments", "gt", "vcd", "tibble")
+
+# Sprawdź które pakiety są zainstalowane
+missing_packages <- required_packages[!sapply(required_packages, function(pkg) {
+  requireNamespace(pkg, quietly = TRUE)
+})]
+
+# Zainstaluj brakujące pakiety
+if (length(missing_packages) > 0) {
+  cat("Instaluję brakujące pakiety:", paste(missing_packages, collapse=", "), "\n")
+  install.packages(missing_packages, repos = "https://cloud.r-project.org", quiet = TRUE)
+}
+
+# Załaduj wszystkie wymagane pakiety
+invisible(lapply(required_packages, function(pkg) {
+  library(pkg, character.only = TRUE, quietly = TRUE)
+}))
+
+cat("✓ Wszystkie pakiety załadowane pomyślnie\n")
+```
+
 # Wprowadzenie
 
 Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
@@ -14,13 +37,13 @@ jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
 Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
 wskaźnikami niewypłacalności. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
 
--	Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo odmowy, anulowania lub niewykorzystania oferty?
+- Kiedy aplikacja jest zatwierdzona vs odrzucana/anulowana?**
+ 
+-Czym charakteryzuje się każda grupa decyzji (zaakceptowani/odrzuceni itd.)?
 
--	W jaki sposób status kontraktu (zatwierdzony, anulowany, odmowa, niewykorzystana oferta) odzwierciedla potencjalne trudności klienta ze spłatą rat?
+- Jaka rola typu klienta - Stary vs Nowy? Czy warto pozyskiwać nowych klientów czy skupić się na utrzymaniu obecnych?
 
--	Czy istnieją wzorce w danych dotyczące liczby rat lub harmonogramu spłat, które mogą sygnalizować ryzyko problemów ze spłatą?
-
--	Jakie kombinacje czynników (np. kwota kredytu + typ klienta + status kontraktu) najlepiej przewidują trudności ze spłatą?
+- Które zmienne mają większy wpływ - finansowe czy socjoekonomiczne?
 
 
 ## Dane
@@ -55,4 +78,7 @@ library(corrplot)
 library(networkD3)
 library(scales)
 library(ggstatsplot)
+library(leaps)
+library(pRoc)
+library(caret)
 ```

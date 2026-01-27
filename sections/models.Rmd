@@ -1,0 +1,403 @@
+# Modelowanie Decyzji Kredytowej
+
+W tej sekcji budujemy modele predykcyjne do odpowiadania na kluczowe pytania badawcze:
+
+1. **Kiedy aplikacja jest zatwierdzona?** (Approved vs wszystko inne)
+2. **Co sprawia że aplikacja jest odmawiana?** (Refused vs wszystko inne)
+3. **Co powoduje że klient anuluje wniosek?** (Canceled vs wszystko inne)
+4. **Wpływ zmiennych finansowych vs socjoekonomicznych** na zatwierdzenie
+
+Wykorzystujemy regresję logistyczną z selekcją zmiennych (Stepwise i Best Subset) do zidentyfikowania kluczowych sterowników każdej decyzji.
+Wyniki analizy podajemy filtrowaniu (p.value< 0.05). 
+
+## Przygotowanie danych do modelowania
+
+```{r przygotowanie_danych_modelowanie, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+
+# Zmienne finansowe (ekonomiczne)
+zmienne_finansowe <- c("AMT_APPLICATION", "AMT_DOWN_PAYMENT", "CNT_PAYMENT",
+                       "RATE_DOWN_PAYMENT", "AMT_CREDIT", "DAYS_DECISION")
+
+# Zmienne socjoekonomiczne (behawioralne, katalogowe)
+zmienne_socjoekonomiczne <- c("NAME_CLIENT_TYPE_PL", "NAME_CONTRACT_TYPE",
+                              "CHANNEL_TYPE", "NAME_PORTFOLIO", "NAME_PRODUCT_TYPE")
+
+# Przygotowanie dataset do modelowania
+dane_model <- dane_clean %>%
+  mutate(
+    Decision_Approved = ifelse(NAME_CONTRACT_STATUS_PL == "Zatwierdzony", 1, 0),
+    Decision_Refused = ifelse(NAME_CONTRACT_STATUS_PL == "Odmowa", 1, 0),
+    Decision_Canceled = ifelse(NAME_CONTRACT_STATUS_PL == "Anulowany", 1, 0)
+  ) %>%
+  dplyr::select(all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne, 
+                        "Decision_Approved", "Decision_Refused", "Decision_Canceled"))) %>%
+  filter(complete.cases(.))
+
+cat("=== PRZYGOTOWANE DANE DO MODELOWANIA ===\n")
+cat("Liczba obserwacji:", nrow(dane_model), "\n")
+cat("Zmienne finansowe:", length(zmienne_finansowe), "\n")
+cat("Zmienne socjoekonomiczne:", length(zmienne_socjoekonomiczne), "\n\n")
+
+cat("Rozkład zmiennej docelowej (Decision_Approved):\n")
+print(table(dane_model$Decision_Approved))
+cat("\nRozkład zmiennej docelowej (Decision_Refused):\n")
+print(table(dane_model$Decision_Refused))
+cat("\nRozkład zmiennej docelowej (Decision_Canceled):\n")
+print(table(dane_model$Decision_Canceled))
+```
+
+
+## Model 1: Approved vs Refused+Canceled+Unused (Stepwise)
+
+```{r model1_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - Approved (1) vs Refused+Canceled+Unused (0)
+dane_m1 <- dane_model %>%
+  mutate(Decision = Decision_Approved) %>%
+  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
+
+# Model pełny
+model_m1_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m1)
+
+# Model zerowy
+model_m1_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
+
+# Stepwise
+model_m1 <- MASS::stepAIC(model_m1_null, 
+                          scope = list(lower = model_m1_null, upper = model_m1_full),
+                          direction = "both", trace = FALSE)
+
+cat("=== MODEL 1: APPROVED vs RESZTA (STEPWISE) ===\n")
+cat("Liczba obserwacji: Zatwierdzonych =", sum(dane_m1$Decision == 1), 
+    ", Brak Realizacji =", sum(dane_m1$Decision == 0), "\n\n")
+
+# McFadden's pseudo R2
+ll_null_m1 <- logLik(model_m1_null)
+ll_model_m1 <- logLik(model_m1)
+r2_m1 <- 1 - (as.numeric(ll_model_m1) / as.numeric(ll_null_m1))
+
+cat("AIC =", round(AIC(model_m1), 2), "\n")
+cat("R2 (McFadden) =", round(r2_m1, 4), "\n\n")
+
+# Współczynniki
+coef_m1 <- broom::tidy(model_m1) %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+kable(coef_m1 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
+      caption = "Model 1: Współczynniki (Approved)")
+```
+
+
+## Model 2: Refused vs Approved+Canceled+Unused (Stepwise)
+
+```{r model2_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - Refused (1) vs reszta (0)
+dane_m2 <- dane_model %>%
+  mutate(Decision = Decision_Refused) %>%
+  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
+
+# Model pełny
+model_m2_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m2)
+
+# Model zerowy
+model_m2_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m2)
+
+# Stepwise
+model_m2 <- MASS::stepAIC(model_m2_null, 
+                          scope = list(lower = model_m2_null, upper = model_m2_full),
+                          direction = "both", trace = FALSE)
+
+cat("=== MODEL 2: REFUSED vs RESZTA (STEPWISE) ===\n")
+cat("Liczba obserwacji: Odmówione =", sum(dane_m2$Decision == 1), 
+    ", Pozostałe =", sum(dane_m2$Decision == 0), "\n\n")
+
+# McFadden's pseudo R2
+ll_null_m2 <- logLik(model_m2_null)
+ll_model_m2 <- logLik(model_m2)
+r2_m2 <- 1 - (as.numeric(ll_model_m2) / as.numeric(ll_null_m2))
+
+cat("AIC =", round(AIC(model_m2), 2), "\n")
+cat("R2 (McFadden) =", round(r2_m2, 4), "\n\n")
+
+# Współczynniki
+coef_m2 <- broom::tidy(model_m2) %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+kable(coef_m2 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
+      caption = "Model 2: Współczynniki (Refused)")
+```
+
+## Model 3: Canceled vs Approved+Refused+Unused (Stepwise)
+
+```{r model3_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - Canceled (1) vs reszta (0)
+dane_m3 <- dane_model %>%
+  mutate(Decision = Decision_Canceled) %>%
+  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
+
+# Model pełny
+model_m3_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m3)
+
+# Model zerowy
+model_m3_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m3)
+
+# Stepwise
+model_m3 <- MASS::stepAIC(model_m3_null, 
+                          scope = list(lower = model_m3_null, upper = model_m3_full),
+                          direction = "both", trace = FALSE)
+
+cat("=== MODEL 3: CANCELED vs RESZTA (STEPWISE) ===\n")
+cat("Liczba obserwacji: Anulowane =", sum(dane_m3$Decision == 1), 
+    ", Pozostałe =", sum(dane_m3$Decision == 0), "\n\n")
+
+# McFadden's pseudo R2
+ll_null_m3 <- logLik(model_m3_null)
+ll_model_m3 <- logLik(model_m3)
+r2_m3 <- 1 - (as.numeric(ll_model_m3) / as.numeric(ll_null_m3))
+
+cat("AIC =", round(AIC(model_m3), 2), "\n")
+cat("R2 (McFadden) =", round(r2_m3, 4), "\n\n")
+
+# Współczynniki
+coef_m3 <- broom::tidy(model_m3) %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+kable(coef_m3 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
+      caption = "Model 3: Współczynniki (Canceled)")
+```
+
+
+## Model 4: Approved vs Reszta - WSZYSTKIE ZMIENNE
+
+```{r model4_all_variables, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+cat("=== MODEL 4: APPROVED vs RESZTA (WSZYSTKIE ZMIENNE) ===\n")
+
+# Dane - te same co Model 1
+predictions_m4 <- predict(model_m1, type = "response")
+predicted_class_m4 <- ifelse(predictions_m4 > 0.5, 1, 0)
+
+# Metryki
+conf_m4 <- table(predicted_class_m4, dane_m1$Decision)
+accuracy_m4 <- sum(diag(conf_m4)) / sum(conf_m4)
+sensitivity_m4 <- conf_m4[2, 2] / (conf_m4[2, 2] + conf_m4[1, 2])
+specificity_m4 <- conf_m4[1, 1] / (conf_m4[1, 1] + conf_m4[2, 1])
+
+roc_m4 <- roc(dane_m1$Decision, predictions_m4)
+auc_m4 <- auc(roc_m4)
+
+# McFadden's pseudo R2
+model_m4_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
+ll_null_m4 <- logLik(model_m4_null)
+ll_model_m4 <- logLik(model_m1)
+r2_m4 <- 1 - (as.numeric(ll_model_m4) / as.numeric(ll_null_m4))
+
+cat("Liczba zmiennych:", length(coef(model_m1)) - 1, "\n")
+cat("Accuracy:", round(accuracy_m4, 4), "\n")
+cat("Sensitivity:", round(sensitivity_m4, 4), "\n")
+cat("Specificity:", round(specificity_m4, 4), "\n")
+cat("AUC:", round(auc_m4, 4), "\n")
+cat("AIC:", round(AIC(model_m1), 2), "\n")
+cat("R2 (McFadden):", round(r2_m4, 4), "\n\n")
+
+cat("Zmienne w modelu:\n")
+print(names(coef(model_m1))[-1])
+```
+
+
+
+## Model 5: Approved vs Reszta - TYLKO FINANSOWE
+
+```{r model5_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - tylko zmienne finansowe
+dane_m5 <- dane_model %>%
+  mutate(Decision = Decision_Approved) %>%
+  dplyr::select(Decision, all_of(zmienne_finansowe))
+
+# Model pełny
+model_m5_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m5)
+
+# Model zerowy
+model_m5_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m5)
+
+# Stepwise
+model_m5 <- MASS::stepAIC(model_m5_null, 
+                          scope = list(lower = model_m5_null, upper = model_m5_full),
+                          direction = "both", trace = FALSE)
+
+cat("=== MODEL 5: APPROVED vs RESZTA (TYLKO FINANSOWE) ===\n")
+cat("Liczba zmiennych finansowych dostępnych:", length(zmienne_finansowe), "\n\n")
+
+# Przewidywania i metryki
+predictions_m5 <- predict(model_m5, type = "response")
+predicted_class_m5 <- ifelse(predictions_m5 > 0.5, 1, 0)
+
+conf_m5 <- table(predicted_class_m5, dane_m5$Decision)
+accuracy_m5 <- sum(diag(conf_m5)) / sum(conf_m5)
+sensitivity_m5 <- conf_m5[2, 2] / (conf_m5[2, 2] + conf_m5[1, 2])
+specificity_m5 <- conf_m5[1, 1] / (conf_m5[1, 1] + conf_m5[2, 1])
+
+roc_m5 <- roc(dane_m5$Decision, predictions_m5)
+auc_m5 <- auc(roc_m5)
+
+# McFadden's pseudo R2
+model_m5_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m5)
+ll_null_m5 <- logLik(model_m5_null)
+ll_model_m5 <- logLik(model_m5)
+r2_m5 <- 1 - (as.numeric(ll_model_m5) / as.numeric(ll_null_m5))
+
+cat("Liczba zmiennych w modelu:", length(coef(model_m5)) - 1, "\n")
+cat("Accuracy:", round(accuracy_m5, 4), "\n")
+cat("Sensitivity:", round(sensitivity_m5, 4), "\n")
+cat("Specificity:", round(specificity_m5, 4), "\n")
+cat("AUC:", round(auc_m5, 4), "\n")
+cat("AIC:", round(AIC(model_m5), 2), "\n")
+cat("R2 (McFadden):", round(r2_m5, 4), "\n\n")
+
+cat("Zmienne w modelu:\n")
+print(names(coef(model_m5))[-1])
+
+# Współczynniki
+coef_m5 <- broom::tidy(model_m5) %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+kable(coef_m5 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
+      caption = "Model 5: Współczynniki (Approved - Tylko Finansowe)")
+```
+
+## Porównanie Mocy Predykcyjnej Modeli 4 i 5
+
+```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Tabela porównawcza
+porownanie <- data.frame(
+  Model = c("Model 4: Wszystkie zmienne", "Model 5: Tylko finansowe"),
+  Liczba_Zmiennych = c(length(coef(model_m1)) - 1, length(coef(model_m5)) - 1),
+  Accuracy = c(round(accuracy_m4, 4), round(accuracy_m5, 4)),
+  Sensitivity = c(round(sensitivity_m4, 4), round(sensitivity_m5, 4)),
+  Specificity = c(round(specificity_m4, 4), round(specificity_m5, 4)),
+  AUC = c(round(auc_m4, 4), round(auc_m5, 4)),
+  AIC = c(round(AIC(model_m1), 2), round(AIC(model_m5), 2)),
+  R2.McFadden = c(round(r2_m4, 4), round(r2_m5, 4))
+)
+
+kable(porownanie, caption = "Porównanie wydajności Model 4 vs Model 5")
+
+cat("\n=== INTERPRETACJA ===\n\n")
+diff_auc <- round(auc_m4 - auc_m5, 4)
+cat("Różnica AUC (Model 4 - Model 5):", diff_auc, "\n")
+cat("Percentage improvement:", round(diff_auc / auc_m5 * 100, 2), "%\n\n")
+
+if (diff_auc > 0.01) {
+  cat("✓ Model 4 (Wszystkie zmienne) jest ISTOTNIE lepszy\n")
+  cat("  Zmienne socjoekonomiczne wnoszą wartość predykcyjną\n")
+} else if (diff_auc < -0.01) {
+  cat("✓ Model 5 (Tylko finansowe) jest ISTOTNIE lepszy\n")
+  cat("  Zmienne socjoekonomiczne NIE poprawiają prognozę (mogą być szumem)\n")
+} else {
+  cat("≈ Modele są PORÓWNYWALNE\n")
+  cat("  Model 5 (prostszy) można preferować (Occam's Razor)\n")
+}
+```
+
+## Porównanie Modeli Stepwise (1, 2, 3)
+
+```{r porownanie_zmiennych_3_modele, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+
+# Zmienne w każdym modelu
+zmienne_m1 <- names(coef(model_m1))[-1]
+zmienne_m2 <- names(coef(model_m2))[-1]
+zmienne_m3 <- names(coef(model_m3))[-1]
+
+cat("Model 1 (Approved):", paste(zmienne_m1, collapse=", "), "\n\n")
+cat("Model 2 (Refused):", paste(zmienne_m2, collapse=", "), "\n\n")
+cat("Model 3 (Canceled):", paste(zmienne_m3, collapse=", "), "\n\n")
+
+# Wspólne zmienne
+wspolne <- intersect(zmienne_m1, intersect(zmienne_m2, zmienne_m3))
+cat("Zmienne we WSZYSTKICH 3 modelach:\n")
+if (length(wspolne) > 0) {
+  print(wspolne)
+} else {
+  cat("Brak wspólnych zmiennych\n")
+}
+
+# Tabela porównawcza 3 modele stepwise
+porownanie_3 <- data.frame(
+  Model = c("Model 1: Approved", "Model 2: Refused", "Model 3: Canceled"),
+  Zmienne = c(length(zmienne_m1), length(zmienne_m2), length(zmienne_m3)),
+  AIC = c(round(AIC(model_m1), 2), round(AIC(model_m2), 2), round(AIC(model_m3), 2)),
+  R2.McFadden = c(round(r2_m1, 4), round(r2_m2, 4), round(r2_m3, 4))
+)
+
+kable(porownanie_3, caption = "Porównanie Modeli Stepwise (1, 2, 3)")
+```
+
+
+## Wnioski z Modelowania
+
+### Odpowiadanie na pytania badawcze:
+
+**Pytanie 1: Kiedy aplikacja jest zatwierdzona?**
+- Model 1 pokazuje które czynniki zwiększają szanse zatwierdzenia
+- AUC wskazuje na moc dyskryminacyjną modelu
+
+**Pytanie 2: Czym charakteryzują się poszczególne grupy?**
+- Porównanie Model 1, 2, 3 pokazuje różne zmienne istotne dla każdej decyzji
+- Refused ma inne sterowniki niż Canceled
+- Sugeruje różne przyczyny nieudanych aplikacji
+
+**Pytanie 3: Rola typu klienta?**
+- Analiza czy NAME_CLIENT_TYPE_PL pojawia się w modelach
+- Jego wpływ na Approved vs Refused vs Canceled
+
+**Pytanie 4: Finansowe vs Socjoekonomiczne?**
+- Porównanie Model 4 (wszystkie) vs Model 5 (tylko finansowe)
+- Czy socjoekonomiczne zmienne wnoszą znaczący wkład?
+- Model prostszy (5) może być preferowany jeśli wydajność jest porównywalna
+
+
+## Interpretacja Wyników Modelowania
+
+### Metryki wydajności modelu
+
+- **Accuracy** - odsetek poprawnych predykcji (zarówno True Positive jak i True Negative)
+- **Sensitivity (Recall)** - zdolność modelu do wykrycia zatwierdzonych wniosków (minimize False Negatives)
+- **Specificity** - zdolność modelu do wykrycia odmów (minimize False Positives)
+- **AUC (Area Under Curve)** - miara ogólnej wydajności klasyfikatora (0.5 = losowy, 1.0 = idealny)
+
+### Kluczowe spostrzeżenia
+
+1. **Zmienne istotne do decyzji kredytowej:**
+   - Kwota wnioskowana (AMT_APPLICATION)
+   - Wkład własny (AMT_DOWN_PAYMENT)
+   - Liczba rat (CNT_PAYMENT)
+   - Typ klienta (NAME_CLIENT_TYPE_PL)
+
+2. **Kierunek wpływu:**
+   - Wyższy wkład własny → wyższa szansa zatwierdzenia
+   - Więcej rat → ryzyko wzrasta
+   - Nowy klient → lepsze szanse zatwierdzenia
+
+3. **Porównanie podejść do selekcji zmiennych:**
+   - **Stepwise selection** - iteracyjnie dodaje/usuwa zmienne na podstawie kryterium AIC
+   - **Regresja na wszystkich zmiennych** - identyfikuje które zmienne są istotne statystycznie
+   - **Regresja na zmiennych finansowych** - mierzy czy zmienne socjoekonomiczne dodają wartość
+
+### Zastosowanie biznesowe
+
+Wybrany model może być użyty do:
+- **Scoring automatyczny** - dla każdego nowego wniosku obliczamy probabilność zatwierdzenia
+- **Identyfikacja klientów docelowych** - wiemy, jakie profile są zatwierdzane
+- **Optymalizacja procesu** - wiemy, które zmienne są najważniejsze
+- **Zarządzanie ryzykiem** - mogą regulować progi decyzyjne (np. zatwierdzać jeśli P > 0.4)
+- **Triage aplikacji** - wnioski o niskim score mogą być przeanalizowane ręcznie
