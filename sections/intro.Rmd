@@ -1,4 +1,4 @@
-# **Wprowadzenie**
+# Wprowadzenie
 
 Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
 pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
@@ -23,7 +23,7 @@ wskaźnikami niewypłacalności. W związku z tym niniejsze studium przypadku st
 -	Jakie kombinacje czynników (np. kwota kredytu + typ klienta + status kontraktu) najlepiej przewidują trudności ze spłatą?
 
 
-### Dane
+## Dane
 
 W niniejszym projekcie wykorzystane zostaną dane z pliku
 „previous_application_new.csv”, zawierającego informacje o decyzjach
@@ -32,7 +32,7 @@ słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
 atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
 ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
 
-### Użyte biblioteki
+## Użyte biblioteki
 
 Podczas analizy użyto następujących bibliotek:
 

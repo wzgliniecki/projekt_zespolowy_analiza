@@ -1,8 +1,8 @@
-## Analiza Statystyczna
+# Analiza Statystyczna
 
 W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze danych, aby lepiej zrozumieć rozkłady i powiązania między zmiennymi a statusem kontraktu.
 
-### Statystyki Opisowe - Zmienne Numeryczne
+## Statystyki Opisowe - Zmienne Numeryczne
 
 ```{r podstawowe_statystyki ,echo=FALSE}
 library(dplyr)
@@ -62,7 +62,7 @@ stats_summary %>%
   )
 ```
 
-### Standaryzacja Zmiennych - Wartości Z
+## Standaryzacja Zmiennych - Wartości Z
 
 ```{r standaryzacja_zmiennych, echo=FALSE}
 # Przygotowanie danych - fokus na zmiennych związanych z kwotami i ratami
@@ -99,7 +99,7 @@ z_summary <- data_standardized %>%
 kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
 ```
 
-### Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
+## Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
 
 ```{r testy_chi_kwadrat, echo=FALSE}
 library(vcd)
@@ -161,7 +161,7 @@ if(nrow(chi_test_results) > 0) {
 }
 ```
 
-### Testy Istotności Statystycznej (t-test)
+## Testy Istotności Statystycznej (t-test)
 
 Sprawdzamy, czy obserwowane różnice między zatwierdzonymi a odrzuconymi wnioskami są statystycznie istotne.
 
@@ -222,7 +222,7 @@ kable(t_test_results, digits = 4,
       caption = "Wyniki testów t-Studenta: Zatwierdzone vs Odrzucone (*** p<0.001, ** p<0.01, * p<0.05, ns = nieistotne statystycznie)")
 ```
 
-### Analiza Wariancji (ANOVA) - Porównanie wszystkich trzech grup statusów
+## Analiza Wariancji (ANOVA) - Porównanie średnich zmiennych ilościowych między grupami
 
 Zamiast porównywania tylko Approved vs Refused, przeprowadzamy ANOVA aby zbadać różnice między wszystkimi trzema grupami.
 
@@ -305,7 +305,7 @@ kable(anova_results, digits = 4,
 })
 ```
 
-### Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
+## Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
 
 Dla zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
 
@@ -369,7 +369,7 @@ for (var in vars_to_show) {
 }
 ```
 
-### Wizualizacja Rozkładów Kwot według Statusu
+## Wizualizacja Rozkładów Kwot według Statusu
 
 ```{r boxplot_kwoty_status, fig.width=12, fig.height=8, echo=FALSE}
 library(ggplot2)
@@ -408,7 +408,7 @@ ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS_PL, y = Amount, fill = NAME_CONTR
   )
 ```
 
-### Porównanie Wartości Z-score między Grupami
+## Porównanie Wartości Z-score między Grupami
 
 ```{r wykres_z_scores, fig.width=10, fig.height=6, echo=FALSE}
 # Wykres słupkowy porównujący średnie wartości Z
@@ -446,7 +446,7 @@ ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS_PL
   coord_flip()
 ```
 
-### Pakiet ggstatsplot — porównanie kwot kredytu między statusami kontraktu
+## Porównanie kwot kredytu między statusami kontraktu
 
 ```{r ggstatsplot, echo=FALSE}
 ggstatsplot::ggbetweenstats(
@@ -474,7 +474,7 @@ ggstatsplot::ggbetweenstats(
 
 - Segmentacja klientów według kwoty wnioskowanej może wspierać scoring ryzyka i optymalizację procesu decyzyjnego.
 
-### Pakiet ggstatsplot — zależność między typem klienta a statusem kontraktu
+## Zależność między typem klienta a statusem kontraktu
 
 ```{r ggbarstats, echo=FALSE}
 ggstatsplot::ggbarstats(
@@ -501,7 +501,7 @@ ggstatsplot::ggbarstats(
 
 - Nowi klienci mogą być bardziej skłonni do finalizacji umowy, co może wspierać strategie pozyskiwania.
 
-### Pakiet ggstatsplot — ggbetweenstats dla liczby rat (CNT_PAYMENT)
+## Liczba rat (CNT_PAYMENT) a status kontraktu
 
 ```{r ggbetweenstats, echo=FALSE}
 ggstatsplot::ggbetweenstats(
@@ -530,7 +530,7 @@ ggstatsplot::ggbetweenstats(
 
 - Wnioski z minimalną liczbą rat często kończą się anulowaniem lub brakiem realizacji, co może wskazywać na niską jakość aplikacji.
 
-### Pakiet ggstatsplot — Związek między kwotą aplikowaną a przyznaną
+## Związek między kwotą aplikowaną a przyznaną
 
 ```{r ggscatterstats, echo=FALSE}
 ggstatsplot::ggscatterstats(
@@ -559,7 +559,7 @@ ggstatsplot::ggscatterstats(
 
 - Wysoka zgodność kwot może świadczyć o efektywnym dopasowaniu produktów do profilu klienta — warto analizować wyjątki jako potencjalne przypadki ryzyka lub niedopasowania.
 
-### Pakiet ggstatsplot — Rozkład liczby rat w zatwierdzonych kontraktach
+## Rozkład liczby rat w zatwierdzonych kontraktach
 
 ```{r ggshistostats, echo=FALSE}
 ggstatsplot::gghistostats(
@@ -586,7 +586,7 @@ ggstatsplot::gghistostats(
 
 - Warto uwzględnić liczbę rat jako zmienną w scoringu ryzyka
 
-### Pakiet ggstatsplot — Udział typów umów w całym zbiorze
+## Udział typów umów w całym zbiorze
 
 ```{r ggpiestats, echo=FALSE}
 ggpiestats(
@@ -613,7 +613,7 @@ ggpiestats(
 
 - Typ klienta powinien być uwzględniany w scoringu ryzyka i strategii sprzedażowej — szczególnie przy automatyzacji decyzji.
 
-### Pakiet ggstatsplot — Współczynniki modelu regresji: kwota kredytu ~ typ klienta + wkład własny
+## Współczynniki modelu regresji: kwota kredytu ~ typ klienta + wkład własny
 
 ```{r regresja, echo=FALSE}
 model <- lm(AMT_CREDIT ~ NAME_CLIENT_TYPE_PL + AMT_DOWN_PAYMENT, data = dane_clean)
@@ -632,9 +632,9 @@ ggstatsplot::ggcoefstats(
 
 - Stały klient otrzymuje średnio wyższą kwotę niż nowy, ale różnica nie jest istotna — warto to zbadać w modelu z dodatkowymi zmiennymi (np. kanał, cel pożyczki).
 
-### Interpretacja Wyników
+## Interpretacja Wyników
 
-#### Kluczowe Różnice między Grupami Statusów
+### Kluczowe Różnice między Grupami Statusów
 
 Analiza wartości Z-score ujawnia **istotne różnice** w profilach finansowych wniosków kredytowych w zależności od decyzji banku:
 
