@@ -5,6 +5,8 @@ output:
   rmdformats::downcute:
     default_style: "light"
     downcute_theme: "default"
+    toc_depth: 3
+    toc_float: true
 always_allow_html: true
 ---
 
@@ -38,6 +40,13 @@ setwd(here::here())
 knitr::opts_chunk$set(fig.align = "center")
 ```
 
+```{css, echo=FALSE}
+/* Wszystkie podrozdziały w menu nawigacji, nie byłem w stanie tego zrobić inaczej niż edytowanie css-a. */
+#toc > ul li ul li {
+  max-height: none !important;
+  overflow: visible !important;
+}
+```
 
 ```{r child_intro, child = 'sections/intro.Rmd'}
 ```
