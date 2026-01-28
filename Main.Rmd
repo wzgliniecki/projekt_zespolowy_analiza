@@ -26,6 +26,11 @@ options(error = function() {
 # Ustaw mirror CRAN aby zapewnić, że instalacja pakietów działa
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
+# ========== CACHE CONTROL - ZMIEŃ NA TRUE BY WŁĄCZYĆ CACHE ==========
+cache_models <- FALSE  # Cache dla models.Rmd (stepwise, logistic regression)
+cache_ggstats <- TRUE  # Cache dla ggstatsplot w analiza_statystyczna.Rmd
+# =====================================================================
+
 # Użyj pakietu here aby ustalić katalog główny projektu (gdzie znajduje się plik .Rproj)
 # Zapewnia to spójny katalog roboczy we wszystkich sekcjach
 if (!requireNamespace("here", quietly = TRUE)) {
@@ -60,6 +65,9 @@ knitr::opts_chunk$set(fig.align = "center")
 ```
 
 ```{r child_analiza_statystyczna, child = 'sections/analiza_statystyczna.Rmd'}
+```
+
+```{r child_models, child = 'sections/models.Rmd'}
 ```
 
 ```{r child_outro, child = 'sections/outro.Rmd'}

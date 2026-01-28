@@ -448,7 +448,7 @@ ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS_PL
 
 ## Porównanie kwot kredytu między statusami kontraktu
 
-```{r ggstatsplot, echo=FALSE}
+```{r ggstatsplot, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbetweenstats(
   data = dane_clean,
   x = NAME_CONTRACT_STATUS_PL,
@@ -476,7 +476,7 @@ ggstatsplot::ggbetweenstats(
 
 ## Zależność między typem klienta a statusem kontraktu
 
-```{r ggbarstats, echo=FALSE}
+```{r ggbarstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbarstats(
   data = dane_clean,
   x = NAME_CLIENT_TYPE_PL,
@@ -503,7 +503,7 @@ ggstatsplot::ggbarstats(
 
 ## Liczba rat (CNT_PAYMENT) a status kontraktu
 
-```{r ggbetweenstats, echo=FALSE}
+```{r ggbetweenstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbetweenstats(
   data = dane_clean,
   x = NAME_CONTRACT_STATUS_PL,
@@ -532,7 +532,7 @@ ggstatsplot::ggbetweenstats(
 
 ## Związek między kwotą aplikowaną a przyznaną
 
-```{r ggscatterstats, echo=FALSE}
+```{r ggscatterstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggscatterstats(
   data = dane_clean,
   x = AMT_APPLICATION,
@@ -561,7 +561,7 @@ ggstatsplot::ggscatterstats(
 
 ## Rozkład liczby rat w zatwierdzonych kontraktach
 
-```{r ggshistostats, echo=FALSE}
+```{r ggshistostats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::gghistostats(
   data = dane_clean %>% filter(NAME_CONTRACT_STATUS_PL == "Zatwierdzony"),
   x = CNT_PAYMENT,
@@ -588,7 +588,7 @@ ggstatsplot::gghistostats(
 
 ## Udział typów umów w całym zbiorze
 
-```{r ggpiestats, echo=FALSE}
+```{r ggpiestats, echo=FALSE, cache=cache_ggstats}
 ggpiestats(
   data = dane_clean %>%
     filter(NAME_CLIENT_TYPE_PL %in% c("Stały", "Nowy")),
@@ -615,7 +615,7 @@ ggpiestats(
 
 ## Współczynniki modelu regresji: kwota kredytu ~ typ klienta + wkład własny
 
-```{r regresja, echo=FALSE}
+```{r regresja, echo=FALSE, cache=cache_ggstats}
 model <- lm(AMT_CREDIT ~ NAME_CLIENT_TYPE_PL + AMT_DOWN_PAYMENT, data = dane_clean)
 
 ggstatsplot::ggcoefstats(
