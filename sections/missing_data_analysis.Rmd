@@ -4,6 +4,12 @@ Proces analizy rozpoczęto od wczytania zbioru danych i wstępnego rozpoznania j
 
 ```{r zaladuj_dane, echo=FALSE}
 dane <- read_csv("../Data/previous_application_new.csv")
+status_map <- c(
+  "Approved"   = "Zatwierdzony",
+  "Canceled"   = "Anulowany",
+  "Refused"    = "Odmowa",
+  "Unused offer" = "Niewykorzystana oferta"
+)
 ```
 
 Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37 zmiennych, które dzielą się na:
@@ -14,7 +20,7 @@ Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37 zmiennych,
 
 Takie zestawienie danych pozwala na przeprowadzenie wielowymiarowej analizy – zarówno jakościowej (wzorce zachowań), jak i ilościowej (wartości kredytowe).
 
-```{r podglad_danych}
+```{r podglad_danych, echo=FALSE}
 gt(head(dane,10))
 ```
 
@@ -22,42 +28,42 @@ Wstępny przegląd pierwszych dziesięciu wierszy ujawnia dużą złożoność z
 
 Zmienne oznaczają kolejno:
 
-1. SK_ID_PREV: Unikalny identyfikator poprzedniego wniosku
-2. SK_ID_CURR: Unikalny identyfikator bieżącego wniosku
-3. NAME_CONTRACT_TYPE: Typ umowy (np. gotówkowy, ratalny)
-4. AMT_ANNUITY: Kwota raty kredytowej
-5. AMT_APPLICATION: Kwota, o którą klient wnioskował
-6. AMT_CREDIT: Ostateczna przyznana kwota kredytu
-7. AMT_DOWN_PAYMENT: Wkład własny w poprzedniej aplikacji
-8. AMT_GOODS_PRICE: Cena towaru, o który wnioskowano
-9. WEEKDAY_APPR_PROCESS_START: Dzień tygodnia złożenia aplikacji
-10. HOUR_APPR_PROCESS_START: Godzina złożenia aplikacji
-11. FLAG_LAST_APPL_PER_CONTRACT: Flaga: czy była to ostatnia aplikacja dla danego kontraktu
-12. NFLAG_LAST_APPL_IN_DAY: Flaga: czy była to ostatnia aplikacja klienta danego dnia
-13. RATE_DOWN_PAYMENT: Wskaźnik wkładu własnego (znormalizowany)
-14. RATE_INTEREST_PRIMARY: Podstawowa stopa procentowa (znormalizowana)
-15. RATE_INTEREST_PRIVILEGED: Uprzywilejowana stopa procentowa (znormalizowana)
-16. NAME_CASH_LOAN_PURPOSE: Cel pożyczki gotówkowej
-17. NAME_CONTRACT_STATUS: Status kontraktu (np. zatwierdzony, odrzucony)
-18. DAYS_DECISION: Dni do decyzji względem bieżącej aplikacji
-19. NAME_PAYMENT_TYPE: Wybrany sposób płatności
-20. CODE_REJECT_REASON: Powód odrzucenia aplikacji
-21. NAME_TYPE_SUITE: Kto towarzyszył klientowi przy aplikacji
-22. NAME_CLIENT_TYPE: Typ klienta (nowy, stały)
-23. NAME_GOODS_CATEGORY: Kategoria towaru
-24. NAME_PORTFOLIO: Portfel produktu (np. CASH, POS, CAR)
-25. NAME_PRODUCT_TYPE: Typ produktu (np. cross-sell, walk-in)
-26. CHANNEL_TYPE: Kanał pozyskania klienta
-27. SELLERPLACE_AREA: Obszar sprzedaży poprzedniej aplikacji (miejsce)
-28. NAME_SELLER_INDUSTRY: Branża sprzedawcy
-29. CNT_PAYMENT: Liczba rat kredytu w aplikacji
-30. NAME_YIELD_GROUP: Grupa oprocentowania (niska, średnia, wysoka)
-32. DAYS_FIRST_DRAWING: Dni do pierwszej wypłaty względem bieżącej aplikacji
-33. DAYS_FIRST_DUE: Dni do pierwszej raty względem bieżącej aplikacji
-34. DAYS_LAST_DUE_1ST_VERSION: Dni do pierwszej wersji ostatniej raty
-35. DAYS_LAST_DUE: Dni do ostatniej raty względem bieżącej aplikacji
-36. DAYS_TERMINATION: Dni do zakończenia kontraktu względem bieżącej aplikacji
-37. NFLAG_INSURED_ON_APPROVAL: Flaga: czy klient wybrał ubezpieczenie przy aplikacji
+1. `SK_ID_PREV`: Unikalny identyfikator poprzedniego wniosku
+2. `SK_ID_CURR`: Unikalny identyfikator bieżącego wniosku
+3. `NAME_CONTRACT_TYPE`: Typ umowy (np. gotówkowy, ratalny)
+4. `AMT_ANNUITY`: Kwota raty kredytowej
+5. `AMT_APPLICATION`: Kwota, o którą klient wnioskował
+6. `AMT_CREDIT`: Ostateczna przyznana kwota kredytu
+7. `AMT_DOWN_PAYMENT`: Wkład własny w poprzedniej aplikacji
+8. `AMT_GOODS_PRICE`: Cena towaru, o który wnioskowano
+9. `WEEKDAY_APPR_PROCESS_START`: Dzień tygodnia złożenia aplikacji
+10. `HOUR_APPR_PROCESS_START`: Godzina złożenia aplikacji
+11. `FLAG_LAST_APPL_PER_CONTRACT`: Flaga: czy była to ostatnia aplikacja dla danego kontraktu
+12. `NFLAG_LAST_APPL_IN_DAY`: Flaga: czy była to ostatnia aplikacja klienta danego dnia
+13. `RATE_DOWN_PAYMENT`: Wskaźnik wkładu własnego (znormalizowany)
+14. `RATE_INTEREST_PRIMARY`: Podstawowa stopa procentowa (znormalizowana)
+15. `RATE_INTEREST_PRIVILEGED`: Uprzywilejowana stopa procentowa (znormalizowana)
+16. `NAME_CASH_LOAN_PURPOSE`: Cel pożyczki gotówkowej
+17. `NAME_CONTRACT_STATUS`: Status kontraktu (np. zatwierdzony, odrzucony)
+18. `DAYS_DECISION`: Dni do decyzji względem bieżącej aplikacji
+19. `NAME_PAYMENT_TYPE`: Wybrany sposób płatności
+20. `CODE_REJECT_REASON`: Powód odrzucenia aplikacji
+21. `NAME_TYPE_SUITE`: Kto towarzyszył klientowi przy aplikacji
+22. `NAME_CLIENT_TYPE`: Typ klienta (nowy, stały)
+23. `NAME_GOODS_CATEGORY`: Kategoria towaru
+24. `NAME_PORTFOLIO`: Portfel produktu (np. CASH, POS, CAR)
+25. `NAME_PRODUCT_TYPE`: Typ produktu (np. cross-sell, walk-in)
+26. `CHANNEL_TYPE`: Kanał pozyskania klienta
+27. `SELLERPLACE_AREA`: Obszar sprzedaży poprzedniej aplikacji (miejsce)
+28. `NAME_SELLER_INDUSTRY`: Branża sprzedawcy
+29. `CNT_PAYMENT`: Liczba rat kredytu w aplikacji
+30. `NAME_YIELD_GROUP`: Grupa oprocentowania (niska, średnia, wysoka)
+32. `DAYS_FIRST_DRAWING`: Dni do pierwszej wypłaty względem bieżącej aplikacji
+33. `DAYS_FIRST_DUE`: Dni do pierwszej raty względem bieżącej aplikacji
+34. `DAYS_LAST_DUE_1ST_VERSION`: Dni do pierwszej wersji ostatniej raty
+35. `DAYS_LAST_DUE`: Dni do ostatniej raty względem bieżącej aplikacji
+36. `DAYS_TERMINATION`: Dni do zakończenia kontraktu względem bieżącej aplikacji
+37. `NFLAG_INSURED_ON_APPROVAL`: Flaga: czy klient wybrał ubezpieczenie przy aplikacji
 
 # Data Cleansing, Wrangling
 
@@ -72,18 +78,29 @@ missing_summary <- data.frame(
   Procent_NA = colMeans(is.na(dane)) * 100
 )
 missing_summary <- as_tibble(missing_summary)
+
 missing_summary_sorted <- missing_summary %>%
   filter(Liczba_NA>0)%>%
   arrange(Procent_NA)%>%
   mutate(Procent_NA = paste0(round(Procent_NA, 2), "%"))
-missing_summary_sorted
+
+missing_summary_sorted %>%
+  kbl(
+    col.names = c("Nazwa zmiennej", "Liczba braków", "Procent braków"),
+    align = "lcc",
+    caption = "Podsumowanie braków danych"
+    ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>% 
+  row_spec(0, bold = TRUE) %>%
+  column_spec(2, width = "4cm") %>%
+  column_spec(3, width = "4cm")
 ```
 
 Analiza wykazała, że 15 z 37 zmiennych posiada braki o różnym natężeniu:
 
-- Braki marginalne: PRODUCT_COMBINATION (0.02%).
+- Braki marginalne: `PRODUCT_COMBINATION` (0.02%).
 
-- Średni poziom: Zmienne finansowe (AMT_ANNUITY, CNT_PAYMENT, AMT_GOODS_PRICE) oscylują wokół 22-23% braków.
+- Średni poziom: Zmienne finansowe (`AMT_ANNUITY`, `CNT_PAYMENT`, `AMT_GOODS_PRICE`) oscylują wokół 22-23% braków.
 
 - Wysoki poziom: Zmienne związane z harmonogramem spłat i ubezpieczeniem wykazują blisko 40% braków.
 
@@ -97,10 +114,30 @@ Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów naniar oraz VIM
 kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
 missing_order <- missing_summary_sorted$Nazwa_zmiennej
 dane_sorted <- dane[, missing_order]
-vis_miss(dane_sorted, warn_large_data = FALSE)+
-   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 short_names <- abbreviate(names(dane_sorted), minlength = 4)
+
+colnames(dane_sorted) <- short_names
+
+vis_miss(dane_sorted, warn_large_data = FALSE)+
+  scale_fill_manual(
+    values = c("grey70", "black"),
+    labels = c("Obecne", "Brakujące"),
+    name = "Status danych"
+    )+
+  theme_minimal(base_family = "Arial") +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+    ) +
+  labs(
+    title = "Wzorce brakujących danych",
+    x = "Zmienna (skrót)",
+    y = "Obserwacje"
+    )
+
 par(las = 2, mar = c(12, 4, 4, 2))
 library(VIM)
 aggr(dane_sorted, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=short_names, cex.axis=.4, gap=3, ylab=c("Procent braków danych","Wzorzec braków danych"))
@@ -108,101 +145,320 @@ aggr(dane_sorted, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=s
 
 Wykresy ujawniły istnienie silnych powiązań między zmiennymi (tzw. bloki braków):
 
-- Blok raty: AMT_ANNUITY i CNT_PAYMENT - dokładnie ta sama liczba braków (5589). To wskazuje, że brak raty (annuity) idzie w parze z brakiem liczby płatności.
+- Blok raty: AMT_ANNUITY i CNT_PAYMENT - dokładnie ta sama liczba braków (5589). To wskazuje, że brak raty (`AMT_ANNUITY`) idzie w parze z brakiem liczby płatności (`CNT_PAYMENT`).
 
-- Blok harmonogramu: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
+- Blok harmonogramu: `DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE_1ST_VERSION`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`, `NFLAG_INSURED_ON_APPROVAL` - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
 
-- Blok wkładu własnego: AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
+- Blok wkładu własnego: `AMT_DOWN_PAYMENT` i `RATE_DOWN_PAYMENT` - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
 
-- Blok stóp procentowych: RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
+- Blok stóp procentowych: `RATE_INTEREST_PRIMARY` i `RATE_INTEREST_PRIVILEGED` - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
 
 - Pojedyncze, unikalne wartości braków:
 
-   - PRODUCT_COMBINATION - tylko 4 braki, marginalny problem.
+   - `PRODUCT_COMBINATION` - tylko 4 braki, marginalny problem.
 
-   - AMT_GOODS_PRICE - 5754 braków, niezależny od innych zmiennych.
+   - `AMT_GOODS_PRICE` - 5754 braków, niezależny od innych zmiennych.
 
-   - NAME_TYPE_SUITE - 12246 braków, czyli brak informacji o osobie towarzyszącej klientowi.
+   - `NAME_TYPE_SUITE` - 12246 braków, czyli brak informacji o osobie towarzyszącej klientowi.
    
 
 ### Zależności między brakami danych w zmiennych
 
 #### Braki w AMT_ANNUITY i CNT_PAYMENT
 
-```{r sprawdz_raty}
+```{r sprawdz_raty, echo=FALSE}
 dane_na_annuity <- dane[is.na(dane$AMT_ANNUITY), ]
-table(dane_na_annuity$NAME_CONTRACT_STATUS)
-all(is.na(dane$AMT_ANNUITY) == is.na(dane$CNT_PAYMENT))
+
+# Zamiana statusów na polskie nazwy
+dane_na_annuity$STATUS_PL <- status_map[dane_na_annuity$NAME_CONTRACT_STATUS]
+
+library(kableExtra)
+
+# Tabela statusów
+tab_annuity <- table(dane_na_annuity$STATUS_PL)
+
+as.data.frame(tab_annuity) %>%
+  kbl(
+    col.names = c("Status kontraktu", "Liczba obserwacji"),
+    caption = "Statusy kontraktów dla obserwacji z brakami AMT_ANNUITY i CNT PAYMENT"
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
 ```
-Wynik funkcji all(...) = TRUE potwierdza, że zmienne AMT_ANNUITY i CNT_PAYMENT mają dokładnie te same braki, czyli brak jednej zawsze oznacza brak drugiej. Analiza wykazała, że braki te występują wyłącznie w kontraktach o statusie Canceled, Refused lub Unused offer. Wynika to z logiki biznesowej: dla wniosku, który nie został uruchomiony, nie wylicza się harmonogramu spłat. Brak danych jest więc informacją samą w sobie – "kontrakt nie powstał".
+Zmienna `AMT_ANNUITY` reprezentuje kwotę miesięcznej raty kredytowej, natomiast `CNT_PAYMENT` określa liczbę rat przewidzianych w harmonogramie spłat dla danego wniosku. Analiza wykazała, że braki występują wyłącznie w kontraktach o statusie anulowanym, niewykorzystanym lub po odmowie. Wynika to z logiki biznesowej: dla wniosku, który nie został uruchomiony, nie wylicza się harmonogramu spłat. Brak danych jest więc informacją samą w sobie – "kontrakt nie powstał".
 
 #### Braki w DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
 
-```{r sprawdz_dni}
+```{r sprawdz_dni, echo=FALSE}
 dane_na <- dane[is.na(dane$DAYS_FIRST_DRAWING), ]
-table(dane_na$NAME_CONTRACT_STATUS)
-zmienne_NA <- c("DAYS_FIRST_DUE", 
-          "DAYS_LAST_DUE_1ST_VERSION", 
-          "DAYS_LAST_DUE", 
-          "DAYS_TERMINATION", 
-          "NFLAG_INSURED_ON_APPROVAL")
-sapply(zmienne_NA, function(v) all(is.na(dane$DAYS_FIRST_DRAWING) == is.na(dane[[v]])))
+dane_na$STATUS_PL <- status_map[dane_na$NAME_CONTRACT_STATUS]
+library(kableExtra)
+
+tab <- table(dane_na$STATUS_PL)
+
+as.data.frame(tab) %>%
+  kbl(
+    col.names = c("Status kontraktu", "Liczba obserwacji"),
+    caption = "Statusy kontraktów dla obserwacji z brakami DAYS*"
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+```
+Zmienne z tej grupy opisują kluczowe momenty w harmonogramie kredytu oraz jedną cechę dotyczącą decyzji klienta przy składaniu wniosku. Określają one, ile dni upływa od daty aplikacji do poszczególnych etapów cyklu życia kontraktu.
+
+- `DAYS_FIRST_DRAWING` – liczba dni do pierwszej wypłaty środków.
+
+- `DAYS_FIRST_DUE` – liczba dni do pierwszej raty kredytu.
+
+- `DAYS_LAST_DUE_1ST_VERSION` – liczba dni do pierwotnie planowanej daty ostatniej raty.
+
+- `DAYS_LAST_DUE` – liczba dni do ostatecznej daty ostatniej raty.
+
+- `DAYS_TERMINATION` – liczba dni do zakończenia kontraktu.
+
+- `NFLAG_INSURED_ON_APPROVAL` – informacja, czy klient wybrał ubezpieczenie podczas składania wniosku.
+
+Podobnie jak w przypadku rat, braki w datach dotyczą głównie wniosków odrzuconych lub anulowanych. Zidentyfikowano jednak 603 rekordy o statusie zatwierdzonym, które mimo tego nie posiadają dat. Zdecydowano się sprawdzić inne pola (`AMT_CREDIT` - przyznana kwota kredytu i `CNT_PAYMENT` - liczba rat) dla tych 603 rekordów. Jeśli mają pełne dane finansowe, ale brakuje tylko terminów - to raczej jest to błąd. Jeśli brakuje też innych pól, to najpewniej kontrakt nigdy nie został uruchomiony mimo zaakceptowanego statusu.
+
+```{r sprawdz_zatwierdzonych_bez_dat, echo=FALSE}
+# Rekordy zatwierdzone z brakami w dowolnej zmiennej DAYS*
+days_vars <- c("DAYS_FIRST_DRAWING", "DAYS_FIRST_DUE", 
+               "DAYS_LAST_DUE_1ST_VERSION", "DAYS_LAST_DUE", 
+               "DAYS_TERMINATION")
+
+approved_na <- dane %>%
+  filter(NAME_CONTRACT_STATUS == "Approved") %>%
+  filter(if_any(all_of(days_vars), is.na))
+
+summary_df <- data.frame(
+  Zmienna = c("AMT_CREDIT", "CNT_PAYMENT"),
+  Min = c(min(approved_na$AMT_CREDIT, na.rm = TRUE),
+          min(approved_na$CNT_PAYMENT, na.rm = TRUE)),
+  Q1 = c(quantile(approved_na$AMT_CREDIT, 0.25, na.rm = TRUE),
+         quantile(approved_na$CNT_PAYMENT, 0.25, na.rm = TRUE)),
+  Mediana = c(median(approved_na$AMT_CREDIT, na.rm = TRUE),
+              median(approved_na$CNT_PAYMENT, na.rm = TRUE)),
+  Średnia = c(round(mean(approved_na$AMT_CREDIT, na.rm = TRUE), 2),
+              round(mean(approved_na$CNT_PAYMENT, na.rm = TRUE), 2)),
+  Q3 = c(quantile(approved_na$AMT_CREDIT, 0.75, na.rm = TRUE),
+         quantile(approved_na$CNT_PAYMENT, 0.75, na.rm = TRUE)),
+  Max = c(max(approved_na$AMT_CREDIT, na.rm = TRUE),
+          max(approved_na$CNT_PAYMENT, na.rm = TRUE))
+)
+
+summary_df %>%
+  kbl(
+    caption = "Podsumowanie zmiennych AMT_CREDIT i CNT_PAYMENT dla wniosków zatwierdzonych z brakami DAYS*",
+    col.names = c("Zmienna", "Min", "Q1", "Mediana", "Średnia", "Q3", "Max")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
 ```
 
-Podobnie jak w przypadku rat, braki w datach dotyczą głównie wniosków odrzuconych lub anulowanych. Zidentyfikowano jednak 603 rekordy o statusie "Approved", które mimo zatwierdzenia, nie posiadają dat. Zdecydowano się sprawdzić inne pola (AMT_CREDIT, CNT_PAYMENT, NAME_PRODUCT_TYPE) dla tych 603 rekordów. Jeśli mają pełne dane finansowe, ale brakuje tylko terminów - to raczej jest to błąd. Jeśli brakuje też innych pól, to najpewniej kontrakt nigdy nie został uruchomiony mimo statusu „Approved”.
+Analiza zaakceptowanych wniosków, w których brakuje dat harmonogramu, wykazała dwa różne podłoża problemu. Część rekordów posiada `CNT_PAYMENT` = 0, co potwierdza rezygnację z kontraktu na etapie decyzji. Jednak część posiada przypisaną liczbę rat (mediana 12, max 72), co świadczy o tym, że warunki finansowe zostały ustalone, lecz proces technicznego uruchomienia wypłaty nie został sfinalizowany w bazie danych. W związku z tym, dla rekordów z przypisaną liczbą rat zdecydowano się na imputację brakujących dat wartościami medianowymi dla podobnych produktów, natomiast pozostałe potraktowano jako kontrakty nieaktywne.
 
-```{r sprawdz_zatwierdzonych_bez_dat}
-approved_na <- dane[dane$NAME_CONTRACT_STATUS == "Approved" & 
-                    is.na(dane$DAYS_FIRST_DRAWING), ]
-summary(approved_na[, c("AMT_CREDIT", "CNT_PAYMENT")])
+W zmiennych typu `DAYS` zidentyfikowano również wartości skrajnie duże, sięgające 365243 dni (ponad 1000 lat). Tak duże liczby nie mogą reprezentować rzeczywistych dat i są typowym placeholderem technicznym stosowanym w systemach źródłowych.
+
+Aby wykryć takie przypadki, przyjęto próg 50 lat (18250 dni). Jest to granica, która z jednej strony eliminuje wartości nierealistyczne, a z drugiej nie usuwa żadnych potencjalnie poprawnych obserwacji. Wszystkie rekordy przekraczające ten próg potraktowano jako błędne wartości systemowe i zaklasyfikowano jako braki danych.
+
+```{r ponad 1000 lat, echo=FALSE}
+days_vars <- grep("^DAYS", names(dane), value = TRUE)
+
+fake_threshold <- 365 * 50  # 50 lat
+
+summary_fake <- sapply(dane[days_vars], function(x) sum(x > fake_threshold, na.rm = TRUE))
+
+library(kableExtra)
+
+fake_df <- data.frame(
+  Zmienna = names(summary_fake),
+  Liczba_fejkowych = as.numeric(summary_fake)
+)
+
+fake_df %>%
+  kbl(
+    caption = "Liczba podejrzanie dużych wartości w zmiennych DAYS*",
+    col.names = c("Zmienna", "Liczba wartości > 50 lat")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
 ```
 
-Analiza wniosków o statusie Approved, w których brakuje dat harmonogramu, wykazała dwa różne podłoża problemu. Część rekordów posiada CNT_PAYMENT = 0, co potwierdza rezygnację z kontraktu na etapie decyzji. Jednak znaczna część posiada przypisaną liczbę rat (mediana 12, max 72), co świadczy o tym, że warunki finansowe zostały ustalone, lecz proces technicznego uruchomienia wypłaty (odnotowany w zmiennych DAYS_) nie został sfinalizowany w bazie danych. W związku z tym, dla rekordów z przypisaną liczbą rat zdecydowano się na imputację brakujących dat wartościami medianowymi dla podobnych produktów, natomiast pozostałe potraktowano jako kontrakty nieaktywne.
+W zmiennych typu `DAYS` zidentyfikowano liczne wartości przekraczające 50 lat, przy czym największa skala problemu dotyczy `DAYS_FIRST_DRAWING`, a pozostałe pola również zawierają od kilkuset do kilku tysięcy nienaturalnie dużych wartości, co jednoznacznie wskazuje na systemowy placeholder stosowany w miejsce rzeczywistych dat. W dalszej części analizy zweryfikowano statusy kontraktów zawierających te wartości, aby określić, czy są one logicznym skutkiem przebiegu procesu kredytowego, czy też stanowią błąd systemowy.
+
+```{r status dla 1000 lat, echo=FALSE}
+library(dplyr)
+
+status_by_var <- lapply(days_vars, function(v) {
+  dane %>%
+    filter(.data[[v]] > fake_threshold) %>%
+    mutate(Status_PL = status_map[NAME_CONTRACT_STATUS]) %>%
+    count(Status_PL) %>%
+    mutate(Zmienna = v)
+})
+
+status_by_var_df <- bind_rows(status_by_var)
+
+status_by_var_df %>%
+  kbl(
+    caption = "Statusy kontraktów dla fejkowych wartości w poszczególnych zmiennych DAYS*",
+    col.names = c("Status kontraktu", "Liczba obserwacji", "Zmienna")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+```
+
+Wszystkie rekordy dotyczą kontraktów o statusie zatwierdzonym, niezależnie od tego, której zmiennej `DAYS` dotyczą. Oznacza to, że nie są to braki wynikające z odmowy, anulowania czy niewygenerowania oferty, lecz systemowy placeholder stosowany w miejsce rzeczywistych dat harmonogramu.
+
+Aby ustalić, czy te kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest ponowne sprawdzenie ich parametrów finansowych — przede wszystkim.
+
+```{r dane finansowe 1000 lat, echo=FALSE}
+# Identyfikacja rekordów z fejkowymi wartościami w dowolnej zmiennej DAYS*
+fake_idx <- apply(dane[days_vars], 1, function(row) any(row > fake_threshold, na.rm = TRUE))
+
+fake_records <- dane[fake_idx, ]
+
+# Podsumowanie CNT_PAYMENT dla tych rekordów
+library(kableExtra)
+
+# Podsumowanie CNT_PAYMENT i AMT_CREDIT w jednej tabeli
+summary_cnt <- data.frame(
+  Zmienna = c("CNT_PAYMENT", "AMT_CREDIT"),
+  Min = c(
+    min(fake_records$CNT_PAYMENT, na.rm = TRUE),
+    min(fake_records$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Q1 = c(
+    as.numeric(quantile(fake_records$CNT_PAYMENT, 0.25, na.rm = TRUE)),
+    as.numeric(quantile(fake_records$AMT_CREDIT, 0.25, na.rm = TRUE))
+  ),
+  Mediana = c(
+    median(fake_records$CNT_PAYMENT, na.rm = TRUE),
+    median(fake_records$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Średnia = c(
+    round(mean(fake_records$CNT_PAYMENT, na.rm = TRUE), 2),
+    round(mean(fake_records$AMT_CREDIT, na.rm = TRUE), 2)
+  ),
+  Q3 = c(
+    as.numeric(quantile(fake_records$CNT_PAYMENT, 0.75, na.rm = TRUE)),
+    as.numeric(quantile(fake_records$AMT_CREDIT, 0.75, na.rm = TRUE))
+  ),
+  Max = c(
+    max(fake_records$CNT_PAYMENT, na.rm = TRUE),
+    max(fake_records$AMT_CREDIT, na.rm = TRUE)
+  )
+)
+
+summary_cnt %>%
+  kbl(
+    caption = "Podsumowanie CNT_PAYMENT i AMT_CREDIT dla kontraktów z fałszywymi wartościami DAYS*",
+    col.names = c("Zmienna", "Min", "Q1", "Mediana", "Średnia", "Q3", "Max")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+```
+
+Podobnie jak w przypadku rzeczywistych braków, również tutaj obserwujemy dwa odmienne scenariusze. Część rekordów posiada `CNT_PAYMENT` = 0 oraz oraz `AMT_CREDIT` = 0, co wskazuje, że mimo formalnego statusu „Zatwierdzony”, kontrakt nie został faktycznie uruchomiony i nie nadano mu parametrów spłaty. W takich przypadkach fałszywe wartości `DAYS` potraktowano jako braki danych, a same kontrakty jako nieaktywne.
+
+Jednak część obserwacji posiada zarówno dodatnią liczbę rat (mediana 12, maksimum 60) jak i realne kwoty kredytu (mediana ok. 102 tys., maksimum 3,15 mln), co świadczy o tym, że warunki finansowe zostały ustalone, a produkt był przygotowany do uruchomienia. Brak dat harmonogramu wynika więc z błędu systemowego, a nie z decyzji klienta. Dla tej grupy zdecydowano się na imputację brakujących dat wartościami medianowymi wyznaczonymi dla porównywalnych produktów, aby odtworzyć realistyczny przebieg harmonogramu.
 
 #### Braki w AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT
 
-```{r sprawdz_wklad_wlasny}
-all(is.na(dane$AMT_DOWN_PAYMENT) == is.na(dane$RATE_DOWN_PAYMENT))
-```
-
-AMT_DOWN_PAYMENT (kwota wkładu własnego) i RATE_DOWN_PAYMENT (procent wkładu własnego) mają identyczny poziom braków – 13 261 rekordów, czyli ok. 53,04% całego zbioru. Braki wynikają z faktu, że wkład własny nie jest obowiązkowy. Zostanie on uzupełniony wartością 0.
+`AMT_DOWN_PAYMENT` (kwota wkładu własnego) i `RATE_DOWN_PAYMENT` (procent wkładu własnego) mają identyczny poziom braków – 13 261 rekordów, czyli ok. 53,04% całego zbioru. Braki wynikają z faktu, że wkład własny nie jest obowiązkowy. Zostanie on uzupełniony wartością 0.
 
 #### Braki w RATE_INTEREST_PRIMARY i RATE_INTEREST_PRIVILEGED
 
-RATE_INTEREST_PRIMARY to oprocentowanie podstawowe, czyli standardowa stopa procentowa przypisana do kredytu. RATE_INTEREST_PRIVILEGED to oprocentowanie uprzywilejowane, czyli specjalna, obniżona stopa dla wybranych klientów lub produktów.
+`RATE_INTEREST_PRIMARY` to oprocentowanie podstawowe, czyli standardowa stopa procentowa przypisana do kredytu.
+`RATE_INTEREST_PRIVILEGED` to oprocentowanie uprzywilejowane, czyli specjalna, obniżona stopa dla wybranych klientów lub produktów.
 
 Ponad 99% braków oznacza, że w praktyce te pola nie są wypełniane w bazie.
 Możliwe, że system nie rejestrował oprocentowania w tych zmiennych, albo były one używane tylko w wyjątkowych przypadkach. To zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
 
 #### Braki w PRODUCT_COMBINATION
 
-Zmienne PRODUCT_COMBINATION mają tylko 4 braki (0,02%), czyli praktycznie nie występują w zbiorze. Zmienna ta opisuje kombinację produktów kredytowych (np. kredyt gotówkowy + karta kredytowa, kredyt ratalny + ubezpieczenie).
+Zmienne `PRODUCT_COMBINATION` mają tylko 4 braki (0,02%), czyli praktycznie nie występują w zbiorze. Zmienna ta opisuje kombinację produktów kredytowych (np. kredyt gotówkowy + karta kredytowa, kredyt ratalny + ubezpieczenie).
 NA stanowią śladową liczbę obserwacji – można je traktować jako incydentalne braki, nie wpływają one na całość danych.
 
 #### Braki w AMT_GOODS_PRICE
 
-AMT_GOODS_PRICE to zmienna, która oznacza wartość towaru lub usługi, na którą klient zaciąga kredyt.Sprawdzamy, jakie statusy kontraktu występują w rekordach z brakami ceny towaru.
+`AMT_GOODS_PRICE` to zmienna, która oznacza wartość towaru lub usługi, na którą klient zaciąga kredyt.Sprawdzamy, jakie statusy kontraktu występują w rekordach z brakami ceny towaru.
 
-```{r sprawdz_cena_towaru}
+```{r sprawdz_cena_towaru, echo=FALSE}
 dane_NA_goods_price <- dane[is.na(dane$AMT_GOODS_PRICE), ]
-table(dane_NA_goods_price$NAME_CONTRACT_STATUS)
+
+library(dplyr)
+library(kableExtra)
+
+# Dodanie statusu PL
+dane_NA_goods_price$Status_PL <- status_map[dane_NA_goods_price$NAME_CONTRACT_STATUS]
+
+# Zliczenie statusów
+tab_goods <- dane_NA_goods_price %>%
+  count(Status_PL)
+
+# Tabela kable
+tab_goods %>%
+  kbl(
+    caption = "Statusy kontraktów dla obserwacji z brakującym AMT_GOODS_PRICE",
+    col.names = c("Status kontraktu", "Liczba obserwacji")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
 ```
 
 Zdecydowana większość NA występuje w kontraktach anulowanych lub odrzuconych.To jest logiczne: skoro wniosek nie został zrealizowany, cena towaru nie musiała być rejestrowana.
 
-Jednak mniej typowa sytuacja dot. 632 zatwierdzonych kontraktów. One powininny mieć określoną cenę towaru. Sprawdzamy, czy mają inne kluczowe informacje (takie jak AMT_CREDIT i CNT_PAYMENT).
+Jednak mniej typowa sytuacja dot. 632 zatwierdzonych kontraktów. One powininny mieć określoną cenę towaru. Sprawdzamy, czy mają inne kluczowe informacje (jak poprzednio: `AMT_CREDIT` i `CNT_PAYMENT`).
 
-```{r analizuj_zatwierdzonych_bez_ceny}
+```{r analizuj_zatwierdzonych_bez_ceny, echo=FALSE}
 dane$FLAG_APPROVED_GOODS_NA <- ifelse(dane$NAME_CONTRACT_STATUS == "Approved" & is.na(dane$AMT_GOODS_PRICE), 1, 0)
 approved_goods_na <- dane[dane$FLAG_APPROVED_GOODS_NA == 1, ]
-summary(approved_goods_na[, c("AMT_CREDIT", "CNT_PAYMENT")])
+
+library(kableExtra)
+
+summary_goods <- data.frame(
+  Zmienna = c("CNT_PAYMENT", "AMT_CREDIT"),
+  Min = c(
+    min(approved_goods_na$CNT_PAYMENT, na.rm = TRUE),
+    min(approved_goods_na$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Q1 = c(
+    as.numeric(quantile(approved_goods_na$CNT_PAYMENT, 0.25, na.rm = TRUE)),
+    as.numeric(quantile(approved_goods_na$AMT_CREDIT, 0.25, na.rm = TRUE))
+  ),
+  Mediana = c(
+    median(approved_goods_na$CNT_PAYMENT, na.rm = TRUE),
+    median(approved_goods_na$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Średnia = c(
+    round(mean(approved_goods_na$CNT_PAYMENT, na.rm = TRUE), 2),
+    round(mean(approved_goods_na$AMT_CREDIT, na.rm = TRUE), 2)
+  ),
+  Q3 = c(
+    as.numeric(quantile(approved_goods_na$CNT_PAYMENT, 0.75, na.rm = TRUE)),
+    as.numeric(quantile(approved_goods_na$AMT_CREDIT, 0.75, na.rm = TRUE))
+  ),
+  Max = c(
+    max(approved_goods_na$CNT_PAYMENT, na.rm = TRUE),
+    max(approved_goods_na$AMT_CREDIT, na.rm = TRUE)
+  )
+)
+
+summary_goods %>%
+  kbl(
+    caption = "Podsumowanie CNT_PAYMENT i AMT_CREDIT dla zatwierdzonych kontraktów z brakującym AMT_GOODS_PRICE",
+    col.names = c("Zmienna", "Min", "Q1", "Mediana", "Średnia", "Q3", "Max")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
 ```
 
-Dane dla AMT_CREDIT są zróżnicowane (od 0 do 900 000, mediany ok. 180 000), jednak dla CNT_PAYMENT wszystkie wartości są równe 0. To oznacza, że mimo zatwierdzenia kontraktu, nie zapisano liczby rat.To sugeruje, że kredyt został zatwierdzony, ale nie uruchomiony (brak harmonogramu i brak powiązania z towarem). Warto traktować je jako osobną kategorię, bo nie są to typowe zatwierdzone kredyty.
+Dane dla `AMT_CREDIT` są zróżnicowane (od 0 do 900 000, mediana ok. 180 000), jednak dla `CNT_PAYMENT` wszystkie wartości są równe 0. To oznacza, że mimo zatwierdzenia kontraktu, nie zapisano liczby rat.To sugeruje, że kredyt został zatwierdzony, ale nie uruchomiony (brak harmonogramu i brak powiązania z towarem). Warto traktować je jako osobną kategorię, bo nie są to typowe zatwierdzone kredyty.
 
 #### Braki w NAME_TYPE_SUITE
 
-W zmiennej NAME_TYPE_SUITE występuje 12 246 braków, co stanowi prawie połowę wszystkich obserwacji (48,98%).
+W zmiennej `NAME_TYPE_SUITE` występuje 12 246 braków, co stanowi prawie połowę wszystkich obserwacji (48,98%).
 
 Zmienna ta opisuje, kto towarzyszył klientowi podczas składania wniosku (np. członek rodziny, znajomy, partner). Braki mogą być naturalne:
 
@@ -214,29 +470,92 @@ Braki zostaną zaklasyfikowane jako nowa kategoria "Unknown", gdyż mogą nieś�
 
 #### Braki nieoznaczone jako "NA"
 
-Podczas eksploracji danych zauważono, że w zmiennej AMT_APPLICATION (kwota wniosku) występują wartości równe 0. Wartość ta nie jest oznaczona jako NA, ale logicznie wskazuje na brak faktycznej kwoty wniosku. Sprawdzamy, ile takich rekordów istnieje i jaki mają status kontraktu.
+Podczas eksploracji danych zauważono, że w zmiennej `AMT_APPLICATION` (kwota wniosku) występują wartości równe 0. Wartość ta nie jest oznaczona jako NA, ale logicznie wskazuje na brak faktycznej kwoty wniosku. Sprawdzamy, ile takich rekordów istnieje i jaki mają status kontraktu.
 
-```{r sprawdz_zerowe_kwoty}
-sum(dane$AMT_APPLICATION <= 0)
-sum(dane$AMT_APPLICATION == 0)
-table(dane$NAME_CONTRACT_STATUS[dane$AMT_APPLICATION == 0])
-summary(dane$AMT_CREDIT[dane$AMT_APPLICATION == 0])
+```{r sprawdz_zerowe_kwoty, echo=FALSE}
+library(dplyr)
+library(kableExtra)
 
-dane %>%
-  filter(AMT_APPLICATION == 0 & AMT_CREDIT > 0) %>%
-  count(NAME_CONTRACT_STATUS)
+# Rekordy z AMT_APPLICATION = 0
+dane_app0 <- dane[dane$AMT_APPLICATION == 0, ]
 
-dane%>%
-  filter(AMT_APPLICATION == 0 & AMT_CREDIT > 0) %>%
-  count(CNT_PAYMENT)
+# Dodanie statusu PL
+dane_app0$Status_PL <- status_map[dane_app0$NAME_CONTRACT_STATUS]
+
+# Zliczenie statusów
+tab_app0 <- dane_app0 %>%
+  count(Status_PL)
+
+# Tabela kable
+tab_app0 %>%
+  kbl(
+    caption = "Statusy kontraktów dla obserwacji z AMT_APPLICATION = 0",
+    col.names = c("Status kontraktu", "Liczba obserwacji")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+
 ```
-W większości przypadków są to kontrakty Anulowane/Odrzucone, gdzie brak kwoty wnioskowanej jest logiczny.
 
-Jednak mamy też anomalię: zatwierdzone kontrakty z AMT_APPLICATION = 0, ale z dodatnią kwotą kredytu (AMT_CREDIT > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
+Wartości `AMT_APPLICATION` = 0 występują przede wszystkim w kontraktach Anulowanych (4596) oraz Odmówionych (578), co jest zgodne z logiką procesu — brak kwoty aplikowanej oznacza, że wniosek nie przeszedł do etapu pełnej parametryzacji. Niewielka liczba przypadków dotyczy statusu Niewykorzystana oferta (6), co również jest spójne z sytuacją, w której klient nie finalizuje procesu.
 
-Jeśli AMT_APPLICATION = 0 i AMT_CREDIT = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
+Jednak szczególną uwagę wymagają 665 kontraktów o statusie zatwierdzonym.W tej grupie brak kwoty aplikowanej nie jest logicznym elementem procesu i może wskazywać na błąd systemowy lub niekompletne zapisanie danych w momencie decyzji kredytowej. Aby ustalić, czy zatwierdzone kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych
 
-Jeśli AMT_APPLICATION = 0 i AMT_CREDIT > 0, to imputujemy AMT_APPLICATION wartością z AMT_CREDIT. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
+```{r werfyfikacja amt_app, echo=FALSE}
+library(dplyr)
+library(kableExtra)
+
+# Dane: Approved + AMT_APPLICATION = 0
+approved_app0 <- dane %>%
+  filter(NAME_CONTRACT_STATUS == "Approved",
+         AMT_APPLICATION == 0)
+
+# Tabela podsumowująca
+summary_app0 <- data.frame(
+  Zmienna = c("CNT_PAYMENT", "AMT_CREDIT"),
+  Min = c(
+    min(approved_app0$CNT_PAYMENT, na.rm = TRUE),
+    min(approved_app0$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Q1 = c(
+    as.numeric(quantile(approved_app0$CNT_PAYMENT, 0.25, na.rm = TRUE)),
+    as.numeric(quantile(approved_app0$AMT_CREDIT, 0.25, na.rm = TRUE))
+  ),
+  Mediana = c(
+    median(approved_app0$CNT_PAYMENT, na.rm = TRUE),
+    median(approved_app0$AMT_CREDIT, na.rm = TRUE)
+  ),
+  Średnia = c(
+    round(mean(approved_app0$CNT_PAYMENT, na.rm = TRUE), 2),
+    round(mean(approved_app0$AMT_CREDIT, na.rm = TRUE), 2)
+  ),
+  Q3 = c(
+    as.numeric(quantile(approved_app0$CNT_PAYMENT, 0.75, na.rm = TRUE)),
+    as.numeric(quantile(approved_app0$AMT_CREDIT, 0.75, na.rm = TRUE))
+  ),
+  Max = c(
+    max(approved_app0$CNT_PAYMENT, na.rm = TRUE),
+    max(approved_app0$AMT_CREDIT, na.rm = TRUE)
+  )
+)
+
+summary_app0 %>%
+  kbl(
+    caption = "Podsumowanie CNT_PAYMENT i AMT_CREDIT dla zatwierdzonych kontraktów z AMT_APPLICATION = 0",
+    col.names = c("Zmienna", "Min", "Q1", "Mediana", "Średnia", "Q3", "Max")
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+```
+
+
+W większości przypadków są to kontrakty anulowane lub ddrzucone, gdzie brak kwoty wnioskowanej jest logiczny.
+
+Jednak mamy też anomalię: zatwierdzone kontrakty z `AMT_APPLICATION` = 0, ale z dodatnią kwotą kredytu (`AMT_CREDIT` > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
+
+Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
+
+Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` > 0, to imputujemy `AMT_APPLICATION` wartością z `AMT_CREDIT`. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
 
 W pozostałych przypadkach zostawiamy wartość bez zmian.
 
@@ -261,19 +580,45 @@ library(tidyr)
 dane_clean <- dane %>%
   # 1. Usuwamy puste kolumny
   select(-RATE_INTEREST_PRIMARY, -RATE_INTEREST_PRIVILEGED) %>%
-
-  # 2. Naprawiamy daty dla 603 rekordów Approved, które MAJĄ raty (CNT_PAYMENT > 0)
-  # Używamy mediany z całego zbioru dla statusu Approved
+  
+  # 2. Zamieniamy fałszywe wartości DAYS* (>50 lat) na NA
+  mutate(across(all_of(days_vars),
+                ~if_else(. > fake_threshold, NA_real_, .))) %>%
+  
+  # 3. Imputacja dat tylko dla Approved z pełnymi danymi finansowymi
   group_by(NAME_CONTRACT_STATUS) %>%
-  mutate(across(starts_with("DAYS_"), 
-                ~if_else(NAME_CONTRACT_STATUS == "Approved" & is.na(.) & CNT_PAYMENT > 0, 
-                         median(., na.rm = TRUE), .))) %>%
+  mutate(across(all_of(days_vars),
+                ~if_else( NAME_CONTRACT_STATUS == "Approved" &
+                            is.na(.) &
+                            CNT_PAYMENT > 0 &
+                            AMT_CREDIT > 0,
+                          median(., na.rm = TRUE),
+                          .
+                          ))) %>%
   ungroup() %>%
+  
+  # 4. Tworzymy flagę martwych kontraktów (Approved bez parametrów finansowych)
+  mutate(
+    FLAG_DEAD_CONTRACT = if_else(
+      NAME_CONTRACT_STATUS == "Approved" &
+        CNT_PAYMENT == 0 & 
+      AMT_CREDIT == 0,
+      1, 0
+      )
+    ) %>%
+  
+  # 5. Pozostałe NA w DAYS* (martwe kontrakty) → NA
+  mutate(across(all_of(days_vars),
+                ~if_else(FLAG_DEAD_CONTRACT == 1, NA_real_, .))) %>%
+  
+  # 6. Imputacja AMT_GOODS_PRICE zgodnie z logiką
+  mutate( AMT_GOODS_PRICE = case_when(
+    NAME_CONTRACT_STATUS == "Approved" & is.na(AMT_GOODS_PRICE) & CNT_PAYMENT == 0 ~ 0, 
+  NAME_CONTRACT_STATUS == "Approved" & is.na(AMT_GOODS_PRICE) & CNT_PAYMENT > 0 ~ median(AMT_GOODS_PRICE, na.rm = TRUE), TRUE ~ AMT_GOODS_PRICE
+  )
+  ) %>%
 
-  # 3. Reszta NA (odrzucone i martwe Approved) dostaje kod 365243
-  mutate(across(starts_with("DAYS_"), ~replace_na(., 365243))) %>%
-
-  # 4. Standardowa imputacja reszty pól (zerami i "Unknown")
+  # 7. Standardowa imputacja pozostałych pól
   mutate(
     AMT_ANNUITY = replace_na(AMT_ANNUITY, 0),
     CNT_PAYMENT = replace_na(CNT_PAYMENT, 0),
@@ -285,14 +630,13 @@ dane_clean <- dane %>%
     PRODUCT_COMBINATION = replace_na(PRODUCT_COMBINATION, "Unknown")
   ) %>%
 
-  # 5. Czyszczenie AMT_APPLICATION - imputacja z AMT_CREDIT jeśli dostępne
+  # 8. Czyszczenie AMT_APPLICATION - imputacja z AMT_CREDIT jeśli dostępne
   mutate(
-    AMT_APPLICATION = case_when(
-      AMT_APPLICATION == 0 & AMT_CREDIT > 0 ~ AMT_CREDIT,      # imputacja z przyznanej kwoty
-      TRUE ~ AMT_APPLICATION                                   # pozostaw bez zmian (w tym 0)
-    )
+  AMT_APPLICATION = case_when(
+    AMT_APPLICATION == 0 & AMT_CREDIT == 0 ~ NA_real_,   # martwy wniosek → brak danych
+    AMT_APPLICATION == 0 & AMT_CREDIT > 0 ~ AMT_CREDIT,  # imputacja z przyznanej kwoty
+    TRUE ~ AMT_APPLICATION                               # pozostaw bez zmian
   )
-
-# Weryfikacja
-cat("Liczba pozostałych NA:", sum(is.na(dane_clean)), "\n")
+)
 ```
+

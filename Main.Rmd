@@ -5,11 +5,12 @@ output:
   rmdformats::material:
     highlight: kate
     self_contained: false
-    thumbnails: true
+    thumbnails: false
     lightbox: true
     gallery: true
     cards: false
-    use_bookdown: true
+    use_bookdown: false
+    fig_caption: false
 always_allow_html: true
 ---
 

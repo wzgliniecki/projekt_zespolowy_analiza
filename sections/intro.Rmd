@@ -64,9 +64,9 @@ ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
 
 ## Użyte biblioteki
 
-Podczas analizy użyto następujących bibliotek:
+W dokumencie wykorzystano zestaw bibliotek służących do wczytywania, czyszczenia, przekształcania i wizualizacji danych, takich jak `tidyverse`, `dplyr`, `ggplot2`, `naniar`, `VIM` czy `corrplot`. Dodatkowo użyto pakietów wspierających modelowanie statystyczne i ocenę jakości modeli, m.in. . `leaps`, `pROC`, `caret` oraz narzędzi do tworzenia interaktywnych tabel i wykresów, takich jak `gt`, `kableExtra`, `plotly` i `networkD3`.
 
-```{r zaladuj_biblioteki, message=FALSE}
+```{r zaladuj_biblioteki, message=FALSE, echo=FALSE, warning=FALSE}
 library(readr)
 library(gt)
 library(tidyverse)
