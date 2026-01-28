@@ -30,7 +30,7 @@ dane_model <- dane_clean %>%
     Decision_Canceled = ifelse(NAME_CONTRACT_STATUS_PL == "Anulowany", 1, 0)
   ) %>%
   dplyr::select(all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne, 
-                        "Decision_Approved", "Decision_Refused", "Decision_Canceled"))) %>%
+                        "Decision_Approved", "Decision_Refused", "Decision_Canceled", "DAYS_LAST_DUE"))) %>%
   filter(complete.cases(.))
 
 cat("=== PRZYGOTOWANE DANE DO MODELOWANIA ===\n")
@@ -342,6 +342,76 @@ porownanie_3 <- data.frame(
 kable(porownanie_3, caption = "Porównanie Modeli Stepwise (1, 2, 3)")
 ```
 
+---
+
+## Model 6: Predykcja Problemów ze Spłatą (Opóźnienia)
+
+```{r model6_payment_problems, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Nowa zmienna: czy były problemy ze spłatą
+# Klient ma problem ze spłatą jeśli DAYS_LAST_DUE > 0 (opóźnienie względem terminu)
+dane_m6 <- dane_model %>%
+  mutate(
+    Payment_Problem = ifelse(is.na(DAYS_LAST_DUE) | DAYS_LAST_DUE <= 0, 0, 1)
+  ) %>%
+  dplyr::select(Payment_Problem, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne))) %>%
+  filter(complete.cases(.))
+
+cat("=== MODEL 6: PREDYKCJA PROBLEMÓW ZE SPŁATĄ (STEPWISE) ===\n")
+cat("Liczba obserwacji: Z problemami spłaty =", sum(dane_m6$Payment_Problem == 1), 
+    ", Bez problemów =", sum(dane_m6$Payment_Problem == 0), "\n\n")
+
+# Model pełny
+model_m6_full <- glm(Payment_Problem ~ ., family = binomial(link = "logit"), data = dane_m6)
+
+# Model zerowy
+model_m6_null <- glm(Payment_Problem ~ 1, family = binomial(link = "logit"), data = dane_m6)
+
+# Stepwise
+model_m6 <- MASS::stepAIC(model_m6_null, 
+                          scope = list(lower = model_m6_null, upper = model_m6_full),
+                          direction = "both", trace = FALSE)
+
+# McFadden's pseudo R2
+ll_null_m6 <- logLik(model_m6_null)
+ll_model_m6 <- logLik(model_m6)
+r2_m6 <- 1 - (as.numeric(ll_model_m6) / as.numeric(ll_null_m6))
+
+cat("AIC =", round(AIC(model_m6), 2), "\n")
+cat("R2 (McFadden) =", round(r2_m6, 4), "\n\n")
+
+# Metryki predykcyjne
+predictions_m6 <- predict(model_m6, type = "response")
+predicted_class_m6 <- ifelse(predictions_m6 > 0.5, 1, 0)
+
+conf_m6 <- table(predicted_class_m6, dane_m6$Payment_Problem)
+accuracy_m6 <- sum(diag(conf_m6)) / sum(conf_m6)
+sensitivity_m6 <- conf_m6[2, 2] / (conf_m6[2, 2] + conf_m6[1, 2])
+specificity_m6 <- conf_m6[1, 1] / (conf_m6[1, 1] + conf_m6[2, 1])
+
+roc_m6 <- roc(dane_m6$Payment_Problem, predictions_m6)
+auc_m6 <- auc(roc_m6)
+
+cat("Liczba zmiennych w modelu:", length(coef(model_m6)) - 1, "\n")
+cat("Accuracy:", round(accuracy_m6, 4), "\n")
+cat("Sensitivity:", round(sensitivity_m6, 4), "\n")
+cat("Specificity:", round(specificity_m6, 4), "\n")
+cat("AUC:", round(auc_m6, 4), "\n\n")
+
+cat("Zmienne w modelu:\n")
+print(names(coef(model_m6))[-1])
+
+# Współczynniki
+coef_m6 <- broom::tidy(model_m6) %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+kable(coef_m6 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
+      caption = "Model 6: Współczynniki (Predykcja Problemów ze Spłatą)")
+```
+
+---
 
 ## Wnioski z Modelowania
 

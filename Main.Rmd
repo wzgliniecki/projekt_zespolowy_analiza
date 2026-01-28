@@ -27,7 +27,7 @@ options(error = function() {
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # ========== CACHE CONTROL - ZMIEŃ NA TRUE BY WŁĄCZYĆ CACHE ==========
-cache_models <- TRUE  # Cache dla models.Rmd (stepwise, logistic regression)
+cache_models <- FALSE  # Cache dla models.Rmd (stepwise, logistic regression)
 cache_ggstats <- TRUE  # Cache dla ggstatsplot w analiza_statystyczna.Rmd
 # =====================================================================
 
