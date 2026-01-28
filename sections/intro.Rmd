@@ -37,8 +37,11 @@ jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
 Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
 wskaźnikami niewypłacalności. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
 
-- Kiedy aplikacja jest zatwierdzona vs odrzucana/anulowana?**
  
+- Czym charakteryzuje się każda grupa decyzji (zaakceptowani/odrzuceni itd.)?
+
+- Jaka rola typu klienta - Stary vs Nowy? Czy warto pozyskiwać nowych klientów czy skupić się na utrzymaniu obecnych?
+
 - Które zmienne mają większy wpływ - finansowe czy socjoekonomiczne?
 
 - Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo odmowy, anulowania lub niewykorzystania oferty?

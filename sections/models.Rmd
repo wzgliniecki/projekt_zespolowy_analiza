@@ -342,8 +342,6 @@ porownanie_3 <- data.frame(
 kable(porownanie_3, caption = "Porównanie Modeli Stepwise (1, 2, 3)")
 ```
 
----
-
 ## Model 6: Predykcja Problemów ze Spłatą (Opóźnienia)
 
 ```{r model6_payment_problems, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
@@ -411,63 +409,4 @@ kable(coef_m6 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
       caption = "Model 6: Współczynniki (Predykcja Problemów ze Spłatą)")
 ```
 
----
 
-## Wnioski z Modelowania
-
-### Odpowiadanie na pytania badawcze:
-
-**Pytanie 1: Kiedy aplikacja jest zatwierdzona?**
-- Model 1 pokazuje które czynniki zwiększają szanse zatwierdzenia
-- AUC wskazuje na moc dyskryminacyjną modelu
-
-**Pytanie 2: Czym charakteryzują się poszczególne grupy?**
-- Porównanie Model 1, 2, 3 pokazuje różne zmienne istotne dla każdej decyzji
-- Refused ma inne sterowniki niż Canceled
-- Sugeruje różne przyczyny nieudanych aplikacji
-
-**Pytanie 3: Rola typu klienta?**
-- Analiza czy NAME_CLIENT_TYPE_PL pojawia się w modelach
-- Jego wpływ na Approved vs Refused vs Canceled
-
-**Pytanie 4: Finansowe vs Socjoekonomiczne?**
-- Porównanie Model 4 (wszystkie) vs Model 5 (tylko finansowe)
-- Czy socjoekonomiczne zmienne wnoszą znaczący wkład?
-- Model prostszy (5) może być preferowany jeśli wydajność jest porównywalna
-
-
-## Interpretacja Wyników Modelowania
-
-### Metryki wydajności modelu
-
-- **Accuracy** - odsetek poprawnych predykcji (zarówno True Positive jak i True Negative)
-- **Sensitivity (Recall)** - zdolność modelu do wykrycia zatwierdzonych wniosków (minimize False Negatives)
-- **Specificity** - zdolność modelu do wykrycia odmów (minimize False Positives)
-- **AUC (Area Under Curve)** - miara ogólnej wydajności klasyfikatora (0.5 = losowy, 1.0 = idealny)
-
-### Kluczowe spostrzeżenia
-
-1. **Zmienne istotne do decyzji kredytowej:**
-   - Kwota wnioskowana (AMT_APPLICATION)
-   - Wkład własny (AMT_DOWN_PAYMENT)
-   - Liczba rat (CNT_PAYMENT)
-   - Typ klienta (NAME_CLIENT_TYPE_PL)
-
-2. **Kierunek wpływu:**
-   - Wyższy wkład własny → wyższa szansa zatwierdzenia
-   - Więcej rat → ryzyko wzrasta
-   - Nowy klient → lepsze szanse zatwierdzenia
-
-3. **Porównanie podejść do selekcji zmiennych:**
-   - **Stepwise selection** - iteracyjnie dodaje/usuwa zmienne na podstawie kryterium AIC
-   - **Regresja na wszystkich zmiennych** - identyfikuje które zmienne są istotne statystycznie
-   - **Regresja na zmiennych finansowych** - mierzy czy zmienne socjoekonomiczne dodają wartość
-
-### Zastosowanie biznesowe
-
-Wybrany model może być użyty do:
-- **Scoring automatyczny** - dla każdego nowego wniosku obliczamy probabilność zatwierdzenia
-- **Identyfikacja klientów docelowych** - wiemy, jakie profile są zatwierdzane
-- **Optymalizacja procesu** - wiemy, które zmienne są najważniejsze
-- **Zarządzanie ryzykiem** - mogą regulować progi decyzyjne (np. zatwierdzać jeśli P > 0.4)
-- **Triage aplikacji** - wnioski o niskim score mogą być przeanalizowane ręcznie
