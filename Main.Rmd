@@ -2,13 +2,17 @@
 title: "Identyfikacja docelowych odbiorców pożyczki"
 author: "Julia Labuda (191145), Wojciech Zgliniecki (154790)"
 output:
-  rmdformats::downcute:
-    default_style: "light"
-    downcute_theme: "default"
-    toc_depth: 3
-    toc_float: true
+  rmdformats::material:
+    highlight: kate
+    self_contained: false
+    thumbnails: true
+    lightbox: true
+    gallery: true
+    cards: false
+    use_bookdown: true
 always_allow_html: true
 ---
+
 
 
 ```{r setup, include=FALSE}
@@ -27,7 +31,7 @@ options(error = function() {
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # ========== CACHE CONTROL - ZMIEŃ NA TRUE BY WŁĄCZYĆ CACHE ==========
-cache_models <- FALSE  # Cache dla models.Rmd (stepwise, logistic regression)
+cache_models <- TRUE  # Cache dla models.Rmd (stepwise, logistic regression)
 cache_ggstats <- TRUE  # Cache dla ggstatsplot w analiza_statystyczna.Rmd
 # =====================================================================
 
