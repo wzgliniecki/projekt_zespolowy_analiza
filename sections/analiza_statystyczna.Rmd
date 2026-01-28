@@ -62,12 +62,31 @@ stats_summary %>%
   )
 ```
 
+### Wnioski z powyższych statystyk:
+
+- AMT_APPLICATION vs AMT_CREDIT: średnia kwota wnioskowana to ok. 174,796.39, a przyznana to ok. 195,499.34 - klienci dostają średnio o około 20,700 więcej niż proszą.
+- AMT_ANNUITY: przeciętna rata to ok. 15,964.85, ale mediana to tylko 11,250.00 - rozkład jest mocno prawoskośny(2,57).
+- AMT_GOODS_PRICE: średnia cena towaru to 227,071.85, czyli zbliżona do przyznanego kredytu (33 600) - kredyt zwykle pokrywa prawie całość zakupu.
+- AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT: średnia to około 6802.65(średnio 8% kwoty), ale mediana to 450 (średnio 1% kwoty) - większość klientów wnosi jakikolwiek mały wkład własny.
+- CNT_PAYMENT: średnia liczba rat to 16.02, mediana 12, zakres od 0 do 84 miesięcy - produkty mają bardzo różne horyzonty spłaty, nie przekraczajęc 7 lat.
+
+
+** Notes **:
+- Days_termination ma często minimalne wartości, co jak rozumiem oznacza spłacony kredyt. Warto to zweryfikować i usunąć z analizy/zmienić jeśli tak jest.
+- Days decision podobnie - wszystkie są ujemne. To chyba trzeba jakoś dodatkowo przerobić.
+- Czy RATE_DOWN_PAYMENT to procent? Chyba musimy tak przyjąć, chociaż max równy 0.91 jest dziwny. Kredyt na 9% wartości towaru?
+- Trzeba sprawdzić odmowy - zdarza się chyba że ktoś dostaje więcej niż wnioskował (max AMT_CREDIT > max AMT_APPLICATION). Ale nie wiem czy to nie są odmowy - odmawiasz 10% najmniejszych kredytów i średnia zaakceptowanego będzie większa niż wnioskowanego.
+
+
 ## Standaryzacja Zmiennych - Wartości Z
+
+Z-score (standaryzacja) pozwala porównywać zmienne ilościowe na wspólnej skali, obrazując ich powiązanie z każdą możliwą kategorią decyzji kredytowej.
 
 ```{r standaryzacja_zmiennych, echo=FALSE}
 # Przygotowanie danych - fokus na zmiennych związanych z kwotami i ratami
 key_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-              "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
+              "AMT_DOWN_PAYMENT", "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT",
+              "CNT_PAYMENT")
 
 # Filtracja do istniejących kolumn
 key_vars_exist <- key_vars[key_vars %in% names(dane)]
@@ -98,6 +117,13 @@ z_summary <- data_standardized %>%
 
 kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
 ```
+### Interpretacja wyników Z‑score
+
+- Anulowane: bardzo nietypowe wnioski — wysokie raty, wysoki wkład własny, drogie towary i dużo rat, ale niskie kwoty wnioskowane i przyznane.
+- Odmowy: wnioski „zbyt duże” — wysokie kwoty aplikacji, kredytu i ceny towaru, przy najniższym wkładzie własnym.
+- Zatwierdzone: wartości bliskie zera — typowe, stabilne wnioski bez skrajności.
+
+Podsumowując to jednym zdaniem - im wniosek kredytowy był bliższy przeciętnemu tym większa była szansa na jego akceptację.
 
 ## Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
 
@@ -105,7 +131,8 @@ kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych
 library(vcd)
 
 # Zmienne kategoryczne do analizy
-categorical_vars <- c("NAME_CONTRACT_TYPE", "NAME_CLIENT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR")
+categorical_vars <- c("NAME_CONTRACT_TYPE", "NAME_CLIENT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR",
+                      "NAME_PRODUCT_TYPE")
 categorical_vars_exist <- categorical_vars[categorical_vars %in% names(dane)]
 
 # Przygotowanie danych dla testów chi-kwadrat
@@ -160,291 +187,15 @@ if(nrow(chi_test_results) > 0) {
         caption = paste("Rozkład procentowy statusów dla", most_significant_var, "(% w wierszach)"))
 }
 ```
+### Wnioski z analizy zmiennych kategorycznych (testy Chi‑kwadrat)
 
-## Testy Istotności Statystycznej (t-test)
+- Wszystkie analizowane zmienne kategoryczne są istotnie powiązane ze statusem kontraktu (p < 0.001), co oznacza, że status nie jest losowy — zależy od cech wniosku i klienta.
+P-value podawane jest jako 0 ze względu na ograniczenia precyzji języka R. W rzeczywistości jest to bardzo mała liczba dodatnia. Jest to jednak możliwe w dużych zbiorach danych.
 
-Sprawdzamy, czy obserwowane różnice między zatwierdzonymi a odrzuconymi wnioskami są statystycznie istotne.
-
-```{r testy_t_studenta, echo=FALSE}
-# Przygotowanie danych dla testów
-approved_data <- data_for_standardization %>% filter(NAME_CONTRACT_STATUS == "Approved")
-refused_data <- data_for_standardization %>% filter(NAME_CONTRACT_STATUS == "Refused")
-
-# Wykonanie testów t-Studenta dla każdej zmiennej
-t_test_results <- data.frame(
-  Zmienna = character(),
-  Statystyka_t = numeric(),
-  p = numeric(),
-  Średnia_zatwierdzone = numeric(),
-  Średnia_odrzucone = numeric(),
-  Istnotność = character(),
-  stringsAsFactors = FALSE
-)
-
-for (var in key_vars_exist) {
-  # Pobierz dane dla zmiennej i usuń NA
-  approved_vals <- approved_data[[var]][!is.na(approved_data[[var]])]
-  refused_vals <- refused_data[[var]][!is.na(refused_data[[var]])]
-  
-  # Sprawdź czy są wystarczające dane (minimum 2 obserwacje w każdej grupie)
-  if (length(approved_vals) >= 2 && length(refused_vals) >= 2) {
-    # Wykonaj test t-Studenta
-    test_result <- t.test(approved_vals, refused_vals)
-    
-    # Dodaj wyniki do tabeli
-    t_test_results <- rbind(t_test_results, data.frame(
-      Zmienna = var,
-      Statystyka_t = test_result$statistic,
-      p = test_result$p.value,
-      Średnia_zatwierdzone = mean(approved_vals),
-      Średnia_odrzucone = mean(refused_vals),
-      Istnotność = ifelse(test_result$p.value < 0.001, "***", 
-                          ifelse(test_result$p.value < 0.01, "**",
-                                ifelse(test_result$p.value < 0.05, "*", "ns")))
-    ))
-  } else {
-    # Nie ma wystarczających danych dla testu
-    t_test_results <- rbind(t_test_results, data.frame(
-      Zmienna = var,
-      Statystyka_t = NA,
-      p = NA,
-      Średnia_zatwierdzone = mean(approved_data[[var]], na.rm = TRUE),
-      Średnia_odrzucone = mean(refused_data[[var]], na.rm = TRUE),
-      Istnotność = "N/A"
-    ))
-  }
-}
-
-# Sortuj według wartości p
-t_test_results <- t_test_results %>% arrange(p)
-
-kable(t_test_results, digits = 4, 
-      caption = "Wyniki testów t-Studenta: Zatwierdzone vs Odrzucone (*** p<0.001, ** p<0.01, * p<0.05, ns = nieistotne statystycznie)")
-```
-
-## Analiza Wariancji (ANOVA) - Porównanie średnich zmiennych ilościowych między grupami
-
-Zamiast porównywania tylko Approved vs Refused, przeprowadzamy ANOVA aby zbadać różnice między wszystkimi trzema grupami.
-
-```{r anova_analysis, error=FALSE, echo=FALSE}
-tryCatch({
-  # Sprawdź czy dane są dostępne
-  cat("=== DEBUG INFO: anova_analysis chunk ===\n")
-  cat("dane exists:", exists("dane"), "\n")
-  if(exists("dane")) {
-    cat("dane class:", class(dane), "\n")
-    cat("dane nrows:", nrow(dane), "\n")
-    cat("dane colnames:", paste(names(dane)[1:10], collapse=", "), "...\n")
-  }
-  
-  if(!exists("dane") || nrow(dane) == 0) {
-    stop("dane nie jest dostępna. Sprawdź czy dane zostały wczytane w sekcji missing_data_analysis.")
-  }
-  
-  # Redefiniuj zmienne na wypadek braku dostępu ze wcześniejszych chunks
-  key_vars_anova <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-                      "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT")
-  key_vars_anova <- key_vars_anova[key_vars_anova %in% names(dane)]
-  
-  cat("key_vars_anova found:", length(key_vars_anova), "zmienne\n")
-  cat("key_vars_anova:", paste(key_vars_anova, collapse=", "), "\n")
-  
-  if(length(key_vars_anova) == 0) {
-    stop("Żadna ze zmiennych ANOVA nie istnieje w danych")
-  }
-
-# Przygotowanie danych dla ANOVA
-data_for_anova <- dane_clean %>%
-  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
-  select(NAME_CONTRACT_STATUS, all_of(key_vars_anova)) %>%
-  mutate(NAME_CONTRACT_STATUS = factor(NAME_CONTRACT_STATUS))
-
-# Wykonanie ANOVA dla każdej zmiennej
-anova_results <- data.frame(
-  Zmienna = character(),
-  Statystyka_F = numeric(),
-  p = numeric(),
-  df_między = numeric(),
-  df_wewnątrz = numeric(),
-  Istotność = character(),
-  stringsAsFactors = FALSE
-)
-
-for (var in key_vars_anova) {
-  # Usuń NA wartości
-  data_clean_var <- data_for_anova %>%
-    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-    filter(!is.na(!!sym(var)))
-  
-  if(nrow(data_clean_var) > 3) {
-    # Przeprowadź ANOVA
-    anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), data = data_clean_var)
-    anova_summary <- summary(anova_model)[[1]]
-    
-    # Dodaj wyniki
-    anova_results <- rbind(anova_results, data.frame(
-      Zmienna = var,
-      Statystyka_F = anova_summary["NAME_CONTRACT_STATUS", "F value"],
-      p = anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"],
-      df_między = anova_summary["NAME_CONTRACT_STATUS", "Df"],
-      df_wewnątrz = anova_summary["Residuals", "Df"],
-      Istotność = ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.001, "***",
-                          ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.01, "**",
-                                ifelse(anova_summary["NAME_CONTRACT_STATUS", "Pr(>F)"] < 0.05, "*", "ns")))
-    ))
-  }
-}
-
-# Sortuj według wartości p
-anova_results <- anova_results %>% arrange(p)
-
-kable(anova_results, digits = 4,
-      caption = "Wyniki ANOVA: Zmienne numeryczne vs Status Kontraktu (*** p<0.001, ** p<0.01, * p<0.05)")
-}, error = function(e) {
-  cat("Error w anova_analysis:", e$message, "\n")
-})
-```
-
-## Testy Post-Hoc (Tukey HSD) - Porównania Pairwise
-
-Dla zmiennych istotnych statystycznie w ANOVA przeprowadzamy test Tukey'a HSD aby określić, które grupy różnią się między sobą.
-
-```{r post_hoc_tukey, warning=FALSE, echo=FALSE, results='asis'}
-library(dplyr)
-library(gt)
-library(tibble)
-
-# Ładne nazwy do nagłówków
-pretty_names <- c(
-  "AMT_ANNUITY"     = "Rata miesięczna (AMT_ANNUITY)",
-  "AMT_APPLICATION" = "Kwota wnioskowana (AMT_APPLICATION)",
-  "AMT_CREDIT"      = "Kwota kredytu (AMT_CREDIT)"
-)
-
-# Zmienne, które chcemy pokazać (3 najważniejsze)
-vars_to_show <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT")
-
-for (var in vars_to_show) {
-
-  # Dane dla tej zmiennej
-  data_clean_var <- data_for_anova %>%
-    select(NAME_CONTRACT_STATUS, all_of(var)) %>%
-    filter(!is.na(!!sym(var)))
-
-  # ANOVA
-  anova_model <- aov(reformulate("NAME_CONTRACT_STATUS", response = var), 
-                     data = data_clean_var)
-
-  # Tukey
-  tukey_df <- TukeyHSD(anova_model)$NAME_CONTRACT_STATUS %>%
-    as.data.frame() %>%
-    rownames_to_column("Porównanie") %>%
-    mutate(
-      Porównanie = Porównanie %>%
-        gsub("Approved", "Zatwierdzony", .) %>%
-        gsub("Refused", "Odmowa", .) %>%
-        gsub("Canceled", "Anulowany", .),
-      Różnica = diff,
-      Dolny_przedział = lwr,
-      Górny_przedział = upr,
-      p = `p adj`,
-      Istotność = case_when(
-        p < 0.001 ~ "***",
-        p < 0.01  ~ "**",
-        p < 0.05  ~ "*",
-        TRUE ~ "ns"
-      )
-    ) %>%
-    select(Porównanie, Różnica, Dolny_przedział, Górny_przedział, p, Istotność)
-
-  # Tabela GT
-  gt(tukey_df) %>%
-    fmt_number(columns = where(is.numeric), decimals = 2) %>%
-    tab_header(
-      title = paste("Test Tukey'a HSD —", pretty_names[var]),
-      subtitle = "Porównania pairwise między statusami kontraktu"
-    ) %>%
-    tab_options(table.font.size = "small") %>%
-    print()
-}
-```
-
-## Wizualizacja Rozkładów Kwot według Statusu
-
-```{r boxplot_kwoty_status, fig.width=12, fig.height=8, echo=FALSE}
-library(ggplot2)
-
-# Dodanie polskich nazw statusów
-plot_data <- data_for_standardization %>%
-  mutate(
-    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map),
-    NAME_CONTRACT_STATUS_PL = factor(NAME_CONTRACT_STATUS_PL,
-                                     levels = names(status_colors))
-    ) %>%
-  select(NAME_CONTRACT_STATUS_PL, AMT_APPLICATION, AMT_CREDIT, AMT_ANNUITY, AMT_GOODS_PRICE) %>%
-  pivot_longer(
-    cols = -NAME_CONTRACT_STATUS_PL,
-    names_to = "Variable",
-    values_to = "Amount" ) %>%
-  filter(!is.na(Amount) & Amount > 0)
-
-# Boxplot z logarytmiczną skalą (ze względu na duży rozrzut wartości)
-ggplot(plot_data, aes(x = NAME_CONTRACT_STATUS_PL, y = Amount, fill = NAME_CONTRACT_STATUS_PL)) +
-  geom_boxplot(outlier.alpha = 0.3, outlier.size = 1) +
-  facet_wrap(~ Variable, scales = "free_y", ncol = 2) +
-  scale_y_log10(labels = scales::comma) +
-  scale_fill_manual(values = status_colors) +
-  labs(
-    title = "Rozkład kwot finansowych według statusu kontraktu",
-    subtitle = "Skala logarytmiczna — porównanie median i rozrzutu wartości",
-    x = "Status kontraktu",
-    y = "Kwota (skala logarytmiczna)",
-    fill = "Status kontraktu"
-    ) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(size = 14, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
-```
-
-## Porównanie Wartości Z-score między Grupami
-
-```{r wykres_z_scores, fig.width=10, fig.height=6, echo=FALSE}
-# Wykres słupkowy porównujący średnie wartości Z
-z_plot_data <- data_standardized %>%
-  mutate(
-    NAME_CONTRACT_STATUS_PL = recode(NAME_CONTRACT_STATUS, !!!status_map),
-    NAME_CONTRACT_STATUS_PL = factor(NAME_CONTRACT_STATUS_PL,
-                                     levels = names(status_colors))
-    ) %>%
-  select(NAME_CONTRACT_STATUS_PL, starts_with("Z_")) %>%
-  group_by(NAME_CONTRACT_STATUS_PL) %>%
-  summarise(across(starts_with("Z_"), ~ mean(., na.rm = TRUE))) %>%
-  tidyr::pivot_longer(cols = starts_with("Z_"), 
-                      names_to = "Variable", 
-                      values_to = "Mean_Z") %>%
-  mutate(Variable = gsub("Z_", "", Variable))
-
-ggplot(z_plot_data, aes(x = Variable, y = Mean_Z, fill = NAME_CONTRACT_STATUS_PL)) +
-  geom_col(position = "dodge", color = "black", linewidth = 0.3) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
-  scale_fill_manual(values = status_colors) +
-  theme_minimal() +
-  labs(
-    title = "Średnie wartości Z-score według statusu kontraktu",
-    subtitle = "Wartości dodatnie = powyżej średniej globalnej, ujemne = poniżej średniej",
-    x = "Zmienna",
-    y = "Średnia wartość Z-score",
-    fill = "Status kontraktu"
-  ) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(size = 14, face = "bold"),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10)
-  ) +
-  coord_flip()
-```
+- Najsilniejsza zależność dotyczy NAME_CONTRACT_TYPE:
+  - Consumer loans są najczęściej zatwierdzane (89%).
+  - Cash loans mają bardziej zróżnicowane wyniki (42% zatwierdzonych, 36% anulowanych).
+  - Revolving loans mają niższy odsetek zatwierdzeń (51%).
 
 ## Porównanie kwot kredytu między statusami kontraktu
 
