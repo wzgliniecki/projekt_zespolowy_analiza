@@ -4,6 +4,12 @@ W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze 
 
 ## Statystyki Opisowe - Zmienne Numeryczne
 
+Poniższa tabela przedstawia podstawowe statystyki opisowe dla kluczowych zmiennych numerycznych wykorzystanych w analizie. Obejmują one zarówno zmienne finansowe i  czasowe opisujące przebieg procesu kredytowego.
+
+W zmiennych, w których wartość 0 oznaczała brak danych wynikający z imputacji (m.in. `AMT_ANNUITY`, `CNT_PAYMENT`, `AMT_DOWN_PAYMENT`, `RATE_DOWN_PAYMENT`, `AMT_GOODS_PRICE`), zera zostały wyłączone z obliczeń, aby nie zaniżały średnich i kwartylów. W pozostałych przypadkach zera zostały zachowane jako wartości rzeczywiste.
+
+Zmienne czasowe (`DAYS*`) przyjmują wartości ujemne, ponieważ w oryginalnym zbiorze liczono je jako liczbę dni przed decyzją kredytową — im bardziej ujemna wartość, tym dalej wstecz w czasie miało miejsce dane zdarzenie.
+
 ```{r podstawowe_statystyki ,echo=FALSE}
 library(dplyr)
 library(moments) # dla kurtozy i skośności
@@ -15,9 +21,21 @@ numeric_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT",
                   "DAYS_DECISION", "CNT_PAYMENT", "DAYS_FIRST_DRAWING",
                   "DAYS_FIRST_DUE", "DAYS_LAST_DUE", "DAYS_TERMINATION")
 
+vars_where_zero_means_missing <- c(
+  "AMT_ANNUITY",
+  "CNT_PAYMENT",
+  "AMT_DOWN_PAYMENT",
+  "RATE_DOWN_PAYMENT",
+  "AMT_GOODS_PRICE"
+)
+
 # Funkcja do obliczenia wszystkich statystyk
-calculate_stats <- function(x) {
+calculate_stats <- function(x, varname) {
+  # usuń NA i Inf
   x_clean <- x[!is.na(x) & !is.infinite(x)]
+  # usuń zera tylko dla wybranych zmiennych
+  if (varname %in% vars_where_zero_means_missing) {
+    x_clean <- x_clean[x_clean != 0] }
   
   result <- c(
     Średnia = ifelse(length(x_clean) == 0, NA, mean(x_clean)),
@@ -35,11 +53,32 @@ calculate_stats <- function(x) {
 }
 
 # Obliczenie statystyk dla każdej zmiennej
-stats_summary <- dane %>%
+stats_summary <- dane_clean %>%
   select(all_of(numeric_vars[numeric_vars %in% names(dane)])) %>%
-  summarise(across(everything(), ~list(calculate_stats(.)))) %>%
+  summarise(across(everything(), ~list(calculate_stats(., cur_column())))) %>%
   tidyr::pivot_longer(everything(), names_to = "variable", values_to = "stats") %>%
   tidyr::unnest_wider(stats)
+
+# Ustawienie pożądanej kolejności zmiennych
+
+desired_order <- c(
+  "AMT_ANNUITY",
+  "AMT_APPLICATION",
+  "AMT_CREDIT",
+  "AMT_DOWN_PAYMENT",
+  "AMT_GOODS_PRICE",
+  "RATE_DOWN_PAYMENT",
+  "CNT_PAYMENT",
+  "DAYS_DECISION",
+  "DAYS_FIRST_DRAWING",
+  "DAYS_FIRST_DUE",
+  "DAYS_LAST_DUE",
+  "DAYS_TERMINATION"
+  )
+
+stats_summary <- stats_summary %>%
+  mutate(variable = factor(variable, levels = desired_order)) %>%
+  arrange(variable)
 
 library(gt)
 
@@ -62,38 +101,54 @@ stats_summary %>%
   )
 ```
 
-### Wnioski z powyższych statystyk:
+Zmienne numeryczne można podzielić na trzy główne grupy:
 
-- AMT_APPLICATION vs AMT_CREDIT: średnia kwota wnioskowana to ok. 174,796.39, a przyznana to ok. 195,499.34 - klienci dostają średnio o około 20,700 więcej niż proszą.
-- AMT_ANNUITY: przeciętna rata to ok. 15,964.85, ale mediana to tylko 11,250.00 - rozkład jest mocno prawoskośny(2,57).
-- AMT_GOODS_PRICE: średnia cena towaru to 227,071.85, czyli zbliżona do przyznanego kredytu (33 600) - kredyt zwykle pokrywa prawie całość zakupu.
-- AMT_DOWN_PAYMENT i RATE_DOWN_PAYMENT: średnia to około 6802.65(średnio 8% kwoty), ale mediana to 450 (średnio 1% kwoty) - większość klientów wnosi jakikolwiek mały wkład własny.
-- CNT_PAYMENT: średnia liczba rat to 16.02, mediana 12, zakres od 0 do 84 miesięcy - produkty mają bardzo różne horyzonty spłaty, nie przekraczajęc 7 lat.
+- Kwoty finansowe
+  - `AMT_ANNUITY` – rata kredytu
+  - `AMT_APPLICATION` – kwota wnioskowana
+  - `AMT_CREDIT` – kwota przyznana
+  - `AMT_DOWN_PAYMENT` – wkład własny
+  - `AMT_GOODS_PRICE` – wartość towaru
+  - `RATE_DOWN_PAYMENT` – procent wkładu własnego
+  
+Mają one bardzo szeroki zakres wartości (od kilku tysięcy do ponad 3 mln). Do tego charakteryzyją się wysoką skośnością i kurtozą, co oznacza obecność ekstremalnie dużych kwot. Mediany natomiast są znacznie niższe od średnich, co potwierdza, że większość klientów bierze mniejsze kredyty, a tylko nieliczni bardzo duże.
 
+- Parametry harmonogramu
+  - `CNT_PAYMENT` – liczba rat
 
-** Notes **:
-- Days_termination ma często minimalne wartości, co jak rozumiem oznacza spłacony kredyt. Warto to zweryfikować i usunąć z analizy/zmienić jeśli tak jest.
-- Days decision podobnie - wszystkie są ujemne. To chyba trzeba jakoś dodatkowo przerobić.
-- Czy RATE_DOWN_PAYMENT to procent? Chyba musimy tak przyjąć, chociaż max równy 0.91 jest dziwny. Kredyt na 9% wartości towaru?
-- Trzeba sprawdzić odmowy - zdarza się chyba że ktoś dostaje więcej niż wnioskował (max AMT_CREDIT > max AMT_APPLICATION). Ale nie wiem czy to nie są odmowy - odmawiasz 10% najmniejszych kredytów i średnia zaakceptowanego będzie większa niż wnioskowanego.
+Dominują krótkie i średnie okresy spłaty. Mediana liczby rat to 12, średnia 18, ale maksymalnie występuje 84 raty, co tworzy skośność 1.62. Oznacza to, że większość klientów wybiera krótkie lub średnie okresy spłaty, a długie harmonogramy są rzadkie.
 
+- Zmienne czasowe (dni względem decyzji)
+  - `DAYS_DECISION` -  dni między złożeniem wniosku a decyzją kredytową
+  - `DAYS_FIRST_DRAWING` - dni do pierwszego uruchomienia środków
+  - `DAYS_FIRST_DUE` - dni do pierwszej raty
+  - `DAYS_LAST_DUE` - dni do ostatniej raty
+  - `DAYS_TERMINATION`  - dni do zakończenia kontraktu
+
+Zmienne czasowe opisują harmonogram i przebieg procesu kredytowego w odniesieniu do daty decyzji. `DAYS_DECISION` ze średnią: −884, i medianą −588 - większość decyzji zapada ok. 1,5 roku po pierwszym kontakcie klienta. Mediana i oba kwartyle `DAYS_FIRST_DRAWING` równe −632 wskazują, że pierwsze uruchomienie środków jest planowane w bardzo podobnym momencie względem decyzji dla niemal wszystkich klientów. `DAYS_FIRST_DUE` , `DAYS_LAST_DUE` i `DAYS_TERMINATION` mają dużą rozpiętość, co odzwierciedla różne długości kredytów i różne harmonogramy spłat. `DAYS_FIRST_DUE` jest najbardziej odległy od decyzji, bo opisuje początek harmonogramu. `DAYS_LAST_DUE` i `DAYS_TERMINATION` są do siebie bardzo zbliżone, bo oba opisują koniec cyklu kredytowego.
 
 ## Standaryzacja Zmiennych - Wartości Z
 
-Z-score (standaryzacja) pozwala porównywać zmienne ilościowe na wspólnej skali, obrazując ich powiązanie z każdą możliwą kategorią decyzji kredytowej.
+Przeprowadzono analizę standaryzowanych wartości (Z-score) wybranych zmiennych ilościowych związanych z konstrukcją kredytu: wysokość raty (`AMT_ANNUITY`), kwotę wnioskowaną (`AMT_APPLICATION`), wkład własny (`AMT_DOWN_PAYMENT`) oraz liczbę rat (`CNT_PAYMENT`). Standaryzacja pozwala porównywać te zmienne na wspólnej skali, niezależnie od ich jednostek i poziomu wartości.
+Z-score mierzy, o ile typowych odchyleń dana obserwacja odbiega od średniej. 
+Wartości:
+
+- Z > 0 - obserwacje powyżej średniej,
+- Z < 0 – obserwacje poniżej średniej,
+- |Z| > 2 -  obserwacje dość nietypowe względem reszty danych.
 
 ```{r standaryzacja_zmiennych, echo=FALSE}
 # Przygotowanie danych - fokus na zmiennych związanych z kwotami i ratami
-key_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", "AMT_CREDIT", 
-              "AMT_DOWN_PAYMENT", "AMT_GOODS_PRICE", "RATE_DOWN_PAYMENT",
+key_vars <- c("AMT_ANNUITY", "AMT_APPLICATION", 
+              "AMT_DOWN_PAYMENT",
               "CNT_PAYMENT")
 
 # Filtracja do istniejących kolumn
 key_vars_exist <- key_vars[key_vars %in% names(dane)]
 
 # Standaryzacja (Z-score) GLOBALNIE na całym zbiorze danych - używamy dane
-data_for_standardization <- dane %>%
-  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
+data_for_standardization <- dane_clean %>%
+  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled", "Unused offer")) %>%
   select(NAME_CONTRACT_STATUS, all_of(key_vars_exist))
 
 # Standaryzacja każdej zmiennej globalnie (bez grupowania)
@@ -108,7 +163,8 @@ z_summary <- data_standardized %>%
     NAME_CONTRACT_STATUS,
     "Approved" = "Zatwierdzony",
     "Refused" = "Odmowa",
-    "Canceled" = "Anulowany"
+    "Canceled" = "Anulowany",
+    "Unused offer" = "Niewykorzystana oferta"
     )) %>%
   group_by(Status_kontraktu = NAME_CONTRACT_STATUS) %>%
   summarise(across(starts_with("Z_"), 
@@ -117,28 +173,110 @@ z_summary <- data_standardized %>%
 
 kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
 ```
-### Interpretacja wyników Z‑score
 
-- Anulowane: bardzo nietypowe wnioski — wysokie raty, wysoki wkład własny, drogie towary i dużo rat, ale niskie kwoty wnioskowane i przyznane.
-- Odmowy: wnioski „zbyt duże” — wysokie kwoty aplikacji, kredytu i ceny towaru, przy najniższym wkładzie własnym.
-- Zatwierdzone: wartości bliskie zera — typowe, stabilne wnioski bez skrajności.
+Klienci anulujący mają raty wyraźnie poniżej niż przeciętne (`AMT_ANNUITY` = –0.786), ale wnioskują o wyższe kwoty niż średnia (`AMT_APPLICATION` = 1.407). Wkład własny jest nieco poniżej średniej, a harmonogram spłaty również jest dłuższy. Są to klienci, którzy wnioskują o wysokie kwoty kredytu, ale przy niższych ratach i krótszym harmonogramie spłaty. Widać tu próbę uzyskania dużego finansowania przy relatywnie niskim obciążeniu miesięcznym, co może prowadzić do rezygnacji w trakcie procesu.
+
+Wartości dla niewykorzystanej oferty są najbardziej „poniżej średniej” ze wszystkich statusów. Wszystkie Z‑score są ujemne i zbliżone do siebie. Raty, kwoty wnioskowane, wkład własny i liczba rat są niższe niż przeciętnie. To klienci o najmniejszych parametrach kredytowych — niskie kwoty, niskie raty, krótkie harmonogramy. Oferta była lekka finansowo, ale mimo to nie została wykorzystana.
+
+Profil dla odmowy jest umiarkowanie powyżej średniej. Klienci wnioskują o wyższe kwoty niż przeciętnie (`AMT_APPLICATION` = 0.497) przy dłuższych okresie spłaty (`CNT_PAYMENT` = 0.542). Są to klienci, którzy wnioskują o większe kredyty i dłuższe harmonogramy, co zwiększa ryzyko i może prowadzić do negatywnej decyzji.
+
+Najbardziej „średni” profil dotyczy wniosków zatwierdzonych. Wszystkie Z‑score są bardzo blisko zera, co oznacza, że zatwierdzone wnioski mają parametry najbardziej zbliżone do średnich w populacji. Minimalnie niższa kwota wnioskowana i nieco wyższa liczba rat i ich wysokość. Zatwierdzane są wnioski najbardziej typowe, bez skrajności — ani bardzo wysokie, ani bardzo niskie wartości.
 
 Podsumowując to jednym zdaniem - im wniosek kredytowy był bliższy przeciętnemu tym większa była szansa na jego akceptację.
 
 ## Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
 
+W tej części analizie poddano zależności pomiędzy wybranymi zmiennymi kategorycznymi a statusem kontraktu kredytowego. Do oceny istotności statystycznej wykorzystano test chi‑kwadrat niezależności, który pozwala sprawdzić, czy rozkład kategorii danej zmiennej różni się pomiędzy grupami statusów.
+
+Test chi‑kwadrat porównuje liczebności obserwowane (rzeczywiste) z liczebnościami oczekiwanymi, które wystąpiłyby, gdyby zmienne były od siebie niezależne. Jeżeli różnice są duże, statystyka Chi² rośnie, a wartość p spada — co wskazuje na istotną zależność.
+
+W analizie uwzględniono trzy zmienne kategoryczne:
+
+- `CHANNEL_TYPE_GROUPED` – uproszczona wersja kanału sprzedaży, w której rzadkie kategorie (<5%) połączono w grupę „Inne”,
+
+- `NAME_CONTRACT_TYPE_PL` – typ kontraktu (gotówkowy, konsumencki, ratalny),
+
+- `NAME_CLIENT_TYPE_PL` – typ klienta (nowy, stały, reaktywowany).
+
+Status kontraktu analizowano w czterech kategoriach:
+Zatwierdzony, Odmowa, Anulowany, Niewykorzystana oferta.
+
+Wszystkie testy spełniły warunki poprawności (brak zbyt małych liczebności oczekiwanych), co oznacza, że wyniki są statystycznie wiarygodne.
+
 ```{r testy_chi_kwadrat, echo=FALSE}
 library(vcd)
+library(dplyr)
+library(purrr)
+library(kableExtra)
 
-# Zmienne kategoryczne do analizy
-categorical_vars <- c("NAME_CONTRACT_TYPE", "NAME_CLIENT_TYPE", "CODE_GENDER", "FLAG_OWN_CAR",
-                      "NAME_PRODUCT_TYPE")
-categorical_vars_exist <- categorical_vars[categorical_vars %in% names(dane)]
+# Łączenie rzadkich kategorii CHANNEL_TYPE_PL w „Inne”
+# 1. Obliczamy udział procentowy kategorii
+channel_freq <- dane_clean %>%
+  count(CHANNEL_TYPE_PL) %>%
+  mutate(perc = n / sum(n))
+
+# 2. Kategorie z udziałem < 1%
+rare_channels <- channel_freq %>%
+  filter(perc < 0.05) %>%
+  pull(CHANNEL_TYPE_PL)
+
+# 3. Tworzymy nową zmienną z połączonymi kategoriami
+dane_clean <- dane_clean %>%
+  mutate(
+    CHANNEL_TYPE_GROUPED = ifelse(
+      CHANNEL_TYPE_PL %in% rare_channels,
+      "Inne",
+      CHANNEL_TYPE_PL
+    )
+  )
+
+dane_clean <- dane_clean %>%
+  mutate(
+    CHANNEL_TYPE_GROUPED = ifelse(
+      CHANNEL_TYPE_PL %in% rare_channels,
+      "Inne",
+      CHANNEL_TYPE_PL
+    )
+  )
+
+# Zmienne do analizy
+categorical_vars <- c(
+  "CHANNEL_TYPE_GROUPED",
+  "NAME_CONTRACT_TYPE_PL",
+  "NAME_CLIENT_TYPE_PL"
+  )
+
+# sprawdzamy, które istnieją w danych
+categorical_vars_exist <- categorical_vars[categorical_vars %in% names(dane_clean)]
 
 # Przygotowanie danych dla testów chi-kwadrat
-data_for_chi <- dane %>%
-  filter(NAME_CONTRACT_STATUS %in% c("Approved", "Refused", "Canceled")) %>%
-  select(NAME_CONTRACT_STATUS, all_of(categorical_vars_exist))
+data_for_chi <- dane_clean %>%
+  filter(NAME_CONTRACT_STATUS_PL %in% c("Zatwierdzony", "Odmowa", "Anulowany", "Niewykorzystana oferta")) %>%
+  select(NAME_CONTRACT_STATUS_PL, all_of(categorical_vars_exist)) %>%
+  # usuwamy XNA z dwóch zmiennych
+  filter(NAME_CONTRACT_TYPE_PL != "Brak danych",
+         NAME_CLIENT_TYPE_PL != "Nieznany") %>%
+  drop_na()
+
+# Funkcja do testu chi-kwadrat
+run_chi <- function(var) {
+  tab <- table(data_for_chi[[var]], data_for_chi$NAME_CONTRACT_STATUS_PL)
+  test <- suppressWarnings(chisq.test(tab))
+  
+  tibble(
+    Zmienna = var,
+    Chi2 = as.numeric(test$statistic),
+    p = test$p.value,
+    df = as.numeric(test$parameter),
+    Warunek_poprawny = all(test$expected > 5),
+    Istotność = case_when(
+      p < 0.001 ~ "***",
+      p < 0.01 ~ "**",
+      p < 0.05 ~ "*", 
+      TRUE ~ "ns"
+    )
+  )
+  }
 
 # Wykonanie testów chi-kwadrat
 chi_test_results <- data.frame(
@@ -150,54 +288,39 @@ chi_test_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-for (var in categorical_vars_exist) {
-  contingency_table <- table(data_for_chi[[var]], data_for_chi$NAME_CONTRACT_STATUS)
-  test_result <- chisq.test(contingency_table)
-  
-  chi_test_results <- rbind(chi_test_results, data.frame(
-    Zmienna = var,
-    Chi2 = test_result$statistic,
-    p = test_result$p.value,
-    df = test_result$parameter,
-    Istnotność = ifelse(test_result$p.value < 0.001, "***", 
-                        ifelse(test_result$p.value < 0.01, "**",
-                              ifelse(test_result$p.value < 0.05, "*", "ns")))
-  ))
-}
+# Wyniki testów
+chi_test_results <- map_df(categorical_vars, run_chi) %>%
+  arrange(p)
 
-chi_test_results <- chi_test_results %>% arrange(p)
+chi_test_results %>%
+  kable(
+    digits = 4,
+    caption = "Wyniki testów Chi-kwadrat: Zmienne kategoryczne vs Status Kontraktu") %>%
+  kable_styling(position = "center")
 
-kable(chi_test_results, digits = 4, 
-      caption = "Wyniki testów Chi-kwadrat: Zmienne kategoryczne vs Status Kontraktu")
+# Tablica procentowa dla naistotniejszej zmiennej
+most_sig <- chi_test_results$Zmienna[1]
 
-# Pokaż tablicę krzyżową dla najważniejszej zmiennej
-if(nrow(chi_test_results) > 0) {
-  most_significant_var <- chi_test_results$Zmienna[1]
-  data_for_chi <- data_for_chi %>%
-  mutate(NAME_CONTRACT_STATUS = recode(
-    NAME_CONTRACT_STATUS,
-    "Approved" = "Zatwierdzony",
-    "Refused"  = "Odmowa",
-    "Canceled" = "Anulowany"
-  ))
-  contingency_most_sig <- table(data_for_chi[[most_significant_var]], data_for_chi$NAME_CONTRACT_STATUS)
-  contingency_prop <- round(prop.table(contingency_most_sig, margin = 1) * 100, 2)
-  
-  kable(contingency_prop, 
-        caption = paste("Rozkład procentowy statusów dla", most_significant_var, "(% w wierszach)"))
-}
+contingency <- table(data_for_chi[[most_sig]], data_for_chi$NAME_CONTRACT_STATUS_PL)
+contingency_prop <- round(prop.table(contingency, margin = 1) * 100, 2)
+
+kable(
+  contingency_prop,
+  caption = paste("Rozkład procentowy statusów dla", most_sig, "(% w wierszach)") ) %>%
+  kable_styling(position = "center")
 ```
-### Wnioski z analizy zmiennych kategorycznych (testy Chi‑kwadrat)
+Wszystkie trzy zmienne kategoryczne wykazały bardzo silną i istotną statystycznie zależność ze statusem kontraktu (p < 0.001). Oznacza to, że sposób pozyskania klienta, typ kontraktu oraz typ klienta są wyraźnie powiązane z prawdopodobieństwem zatwierdzenia, odmowy lub anulowania wniosku.
 
-- Wszystkie analizowane zmienne kategoryczne są istotnie powiązane ze statusem kontraktu (p < 0.001), co oznacza, że status nie jest losowy — zależy od cech wniosku i klienta.
-P-value podawane jest jako 0 ze względu na ograniczenia precyzji języka R. W rzeczywistości jest to bardzo mała liczba dodatnia. Jest to jednak możliwe w dużych zbiorach danych.
+Kanał sprzedaży to zmienna o najsilniejszej zależności ze statusem kontraktu (Chi² ≈ 7889). Rozkłady procentowe pokazują wyraźne różnice między kanałami: `Sklep`, `Regionalny/Lokalny` i `Ogólnokrajowy` mają najwyższe odsetki zatwierdzeń (89–82%). `Biura kredytowe i gotówkowe` oraz kategoria `Inne` mają znacznie wyższy udział anulowań i odmów. „Niewykorzystana oferta” pojawia się niemal wyłącznie w kanałach masowych (`Ogólnokrajowy`, `Sklep`), co sugeruje odmienny charakter tych wniosków. Wskazuje to, że kanał sprzedaży jest jednym z kluczowych czynników różnicujących jakość i finalny status wniosków.
 
-- Najsilniejsza zależność dotyczy NAME_CONTRACT_TYPE:
-  - Consumer loans są najczęściej zatwierdzane (89%).
-  - Cash loans mają bardziej zróżnicowane wyniki (42% zatwierdzonych, 36% anulowanych).
-  - Revolving loans mają niższy odsetek zatwierdzeń (51%).
+Z kolei różne typy produktów mają odmienne profile ryzyka i akceptacji.
+Wynik Chi² ≈ 6649 potwierdza, że status kontraktu silnie zależy od rodzaju produktu (np. kredyt gotówkowy vs ratalny).
+
+Zależność dla typu klienta również jest istotna (Chi² ≈ 2754). Nowi klienci, stali klienci i klienci reaktywowani różnią się prawdopodobieństwem zatwierdzenia i odmowy, co jest zgodne z praktyką kredytową — historia relacji z instytucją wpływa na decyzję.
 
 ## Porównanie kwot kredytu między statusami kontraktu
+
+Za pomocą funkcji `ggbetweenstats` przedstawiono rozkład kwoty kredytu (`AMT_CREDIT`) w podziale na status kontraktu. Każda grupa zawiera indywidualne punkty obserwacji oraz średnią, co pozwala ocenić różnice między kategoriami zarówno wizualnie, jak i statystycznie.
 
 ```{r ggstatsplot, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbetweenstats(
@@ -227,6 +350,8 @@ ggstatsplot::ggbetweenstats(
 
 ## Zależność między typem klienta a statusem kontraktu
 
+Każdy słupek reprezentuje jedną kategorię statusu, a kolory wskazują typ klienta. Dodatkowo wykres zawiera wyniki testu chi‑kwadrat oraz miarę siły zależności (Cramér’s V), co pozwala ocenić istotność statystyczną obserwowanych różnic.
+
 ```{r ggbarstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbarstats(
   data = dane_clean,
@@ -234,8 +359,15 @@ ggstatsplot::ggbarstats(
   y = NAME_CONTRACT_STATUS_PL,
   title = "Typ klienta a status kontraktu",
   xlab = "Status kontraktu",
-  messages = FALSE
-)+ labs(fill = "Typ klienta")
+  messages = FALSE,
+  label.args = list(
+    min.prop = 0.01, # ukrywa etykiety <1%
+    size = 3.5, # mniejszy rozmiar tekstu
+    check_overlap = TRUE # zapobiega nakładaniu się etykiet
+    )
+  ) +
+  scale_fill_discrete() + # zachowuje kolory
+  guides(fill = guide_legend(title = "Typ klienta")) # wymusza polski tytuł legendy
 ```
 
 - Zależność między typem klienta a statusem kontraktu jest istotna statystycznie  (χ² = 2770.34, p < 2.23e−308, Cramer's V = 0.19) — czyli umiarkowana siła powiązania.
@@ -252,7 +384,9 @@ ggstatsplot::ggbarstats(
 
 - Nowi klienci mogą być bardziej skłonni do finalizacji umowy, co może wspierać strategie pozyskiwania.
 
-## Liczba rat (CNT_PAYMENT) a status kontraktu
+## Liczba rat a status kontraktu
+
+Wykres zawiera średnie wartości dla każdej grupy oraz wyniki testu Welch’a i porównań post hoc.
 
 ```{r ggbetweenstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbetweenstats(
@@ -283,6 +417,8 @@ ggstatsplot::ggbetweenstats(
 
 ## Związek między kwotą aplikowaną a przyznaną
 
+Wykres zawiera linię regresji oraz histogramy brzegowe, co pozwala jednocześnie ocenić siłę korelacji i rozkład obu zmiennych. Statystyki testowe wskazują na związek między tymi wartościami.
+
 ```{r ggscatterstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggscatterstats(
   data = dane_clean,
@@ -294,7 +430,6 @@ ggstatsplot::ggscatterstats(
   marginal = TRUE,
   messages = FALSE
 )
-
 ```
 
 - Zależność między kwotą wnioskowaną a przyznaną jest ekstremalnie silna  
@@ -312,6 +447,8 @@ ggstatsplot::ggscatterstats(
 
 ## Rozkład liczby rat w zatwierdzonych kontraktach
 
+Histogram pokazuje zarówno częstość występowania poszczególnych wartości, jak i statystyki opisowe oraz wynik testu t‑Studenta, co pozwala ocenić, jak typowa jest liczba rat w tej grupie klientów.
+
 ```{r ggshistostats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::gghistostats(
   data = dane_clean %>% filter(NAME_CONTRACT_STATUS_PL == "Zatwierdzony"),
@@ -320,7 +457,11 @@ ggstatsplot::gghistostats(
   xlab = "Liczba rat",
   binwidth = 1,
   messages = FALSE
-)
+) +
+  scale_y_continuous(
+    name = "Liczebność",
+    sec.axis = ggplot2::sec_axis(~ . / sum(table(dane_clean$CNT_PAYMENT[dane_clean$NAME_CONTRACT_STATUS_PL == "Zatwierdzony"])) * 100, name = "Proporcja [%]")
+    )
 ```
 
 - Średnia liczba rat wynosi 14.08, co wskazuje na preferencję dla kredytów średnioterminowych — ani bardzo krótkich, ani długoterminowych.
@@ -339,6 +480,8 @@ ggstatsplot::gghistostats(
 
 ## Udział typów umów w całym zbiorze
 
+Dwa wykresy kołowe pokazują udział poszczególnych statusów w każdej grupie, a dodatkowe statystyki (test chi‑kwadrat, Cramér’s V) pozwalają ocenić siłę i istotność zależności między typem klienta a statusem kontraktu.
+
 ```{r ggpiestats, echo=FALSE, cache=cache_ggstats}
 ggpiestats(
   data = dane_clean %>%
@@ -346,8 +489,14 @@ ggpiestats(
   x = NAME_CONTRACT_STATUS_PL,
   y = NAME_CLIENT_TYPE_PL,
   title = "Test proporcji: status vs typ klienta",
-  messages = FALSE
-)+ scale_fill_manual(values = status_colors)
+  messages = FALSE,
+  label.args = list(
+    size = 3.5, # mniejszy rozmiar etykiet
+    check_overlap = TRUE # zapobiega nakładaniu się tekstu
+    )
+  ) +
+  scale_fill_manual(values = status_colors) +
+  guides(fill = guide_legend(title = "Status kontraktu"))
 ```
 
 - Nowi klienci mają zdecydowanie wyższy odsetek zatwierdzonych wniosków — aż 94% z nich kończy się pozytywną decyzją, podczas gdy u stałych klientów to tylko 54%.
@@ -366,72 +515,223 @@ ggpiestats(
 
 ## Współczynniki modelu regresji: kwota kredytu ~ typ klienta + wkład własny
 
+Wykres przedstawia estymowane współczynniki regresji dla modelu liniowego, w którym zmienną zależną jest kwota przyznanego kredytu (`AMT_CREDIT`). Model uwzględnia dwa predyktory: typ klienta (`NAME_CLIENT_TYPE_PL`) oraz wkład własny (`AMT_DOWN_PAYMENT`). Wykres pokazuje wartość współczynnika β, przedział ufności, wartość statystyki t oraz poziom istotności dla każdego predyktora, co pozwala ocenić ich wpływ na kwotę kredytu.
+
 ```{r regresja, echo=FALSE, cache=cache_ggstats}
 model <- lm(AMT_CREDIT ~ NAME_CLIENT_TYPE_PL + AMT_DOWN_PAYMENT, data = dane_clean)
 
 ggstatsplot::ggcoefstats(
   x = model,
-  title = "Wpływ typu klienta i wkładu własnego na kwotę kredytu",
+  title = "Wpływ klienta i wkładu na kwotę",
   messages = FALSE
-)
+) +
+  labs( y = "Zmienne",
+        x = "Współczynnik β" 
+        )
 ```
 
-- Wkład własny (AMT_DOWN_PAYMENT) ma istotny wpływ na kwotę kredytu  
+- Wkład własny (`AMT_DOWN_PAYMENT`) ma istotny wpływ na kwotę kredytu  
 (β̂ = 0.23, p = 0.03) — im wyższy wkład własny, tym wyższa przyznana kwota. To zgodne z logiką ryzyka: klient angażujący własne środki otrzymuje większe finansowanie.
 
 - Typ klienta nie ma istotnego wpływu na kwotę kredytu (Stały, Reaktywowany, Nowy — wszystkie p > 0.35) — różnice między typami są statystycznie nieistotne, co może oznaczać, że bank nie różnicuje kwoty kredytu ze względu na typ klienta, tylko inne czynniki (np. scoring, historia).
 
 - Stały klient otrzymuje średnio wyższą kwotę niż nowy, ale różnica nie jest istotna — warto to zbadać w modelu z dodatkowymi zmiennymi (np. kanał, cel pożyczki).
 
-## Interpretacja Wyników
+## Porównanie parametrów kredytowych względem statusu kontraktu (ANOVA)
 
-### Kluczowe Różnice między Grupami Statusów
+W tej części przedstawiono trzy wykresy porównujące wybrane zmienne finansowe w zależności od statusu kontraktu:
 
-Analiza wartości Z-score ujawnia **istotne różnice** w profilach finansowych wniosków kredytowych w zależności od decyzji banku:
+- kwotę wnioskowaną (`AMT_APPLICATION`),
 
-**1. Odrzucone wnioski (Refused) charakteryzują się:**
+- liczbę rat (`CNT_PAYMENT`),
 
-- **Wyższymi kwotami wnioskowanymi** - wartość Z dla AMT_APPLICATION wynosi 0.545 (ponad pół odchylenia standardowego powyżej średniej), podczas gdy dla zatwierdzonych wynosi jedynie 0.015
-- **Wyższymi kwotami kredytu** - Z_AMT_CREDIT = 0.561 vs 0.017 dla zatwierdzonych
-- **Droższymi towarami** - Z_AMT_GOODS_PRICE = 0.488 vs -0.132 dla zatwierdzonych
-- **Wyższymi ratami** - Z_AMT_ANNUITY = 0.296 vs -0.077 dla zatwierdzonych
+- kwotę raty (`AMT_ANNUITY`).
 
-**2. Zatwierdzone wnioski (Approved) charakteryzują się:**
+Do analizy zastosowano test Welch ANOVA, który pozwala ocenić, czy średnie wartości danej zmiennej różnią się istotnie pomiędzy grupami statusów kontraktu. W odróżnieniu od klasycznej ANOVY, test Welch’a nie wymaga równości wariancji i dobrze sprawdza się przy danych skośnych oraz nierównych liczebnościach — co jest typowe dla danych kredytowych.
 
-- Wartościami bliskimi średniej globalnej (wartości Z bliskie 0)
-- **Niższymi cenami towarów** - Z = -0.132 (poniżej średniej)
-- **Wyższym wskaźnikiem wkładu własnego** - Z_RATE_DOWN_PAYMENT = 0.026 vs -0.199 dla odrzuconych
+Każdy wykres zawiera:
 
-**3. Anulowane wnioski (Canceled) wyróżniają się:**
+- punkty obserwacji (rozrzut danych),
 
-- **Bardzo wysokimi cenami towarów** - Z = 1.381 (najwyższa wartość ze wszystkich grup!)
-- **Bardzo niskimi kwotami kredytu** - Z_AMT_CREDIT = -0.552
-- **Wysokimi ratami** - Z_AMT_ANNUITY = 0.983
+- średnią wartość oznaczoną jako μ_mean,
 
-Ta rozbieżność sugeruje, że **klienci często anulują wnioski, gdy bank przyznaje znacznie niższe kwoty** niż wnioskowane (szczególnie przy drogich towarach).
+- boxplot — który obrazuje rozkład danych w każdej grupie,
 
-#### Obserwacje ze standardowych testów statystycznych
+- wartość statystyki F_Welch,
 
-**Test t-Studenta** (Approved vs Refused) pokazuje, że różnice między obiema grupami są statystycznie istotne dla większości zmiennych finansowych.
+- poziom istotności p,
 
-**ANOVA i test Tukey'a HSD** ujawniają bardziej złożony obraz, porównując wszystkie trzy grupy statusów jednocześnie. Wyniki post-hoc testów wskazują, które pary grup statusów różnią się znacząco i czy różnice są praktycznie istotne.
+- miarę siły zależności — efekt wielkości ω² (omega squared),
 
-**Testy Chi-kwadrat** dla zmiennych kategorycznych pokazują, czy rozkład kategorii różni się między statusami kontraktu. Wysokie statystyki chi-kwadrat wskazują na silne powiązanie między zmienną kategoryczną a decyzją kredytową.
+- przedział ufności dla ω²,
 
-#### Wnioski Biznesowe
+- oraz wyniki porównań parowych (test Games-Howell z korektą Holm).
 
-1. **Wysokość wnioskowanej kwoty jest kluczowym czynnikiem odrzucenia** - różnica -0.545 w Z-score dla AMT_CREDIT między zatwierdzonymi a odrzuconymi wskazuje, że bank konsekwentnie odrzuca wnioski o wyższe kredyty.
+Efekt wielkości ω² przyjmuje wartości od 0 do 1 i informuje, jak duża część zmienności zmiennej zależnej jest wyjaśniana przez zmienną grupującą (tu: status kontraktu).
 
-2. **Rozsądna wycena towaru zwiększa szansę zatwierdzenia** - różnica -0.620 dla AMT_GOODS_PRICE pokazuje, że wnioski dotyczące droższych produktów są częściej odrzucane.
+- ω² ≈ 0.01 – efekt słaby,
 
-3. **Wkład własny ma znaczenie** - choć różnica jest mniejsza (0.225), wyższy RATE_DOWN_PAYMENT koreluje pozytywnie z zatwierdzeniem.
+- ω² ≈ 0.06 – efekt umiarkowany,
 
-4. **Zmienność w grupach** - odrzucone wnioski mają największe odchylenia standardowe (SD > 1.4 dla kwot), co wskazuje na bardzo zróżnicowany profil odrzuconych klientów.
+- ω² ≥ 0.14 – efekt silny,
 
-#### Obserwacje dotyczące rozkładów
+- ω² ≥ 0.30 – efekt bardzo silny.
 
-Wartości **kurtozy > 3** w podstawowych statystykach sygnalizują rozkłady leptokurtyczne (z ciężkimi ogonami), co wskazuje na obecność:
-- Wartości ekstremalnych w danych kredytowych
-- Segmentów klientów o bardzo różnych potrzebach finansowych  
-- Potrzebę ostrożności przy modelowaniu - średnie mogą nie być reprezentatywne dla całej populacji
+### ANOVA Kwota wnioskowana vs status kontraktu
 
+```{r anova, echo=FALSE}
+library(tidyr)
+
+dane_long <- dane_clean %>%
+  select(NAME_CONTRACT_STATUS_PL, AMT_CREDIT, CNT_PAYMENT, AMT_APPLICATION) %>%
+  pivot_longer(
+    cols = -NAME_CONTRACT_STATUS_PL,
+    names_to = "variable",
+    values_to = "value"
+  )
+
+ggstatsplot::ggbetweenstats(
+  data = dane_clean,
+  x = NAME_CONTRACT_STATUS_PL,
+  y = AMT_APPLICATION,
+  title = "ANOVA: Kwota wnioskowana vs status kontraktu",
+  xlab = "Status kontraktu",
+  ylab = "Kwota wnioskowana",
+  messages = FALSE
+)
+```
+
+- Różnice między grupami są ekstremalnie istotne statystycznie, a efekt wielkości 𝜔2=0.82 — czyli bardzo silny.
+
+- Najwyższa średnia kwota wnioskowana występuje w grupie Anulowany (≈ 667 000), co może wskazywać na próbę uzyskania dużego finansowania, które nie zostało zrealizowane.
+
+- Odmowy mają średnią ≈ 384 000 — również wysoką, ale niższą niż anulowania.
+
+- Zatwierdzenia mają średnią ≈ 193 000 — czyli najbardziej „typowe” wnioski.
+
+- Niewykorzystane oferty mają najniższą średnią (≈ 70 000) — to aplikacje o niskiej wartości, które nie zostały sfinalizowane.
+
+Wszystkie porównania parowe są istotne (p_Holm-adj < 1e−7), co potwierdza, że każda grupa różni się od pozostałych.
+
+## ANOVA Liczba rat vs status kontraktu
+
+```{r anova2, echo=FALSE}
+ggstatsplot::ggbetweenstats(
+  data = dane_clean,
+  x = NAME_CONTRACT_STATUS_PL,
+  y = CNT_PAYMENT,
+  title = "ANOVA: Liczba rat vs status kontraktu",
+  xlab = "Status kontraktu",
+  ylab = "Liczba rat",
+  messages = FALSE
+)
+```
+
+- Tu również różnice między grupami są ekstremalnie istotne statystycznie  
+Test Welch’a wykazał bardzo silny efekt, a efekt wielkości 𝜔2= 0.79. Oznacza to, że status kontraktu wyjaśnia aż 79% zmienności liczby rat — to wartość ekstremalnie wysoka.
+
+- Zatwierdzone kontrakty mają średnio 14.08 rat, co wskazuje na preferencję dla kredytów średnioterminowych — ani bardzo krótkich, ani długoterminowych.
+
+- Odmowy charakteryzują się najwyższą średnią liczbą rat (20.25) — co może sugerować, że dłuższy okres spłaty zwiększa ryzyko negatywnej decyzji.
+
+- Anulowane kontrakty mają średnio tylko 1.16 raty, a niewykorzystane oferty zaledwie 0.21 raty — to wskazuje na wnioski niepełne, testowe lub szybko wycofane.
+
+- Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
+
+## ANOVA Kwota raty vs status kontraktu
+
+```{r anova3, echo=FALSE}
+ggstatsplot::ggbetweenstats(
+  data = dane_clean,
+  x = NAME_CONTRACT_STATUS_PL,
+  y = AMT_ANNUITY,
+  title = "ANOVA: Kwota raty vs status kontraktu",
+  xlab = "Status kontraktu",
+  ylab = "Kwota raty",
+  messages = FALSE
+)
+```
+
+- Trzeci wykres także pokazuje istotne różnice między grupami. Test Welch’a wykazał bardzo silny efekt, a efekt również wielkości 𝜔2= 0.79.
+
+- Zatwierdzone kontrakty mają średnią ratę 14 832, co wskazuje na umiarkowane miesięczne obciążenie — typowe dla kredytów średnioterminowych.
+
+- Odmowy charakteryzują się najwyższą średnią ratą (17 444) — co może sugerować, że wyższe miesięczne zobowiązania zwiększają ryzyko negatywnej decyzji.
+
+- Anulowane kontrakty mają średnio tylko 913, a niewykorzystane oferty zaledwie 212 — to wskazuje na aplikacje o bardzo niskim obciążeniu, które nie zostały sfinalizowane.
+
+- Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
+
+## Wnioski końcowe z analizy statystycznej
+
+Przeprowadzona analiza statystyczna pozwala bardzo precyzyjnie opisać profil klientów, charakterystykę wniosków kredytowych oraz czynniki związane z ostatecznym statusem kontraktu. Wyniki są spójne i wskazują na kilka kluczowych zależności, które mogą wspierać zarówno scoring ryzyka, jak i decyzje operacyjne.
+
+**1. Zatwierdzone wnioski są najbardziej „typowe” w całej populacji**
+
+Zarówno wartości Z‑score, jak i statystyki opisowe pokazują, że zatwierdzone kontrakty mają parametry najbliższe średnim wartościom w zbiorze:
+
+- kwoty wnioskowane i przyznane są umiarkowane,
+
+- liczba rat jest średnia,
+
+- wkład własny nie odbiega od przeciętnego.
+
+To oznacza, że system preferuje wnioski bez skrajności — ani bardzo wysokich kwot, ani bardzo długich harmonogramów, ani nietypowych parametrów.
+
+**2. Kwota kredytu i liczba rat są silnie powiązane ze statusem kontraktu**
+
+Wyniki testów ANOVA (Welch) i porównań post hoc pokazują ekstremalnie silne różnice między statusami:
+
+- **Odmowy** dotyczą wniosków o wysokie kwoty i długie okresy spłaty.
+
+- **Anulowania** i **niewykorzystane oferty** mają bardzo niskie kwoty i minimalną liczbę rat, co sugeruje niską jakość lub brak zaangażowania klienta.
+
+- **Zatwierdzenia** koncentrują się wokół wartości średnich.
+
+To wskazuje, że parametry finansowe są jednym z najważniejszych predyktorów decyzji.
+
+**3. Typ klienta jest istotnie związany ze statusem kontraktu**
+
+Testy chi‑kwadrat wykazały silną zależność między typem klienta a wynikiem procesu:
+
+- **Nowi klienci** mają najwyższy odsetek zatwierdzeń (94%) i najniższy odsetek odmów.
+
+- **Stali klienci** częściej anulują lub są odrzucani — co może wynikać z powtarzalnych, niskiej jakości aplikacji.
+
+- **Reaktywowany klient** ma umiarkowane wyniki, ale niewielki udział w populacji.
+
+Wskazuje to, że historia relacji z instytucją nie jest jednoznacznym atutem — nowy klient może być bardziej wartościowy niż stały.
+
+**4. Kanał sprzedaży jest silnie powiązany ze statusem kontraktu**
+
+To jedna z najważniejszych obserwacji:
+
+- kanały masowe (Sklep, Ogólnokrajowy) mają najwyższe zatwierdzenia,
+
+- kanały tradycyjne (Biura kredytowe, Inne) mają wysokie anulowania i odmowy,
+
+- niewykorzystane oferty pojawiają się niemal wyłącznie w kanałach masowych.
+
+Oznacza to, że kanał pozyskania klienta jest kluczowym czynnikiem jakościowym i powinien być uwzględniany w scoringu oraz strategii sprzedażowej.
+
+**5. Wkład własny ma istotny wpływ na kwotę kredytu, typ klienta — nie**
+
+Model regresji pokazał:
+
+- kwota kredytu: istotny predyktor — większy wkład własny → większa kwota kredytu,
+
+- typ klienta: brak istotności — bank nie różnicuje kwoty kredytu ze względu na typ klienta.
+
+To oznacza, że czynniki finansowe dominują nad demograficznymi w procesie ustalania kwoty.
+
+## Podsumowanie strategiczne
+
+- Największe szanse na zatwierdzenie mają wnioski o parametrach bliskich średnim.
+
+- Kanał sprzedaży jest najważniejszym czynnikiem jakościowym — silniejszym niż typ klienta.
+
+- Nowi klienci są bardziej efektywnym segmentem niż stali.
+
+- Długie harmonogramy i wysokie kwoty zwiększają ryzyko odmowy.
+
+- Niskie kwoty i minimalne liczby rat zwiększają ryzyko anulowania lub niewykorzystania oferty.

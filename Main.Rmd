@@ -11,6 +11,7 @@ output:
     cards: false
     use_bookdown: false
     fig_caption: false
+    number_sections: true
 always_allow_html: true
 ---
 
@@ -55,6 +56,14 @@ knitr::opts_chunk$set(fig.align = "center")
 #toc > ul li ul li {
   max-height: none !important;
   overflow: visible !important;
+}
+/* globalna czcionka */
+body, html {
+  font-family: "Lato", "Arial", sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Lato", "Arial", sans-serif !important;
 }
 ```
 

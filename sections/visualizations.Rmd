@@ -64,7 +64,7 @@ industry_map <- c(
 )
 
 channel_map <- c(
-  "AP+ (Cash loan)"              = "AP+ (Pożyczka gotówkowa)",
+  "AP+ (Cash loan)"              = "AP+ - Pożyczka gotówkowa",
   "Car dealer"                   = "Dealer objazdowy",
   "Channel of corporate sales"   = "Kanał sprzedaży korporacyjnej",
   "Contact center"               = "Centrum kontaktu",
@@ -238,8 +238,6 @@ Ogólnie rzecz biorąc, krótsze okresy spłaty są częściej zatwierdzane, a d
 
 ##  Kwota kredytu vs. liczba rat
 
-Inny kolor oznacza inny status kredytu; kolor = status.
-
 ```{r wykres_interaktywny_scatter, echo=FALSE}
 # Sprawdź format wyjściowy
 is_html_output <- knitr::is_html_output()
@@ -247,7 +245,7 @@ is_html_output <- knitr::is_html_output()
 if (is_html_output) {
   # Renderuj interaktywny wykres plotly dla HTML
   p <- plot_ly(dane_clean, x = ~CNT_PAYMENT, y = ~AMT_CREDIT,
-          color = ~NAME_CONTRACT_STATUS_PL, colors = status_colors, type = "scatter", mode = "markers") %>%
+          color = ~NAME_CONTRACT_STATUS_PL, colors = status_colors, type = "scatter", mode = "markers", marker = list(opacity = 0.4, size = 6)) %>%
     layout(
       title = "Kwota kredytu vs. liczba rat",
       xaxis = list(title = "Liczba rat"),
@@ -305,7 +303,7 @@ filtered_matrix <- corr_matrix[vars_to_keep, vars_to_keep]
 corrplot(filtered_matrix, method = "color", type = "upper", tl.cex = 0.6, tl.col = "black", na.label = " ")
 ```
 
-Macierz korelacji pokazuje silne związki między kwotą kredytu (AMT_CREDIT), wnioskowaną kwotą (AMT_APPLICATION) i ceną towaru (AMT_GOODS_PRICE), co potwierdza spójność danych. Rata (AMT_ANNUITY) silnie koreluje z liczbą rat (CNT_PAYMENT) i kwotą kredytu (AMT_CREDIT). Zmienne harmonogramowe (DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE, DAYS_TERMINATION) tworzą spójny blok czasowy. Wskaźniki procentowe (RATE_DOWN_PAYMENT, RATE_INTEREST_PRIMARY, RATE_INTEREST_PRIVILEGED) oraz flagi (NFLAG_LAST_APPL_IN_DAY, NFLAG_INSURED_ON_APPROVAL) mają słabe korelacje, co sugeruje ich niezależność i dodatkową wartość w modelach.
+Macierz korelacji pokazuje silne związki między kwotą kredytu (`AMT_CREDIT`), wnioskowaną kwotą (`AMT_APPLICATION`) i ceną towaru (`AMT_GOODS_PRICE`), co potwierdza spójność danych. Rata (`AMT_ANNUITY`) silnie koreluje z liczbą rat (`CNT_PAYMENT`) i kwotą kredytu (`AMT_CREDIT`). Zmienne harmonogramowe (`DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`) tworzą spójny blok czasowy. Wskaźniki procentowe (`RATE_DOWN_PAYMENT`, `RATE_INTEREST_PRIMARY`, `RATE_INTEREST_PRIVILEGED`) oraz flagi (`NFLAG_LAST_APPL_IN_DAY`, `NFLAG_INSURED_ON_APPROVAL`) mają słabe korelacje, co sugeruje ich niezależność i dodatkową wartość w modelach.
 
 ## Sankey diagram 
 Pokazuje przepływ między typem produktu a statusem kontraktu.
@@ -396,7 +394,7 @@ ggplot(dane_clean, aes(x = CHANNEL_TYPE_PL, fill = NAME_CONTRACT_STATUS_PL)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Najlepsze wyniki osiągają kanały Sklep oraz Regionalny/Lokalny, gdzie dominują zatwierdzone kontrakty, a udział odmów jest niewielki. Z kolei Kanał sprzedaży korporacyjnej oraz Dealer samochodowy charakteryzują się wyraźnie wyższym udziałem odmów, co może wskazywać na większe ryzyko lub bardziej wymagające profile klientów. Najwięcej anulowań występuje w kanałach Biura kredytowe i gotówkowe oraz Centrum kontaktu, co może świadczyć o niestabilności procesu lub częstszej rezygnacji klientów na późniejszym etapie.
+Najlepsze wyniki osiągają kanały Sklep oraz `Regionalny/Lokalny`, gdzie dominują zatwierdzone kontrakty, a udział odmów jest niewielki. Z kolei `Kanał sprzedaży korporacyjnej` oraz `Dealer samochodowy` charakteryzują się wyraźnie wyższym udziałem odmów, co może wskazywać na większe ryzyko lub bardziej wymagające profile klientów. Najwięcej anulowań występuje w kanałach `Biura kredytowe i gotówkowe` oraz `Centrum kontaktu`, co może świadczyć o niestabilności procesu lub częstszej rezygnacji klientów na późniejszym etapie.
 
 ## Najczęstsze powody odmowy aplikacji
 

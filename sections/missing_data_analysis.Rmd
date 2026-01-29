@@ -108,7 +108,7 @@ Analiza wykazała, że 15 z 37 zmiennych posiada braki o różnym natężeniu:
         
 ### Wizualizacja wzorców braków
 
-Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów naniar oraz VIM. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
+Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów `naniar` oraz `VIM`. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
 
 ```{r wizualizuj_braki, fig.align='center', echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 kolumny_z_NA <- names(which(colSums(is.na(dane)) > 0))
@@ -145,7 +145,7 @@ aggr(dane_sorted, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=s
 
 Wykresy ujawniły istnienie silnych powiązań między zmiennymi (tzw. bloki braków):
 
-- Blok raty: AMT_ANNUITY i CNT_PAYMENT - dokładnie ta sama liczba braków (5589). To wskazuje, że brak raty (`AMT_ANNUITY`) idzie w parze z brakiem liczby płatności (`CNT_PAYMENT`).
+- Blok raty: `AMT_ANNUITY` i `CNT_PAYMENT` - brak raty (`AMT_ANNUITY`) idzie w parze z brakiem liczby płatności (`CNT_PAYMENT`).
 
 - Blok harmonogramu: `DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE_1ST_VERSION`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`, `NFLAG_INSURED_ON_APPROVAL` - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
 
@@ -259,7 +259,7 @@ Analiza zaakceptowanych wniosków, w których brakuje dat harmonogramu, wykazał
 
 W zmiennych typu `DAYS` zidentyfikowano również wartości skrajnie duże, sięgające 365243 dni (ponad 1000 lat). Tak duże liczby nie mogą reprezentować rzeczywistych dat i są typowym placeholderem technicznym stosowanym w systemach źródłowych.
 
-Aby wykryć takie przypadki, przyjęto próg 50 lat (18250 dni). Jest to granica, która z jednej strony eliminuje wartości nierealistyczne, a z drugiej nie usuwa żadnych potencjalnie poprawnych obserwacji. Wszystkie rekordy przekraczające ten próg potraktowano jako błędne wartości systemowe i zaklasyfikowano jako braki danych.
+Aby wykryć takie przypadki, przyjęto próg 50 lat (18250 dni). Jest to granica, która z jednej strony eliminuje wartości nierealistyczne, a z drugiej nie usuwa żadnych potencjalnie poprawnych obserwacji. Podsumowanie ilości rekordów z wartościami odstającymi przedtsawiono w tabeli.
 
 ```{r ponad 1000 lat, echo=FALSE}
 days_vars <- grep("^DAYS", names(dane), value = TRUE)
@@ -284,7 +284,7 @@ fake_df %>%
   row_spec(0, bold = TRUE)
 ```
 
-W zmiennych typu `DAYS` zidentyfikowano liczne wartości przekraczające 50 lat, przy czym największa skala problemu dotyczy `DAYS_FIRST_DRAWING`, a pozostałe pola również zawierają od kilkuset do kilku tysięcy nienaturalnie dużych wartości, co jednoznacznie wskazuje na systemowy placeholder stosowany w miejsce rzeczywistych dat. W dalszej części analizy zweryfikowano statusy kontraktów zawierających te wartości, aby określić, czy są one logicznym skutkiem przebiegu procesu kredytowego, czy też stanowią błąd systemowy.
+Największa skala problemu dotyczy `DAYS_FIRST_DRAWING`, a pozostałe pola również zawierają od kilkuset do kilku tysięcy nienaturalnie dużych wartości. W kolejnym kroku zweryfikowano statusy kontraktów zawierających te wartości, aby określić, czy są one logicznym skutkiem przebiegu procesu kredytowego, czy też stanowią błąd systemowy.
 
 ```{r status dla 1000 lat, echo=FALSE}
 library(dplyr)
@@ -301,7 +301,7 @@ status_by_var_df <- bind_rows(status_by_var)
 
 status_by_var_df %>%
   kbl(
-    caption = "Statusy kontraktów dla fejkowych wartości w poszczególnych zmiennych DAYS*",
+    caption = "Statusy kontraktów dla odstających wartości w poszczególnych zmiennych DAYS*",
     col.names = c("Status kontraktu", "Liczba obserwacji", "Zmienna")
   ) %>%
   kable_classic(full_width = FALSE, html_font = "Arial") %>%
@@ -310,7 +310,7 @@ status_by_var_df %>%
 
 Wszystkie rekordy dotyczą kontraktów o statusie zatwierdzonym, niezależnie od tego, której zmiennej `DAYS` dotyczą. Oznacza to, że nie są to braki wynikające z odmowy, anulowania czy niewygenerowania oferty, lecz systemowy placeholder stosowany w miejsce rzeczywistych dat harmonogramu.
 
-Aby ustalić, czy te kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest ponowne sprawdzenie ich parametrów finansowych — przede wszystkim.
+Aby ustalić, czy te kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych.
 
 ```{r dane finansowe 1000 lat, echo=FALSE}
 # Identyfikacja rekordów z fejkowymi wartościami w dowolnej zmiennej DAYS*
@@ -352,14 +352,14 @@ summary_cnt <- data.frame(
 
 summary_cnt %>%
   kbl(
-    caption = "Podsumowanie CNT_PAYMENT i AMT_CREDIT dla kontraktów z fałszywymi wartościami DAYS*",
+    caption = "Podsumowanie CNT_PAYMENT i AMT_CREDIT dla kontraktów z odstającymi wartościami DAYS*",
     col.names = c("Zmienna", "Min", "Q1", "Mediana", "Średnia", "Q3", "Max")
   ) %>%
   kable_classic(full_width = FALSE, html_font = "Arial") %>%
   row_spec(0, bold = TRUE)
 ```
 
-Podobnie jak w przypadku rzeczywistych braków, również tutaj obserwujemy dwa odmienne scenariusze. Część rekordów posiada `CNT_PAYMENT` = 0 oraz oraz `AMT_CREDIT` = 0, co wskazuje, że mimo formalnego statusu „Zatwierdzony”, kontrakt nie został faktycznie uruchomiony i nie nadano mu parametrów spłaty. W takich przypadkach fałszywe wartości `DAYS` potraktowano jako braki danych, a same kontrakty jako nieaktywne.
+Podobnie jak w przypadku rzeczywistych braków, również tutaj obserwujemy dwa odmienne scenariusze. Część rekordów posiada `CNT_PAYMENT` = 0 oraz oraz `AMT_CREDIT` = 0, co wskazuje, że mimo formalnego statusu „Zatwierdzony”, kontrakt nie został faktycznie uruchomiony i nie nadano mu parametrów spłaty. W takich przypadkach odstające wartości `DAYS` potraktowano jako braki danych, a same kontrakty jako nieaktywne.
 
 Jednak część obserwacji posiada zarówno dodatnią liczbę rat (mediana 12, maksimum 60) jak i realne kwoty kredytu (mediana ok. 102 tys., maksimum 3,15 mln), co świadczy o tym, że warunki finansowe zostały ustalone, a produkt był przygotowany do uruchomienia. Brak dat harmonogramu wynika więc z błędu systemowego, a nie z decyzji klienta. Dla tej grupy zdecydowano się na imputację brakujących dat wartościami medianowymi wyznaczonymi dla porównywalnych produktów, aby odtworzyć realistyczny przebieg harmonogramu.
 
@@ -409,7 +409,7 @@ tab_goods %>%
 
 Zdecydowana większość NA występuje w kontraktach anulowanych lub odrzuconych.To jest logiczne: skoro wniosek nie został zrealizowany, cena towaru nie musiała być rejestrowana.
 
-Jednak mniej typowa sytuacja dot. 632 zatwierdzonych kontraktów. One powininny mieć określoną cenę towaru. Sprawdzamy, czy mają inne kluczowe informacje (jak poprzednio: `AMT_CREDIT` i `CNT_PAYMENT`).
+Jednak mniej typowa sytuacja dotyczy 632 zatwierdzonych kontraktów. One powininny mieć określoną cenę towaru. Sprawdzamy, czy mają inne kluczowe informacje (jak poprzednio: `AMT_CREDIT` i `CNT_PAYMENT`).
 
 ```{r analizuj_zatwierdzonych_bez_ceny, echo=FALSE}
 dane$FLAG_APPROVED_GOODS_NA <- ifelse(dane$NAME_CONTRACT_STATUS == "Approved" & is.na(dane$AMT_GOODS_PRICE), 1, 0)
@@ -499,7 +499,7 @@ tab_app0 %>%
 
 Wartości `AMT_APPLICATION` = 0 występują przede wszystkim w kontraktach Anulowanych (4596) oraz Odmówionych (578), co jest zgodne z logiką procesu — brak kwoty aplikowanej oznacza, że wniosek nie przeszedł do etapu pełnej parametryzacji. Niewielka liczba przypadków dotyczy statusu Niewykorzystana oferta (6), co również jest spójne z sytuacją, w której klient nie finalizuje procesu.
 
-Jednak szczególną uwagę wymagają 665 kontraktów o statusie zatwierdzonym.W tej grupie brak kwoty aplikowanej nie jest logicznym elementem procesu i może wskazywać na błąd systemowy lub niekompletne zapisanie danych w momencie decyzji kredytowej. Aby ustalić, czy zatwierdzone kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych
+Jednak szczególnej uwagi wymagaja 665 kontraktów o statusie zatwierdzonym.W tej grupie brak kwoty aplikowanej nie jest logicznym elementem procesu i może wskazywać na błąd systemowy lub niekompletne zapisanie danych w momencie decyzji kredytowej. Aby ustalić, czy zatwierdzone kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych
 
 ```{r werfyfikacja amt_app, echo=FALSE}
 library(dplyr)
@@ -548,10 +548,7 @@ summary_app0 %>%
   row_spec(0, bold = TRUE)
 ```
 
-
-W większości przypadków są to kontrakty anulowane lub ddrzucone, gdzie brak kwoty wnioskowanej jest logiczny.
-
-Jednak mamy też anomalię: zatwierdzone kontrakty z `AMT_APPLICATION` = 0, ale z dodatnią kwotą kredytu (`AMT_CREDIT` > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
+W danych dostrzegamy anomalię: zatwierdzone kontrakty z `AMT_APPLICATION` = 0, ale z dodatnią kwotą kredytu (`AMT_CREDIT` > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
 
 Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
 
@@ -561,7 +558,7 @@ W pozostałych przypadkach zostawiamy wartość bez zmian.
 
 ### Czyszczenie i przygotowanie danych (Data Cleansing)
 
-Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze nie jest przypadkowe, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie Canceled, Refused oraz Unused offer. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
+Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze nie jest przypadkowe, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie anulowanym, odmówionym oraz przy niewykorzystanych ofertach. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
 
 Zastosowana strategia czyszczenia danych opiera się na imputacji biznesowej, a nie statystycznej. Zamiast usuwać rekordy lub stosować średnie, nadajemy brakom znaczenie analityczne:
 
