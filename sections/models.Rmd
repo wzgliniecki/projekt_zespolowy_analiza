@@ -1,127 +1,235 @@
 # Modelowanie Decyzji Kredytowej
 
-W tej sekcji budujemy modele predykcyjne do odpowiadania na kluczowe pytania badawcze:
+Celem odpowiedzi na pytania badawcze, zbudowane zostaną 3 modele.
 
-1. **Kiedy aplikacja jest zatwierdzona?** (Approved vs wszystko inne)
-2. **Co sprawia że aplikacja jest odmawiana?** (Refused vs wszystko inne)
-3. **Co powoduje że klient anuluje wniosek?** (Canceled vs wszystko inne)
-4. **Wpływ zmiennych finansowych vs socjoekonomicznych** na zatwierdzenie
+1. **Model 1**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - wszystkie zmienne
+2. **Model 2**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - tylko zmienne finansowe
+3. **Model 3**: Regresja logistyczna wielokategoryczna dla wszystkich decyzji - co możemy wywnioskować na temat danych kategorii?
 
-Wykorzystujemy regresję logistyczną z selekcją zmiennych (Stepwise i Best Subset) do zidentyfikowania kluczowych sterowników każdej decyzji.
-Wyniki analizy podajemy filtrowaniu (p.value< 0.05). 
+W dalszej części analizy porównana zostanie moc predykcyjna Modeli 1 i 2, aby ocenić, czy zmienne finansowe same w sobie są wystarczające do przewidywania decyzji kredytowej, czy też dodatkowe zmienne poprawiają dokładność modelu.
+A jeżeli tak to w jakim stopniu. 
 
-## Przygotowanie danych do modelowania
+Pod każdym modelem zostaną wyświetlone tylko te wartości parametrów, które są statystycznie istotne, reszta została odfiltrowana, w celu lepszej czytelności wyników.
+
+## Postać modelu logitowego
+
+$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
+
+gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji. $\beta_n$ to $n-ta$ waga przypisana do zmiennej $X_n$. 
+$\beta_0$ to wyraz wolny.
+
+Obliczając wartość takiego wyrażania otrzymujemy logit ilorazu szans, który wymaga dodatkowej interpretacji.
+
+Przykład:
+
+Załóżmy, że dla zmiennej \(X_1\) otrzymano wartość:
+
+\[
+\beta_1 = -0.4.
+\]
+Iloraz szans (odds ratio) obliczamy jako:
+
+\[
+\text{OR}_1 = e^{\beta_1} = e^{-0.4} \approx 0.67.
+\]
+
+Interpretacja:
+
+Wzrost zmiennej \(X_1\) o jednostkę powoduje spadek szans zajścia zdarzenia o około \(33\%\), ponieważ
+
+
+\[
+0.67 - 1 = -0.33.
+\]
+
+
+
+Gdyby \(\beta_1\) było dodatnie, oznaczałoby to wzrost szans zajścia zdarzenia.
+
+
+## Postać modelu regresji logistycznej wielokategorowej
+
+$$\log\left(\frac{P(Y=j)}{P(Y=0)}\right) = \beta_0^{(j)} + \sum_{i=1}^{k} \beta_i^{(j)} X_i$$
+
+znaczenie zmiennych identyczne jak w modelu logitowym, z dodatkowym indeksem $j$ oznaczającym kategorię docelową.
+
+Ze względu na charakter modelu, część zmiennych pokazuje dane dummy variables - może się okazać że statystycznie istotny jest np. tylko kredyt na samochód, a nie cała kategoria jako taka.
+
+Przykład interpretacji wartości logitu:
+
+Przykład interpretacji współczynnika w modelu regresji logistycznej wielokategorowej:
+ Dla kategorii \(j\) względem kategorii referencyjnej (np. "Zatwierdzony") otrzymano: \[ \beta_i^{(j)} = 0.6. \] 
+ Iloraz szans obliczamy jako: \[ \text{OR}_i^{(j)} = e^{0.6} \approx 1.82. \] 
+ Interpretacja: Wzrost zmiennej \(X_i\) o jednostkę zwiększa szanse, że obserwacja trafi do kategorii \(j\), 
+ a nie do kategorii referencyjnej, o około \(82\%\). 
+
+Analogicznie - ujemny współczynnik zmniejszałby szansę.
+
 
 ```{r przygotowanie_danych_modelowanie, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Zmienne finansowe
+zmienne_finansowe <- c(
+  "AMT_APPLICATION", "AMT_DOWN_PAYMENT", "CNT_PAYMENT",
+  "RATE_DOWN_PAYMENT", "AMT_CREDIT", "DAYS_DECISION", "AMT_ANNUITY"
+)
 
-# Zmienne finansowe (ekonomiczne)
-zmienne_finansowe <- c("AMT_APPLICATION", "AMT_DOWN_PAYMENT", "CNT_PAYMENT",
-                       "RATE_DOWN_PAYMENT", "AMT_CREDIT", "DAYS_DECISION")
+# Zmienne opisujące typ produktu i kanał dystrybucji
+zmienne_typ_produktu <- c(
+  "NAME_CONTRACT_TYPE", "CHANNEL_TYPE", "NAME_PORTFOLIO", "NAME_PRODUCT_TYPE"
+)
 
-# Zmienne socjoekonomiczne (behawioralne, katalogowe)
-zmienne_socjoekonomiczne <- c("NAME_CLIENT_TYPE_PL", "NAME_CONTRACT_TYPE",
-                              "CHANNEL_TYPE", "NAME_PORTFOLIO", "NAME_PRODUCT_TYPE")
-
-# Przygotowanie dataset do modelowania
+# Przygotowanie datasetu do modelowania - tylko z dostępnych zmiennych
 dane_model <- dane_clean %>%
   mutate(
-    Decision_Approved = ifelse(NAME_CONTRACT_STATUS_PL == "Zatwierdzony", 1, 0),
-    Decision_Refused = ifelse(NAME_CONTRACT_STATUS_PL == "Odmowa", 1, 0),
-    Decision_Canceled = ifelse(NAME_CONTRACT_STATUS_PL == "Anulowany", 1, 0)
+    NAME_CONTRACT_STATUS_PL = case_when(
+      NAME_CONTRACT_STATUS == "Approved" ~ "Zatwierdzony",
+      NAME_CONTRACT_STATUS == "Refused" ~ "Odmowa", 
+      NAME_CONTRACT_STATUS == "Canceled" ~ "Anulowany",
+      NAME_CONTRACT_STATUS == "Unused offer" ~ "Niewykorzystana oferta",
+      TRUE ~ NA_character_
+    ),
+    Decision_Approved = ifelse(NAME_CONTRACT_STATUS == "Approved", 1, 0)
   ) %>%
-  dplyr::select(all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne, 
-                        "Decision_Approved", "Decision_Refused", "Decision_Canceled", "DAYS_LAST_DUE"))) %>%
-  filter(complete.cases(.))
+  dplyr::select(all_of(c(
+    zmienne_finansowe,
+    zmienne_typ_produktu,
+    "NAME_CONTRACT_STATUS_PL",
+    "NAME_CONTRACT_STATUS",
+    "Decision_Approved",
+    "DAYS_LAST_DUE"
+  ))) %>%
+  filter(!is.na(NAME_CONTRACT_STATUS_PL))
 
-# Przygotowanie danych - tabela podsumowująca
-podsumowanie_dane <- data.frame(
-  Metryka = c("Liczba obserwacji", "Zmienne finansowe", "Zmienne socjoekonomiczne"),
-  Wartość = c(nrow(dane_model), length(zmienne_finansowe), length(zmienne_socjoekonomiczne))
-)
-
-gt(podsumowanie_dane) %>%
-  tab_header(title = "Przygotowane dane do modelowania") %>%
-  tab_options(table.font.size = "small")
-
-# Rozkład zmiennych docelowych
-rozkład <- data.frame(
-  Decision = c("Decision_Approved", "Decision_Refused", "Decision_Canceled"),
-  Wartość_0 = c(sum(dane_model$Decision_Approved == 0), sum(dane_model$Decision_Refused == 0), sum(dane_model$Decision_Canceled == 0)),
-  Wartość_1 = c(sum(dane_model$Decision_Approved == 1), sum(dane_model$Decision_Refused == 1), sum(dane_model$Decision_Canceled == 1))
-)
-
-gt(rozkład) %>%
-  tab_header(title = "Rozkład zmiennych docelowych") %>%
-  tab_options(table.font.size = "small")
 ```
 
+## Model 1: Approved vs Reszta - Wszystkie Zmienne
 
-## Model 1: Approved vs Refused+Canceled+Unused (Stepwise)
+```{r model1_all_variables, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - Approved (1) vs reszta (0)
+# Filtrujemy complete.cases TYLKO dla zmiennych używanych w modelu
+dane_m1_temp <- dane_model %>%
+  dplyr::select(Decision_Approved, all_of(zmienne_finansowe), all_of(zmienne_typ_produktu))
 
-```{r model1_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Przygotowanie danych - Approved (1) vs Refused+Canceled+Unused (0)
-dane_m1 <- dane_model %>%
-  mutate(Decision = Decision_Approved) %>%
-  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
+# Filtrujemy braki TYLKO w zmiennych które faktycznie będziemy używać
+dane_m1 <- dane_m1_temp %>%
+  filter(complete.cases(.)) %>%
+  rename(Decision = Decision_Approved)
 
 # Model pełny
 model_m1_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m1)
 
-# Model zerowy
-model_m1_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
+  # Model zerowy
+  model_m1_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
 
-# Stepwise
-model_m1 <- MASS::stepAIC(model_m1_null, 
-                          scope = list(lower = model_m1_null, upper = model_m1_full),
-                          direction = "both", trace = FALSE)
+  # Stepwise
+  model_m1 <- MASS::stepAIC(model_m1_null, 
+                            scope = list(lower = model_m1_null, upper = model_m1_full),
+                            direction = "both", trace = FALSE)
 
-# McFadden's pseudo R2
-ll_null_m1 <- logLik(model_m1_null)
-ll_model_m1 <- logLik(model_m1)
-r2_m1 <- 1 - (as.numeric(ll_model_m1) / as.numeric(ll_null_m1))
+  # McFadden's pseudo R2
+  ll_null_m1 <- logLik(model_m1_null)
+  ll_model_m1 <- logLik(model_m1)
+  r2_m1 <- 1 - (as.numeric(ll_model_m1) / as.numeric(ll_null_m1))
 
-# Wyświetl metryki
-metryki_m1 <- data.frame(
-  Metrika = c("Liczba zmiennych", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m1)) - 1, round(AIC(model_m1), 2), round(r2_m1, 4))
-)
+  # Metryki predykcyjne
+  predictions_m1 <- predict(model_m1, type = "response")
+  predicted_class_m1 <- ifelse(predictions_m1 > 0.5, 1, 0)
 
-gt(metryki_m1) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
-  tab_header(
-    title = "Model 1: Approved vs Reszta",
-    subtitle = "Metryki modelu (Stepwise)"
+  conf_m1 <- table(predicted_class_m1, dane_m1$Decision)
+  accuracy_m1 <- sum(diag(conf_m1)) / sum(conf_m1)
+
+  # Bezpieczne obliczanie sensitivity i specificity
+  if (nrow(conf_m1) == 2 && ncol(conf_m1) == 2) {
+    sensitivity_m1 <- conf_m1[2, 2] / (conf_m1[2, 2] + conf_m1[1, 2])
+    specificity_m1 <- conf_m1[1, 1] / (conf_m1[1, 1] + conf_m1[2, 1])
+  } else {
+    sensitivity_m1 <- NA
+    specificity_m1 <- NA
+  }
+
+  # ROC i AUC
+  roc_m1 <- roc(dane_m1$Decision, predictions_m1)
+  auc_m1 <- auc(roc_m1)
+
+  # Wyświetl metryki
+  metryki_m1 <- data.frame(
+    Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R2 (McFadden)"),
+    Wartość = c(
+      length(coef(model_m1)) - 1, 
+      nrow(dane_m1),
+      round(accuracy_m1, 4), 
+      round(sensitivity_m1, 4), 
+      round(specificity_m1, 4), 
+      ifelse(is.na(auc_m1), "NA", round(auc_m1, 4)),
+      round(AIC(model_m1), 2), 
+      round(r2_m1, 4)
+    )
+  )
+
+  gt(metryki_m1) %>%
+    tab_header(
+      title = "Model 1: Approved vs Reszta (Wszystkie zmienne)",
+      subtitle = "Metryki modelu logistycznego"
+    ) %>%
+    tab_options(table.font.size = "small")
+```
+
+```{r model1_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+coef_full_m1 <- broom::tidy(model_m1) %>%
+  dplyr::mutate(
+    OddsRatio = exp(estimate),
+    Significance = ifelse(p.value < 0.001, "***",
+                         ifelse(p.value < 0.01, "**",
+                               ifelse(p.value < 0.05, "*", "")))
   ) %>%
-  tab_options(table.font.size = "small")
-
-# Współczynniki
-coef_m1 <- broom::tidy(model_m1) %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(term != "(Intercept)") %>%
   dplyr::filter(p.value < 0.05) %>%
+  dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
   dplyr::arrange(desc(abs(estimate)))
 
-gt(coef_m1 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
-  fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
+gt(coef_full_m1) %>%
+  fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
   tab_header(
-    title = "Współczynniki modelu logistycznego",
-    subtitle = "Model 1: Approved vs Reszta (p < 0.05)"
-  ) %>%
-  tab_style(
-    style = cell_fill(color = "#E8F4F8"),
-    locations = cells_body(columns = p.value, rows = p.value < 0.05)
+    title = "Model 1: Parametry modelu - Zmienne statystycznie istotne",
+    subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
   ) %>%
   tab_options(table.font.size = "small")
 ```
 
+```{r model1_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Interpretacja Model 1
+interpretacja_m1 <- data.frame(
+  Metryka = c("Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R² McFadden"),
+  Wartość = c(
+    paste0(round(accuracy_m1 * 100, 2), "%"),
+    paste0(round(sensitivity_m1 * 100, 2), "%"),
+    paste0(round(specificity_m1 * 100, 2), "%"),
+    ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+    round(AIC(model_m1), 2),
+    round(r2_m1, 4)
+  ),
+  Interpretacja = c(
+    "Odsetek prawidłowych klasyfikacji",
+    "Zdolność do wykrycia zatwierdzeń",
+    "Zdolność do wykrycia odmów",
+    "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
+    "Kryterium informacyjne (niższe = lepsze)",
+    "Udział wyjaśnianej wariancji"
+  )
+)
+```
 
-## Model 2: Refused vs Approved+Canceled+Unused (Stepwise)
+## Model 2: Approved vs Reszta - Tylko Zmienne Finansowe
 
-```{r model2_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Przygotowanie danych - Refused (1) vs reszta (0)
-dane_m2 <- dane_model %>%
-  mutate(Decision = Decision_Refused) %>%
-  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
+```{r model2_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych - TYLKO zmienne finansowe
+dane_m2_temp <- dane_model %>%
+  dplyr::select(Decision_Approved, all_of(zmienne_finansowe))
+
+# Filtrujemy braki TYLKO w zmiennych finansowych
+dane_m2 <- dane_m2_temp %>%
+  filter(complete.cases(.)) %>%
+  rename(Decision = Decision_Approved)
 
 # Model pełny
 model_m2_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m2)
@@ -139,411 +247,246 @@ ll_null_m2 <- logLik(model_m2_null)
 ll_model_m2 <- logLik(model_m2)
 r2_m2 <- 1 - (as.numeric(ll_model_m2) / as.numeric(ll_null_m2))
 
+# Metryki predykcyjne
+predictions_m2 <- predict(model_m2, type = "response")
+predicted_class_m2 <- ifelse(predictions_m2 > 0.5, 1, 0)
+
+conf_m2 <- table(predicted_class_m2, dane_m2$Decision)
+accuracy_m2 <- sum(diag(conf_m2)) / sum(conf_m2)
+
+# Bezpieczne obliczanie sensitivity i specificity
+if (nrow(conf_m2) == 2 && ncol(conf_m2) == 2) {
+  sensitivity_m2 <- conf_m2[2, 2] / (conf_m2[2, 2] + conf_m2[1, 2])
+  specificity_m2 <- conf_m2[1, 1] / (conf_m2[1, 1] + conf_m2[2, 1])
+} else {
+  sensitivity_m2 <- NA
+  specificity_m2 <- NA
+}
+
+# ROC i AUC
+roc_m2 <- roc(dane_m2$Decision, predictions_m2)
+auc_m2 <- auc(roc_m2)
+
 # Wyświetl metryki
 metryki_m2 <- data.frame(
-  Metrika = c("Liczba zmiennych", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m2)) - 1, round(AIC(model_m2), 2), round(r2_m2, 4))
+  Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R2 (McFadden)"),
+  Wartość = c(
+    length(coef(model_m2)) - 1,
+    nrow(dane_m2),
+    round(accuracy_m2, 4), 
+    round(sensitivity_m2, 4), 
+    round(specificity_m2, 4), 
+    ifelse(is.na(auc_m2), "NA", round(auc_m2, 4)),
+    round(AIC(model_m2), 2), 
+    round(r2_m2, 4)
+  )
 )
 
 gt(metryki_m2) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
   tab_header(
-    title = "Model 2: Refused vs Reszta",
-    subtitle = "Metryki modelu (Stepwise)"
+    title = "Model 2: Approved vs Reszta (TYLKO zmienne finansowe)",
+    subtitle = "Metryki modelu logistycznego"
   ) %>%
   tab_options(table.font.size = "small")
+```
 
-# Współczynniki
-coef_m2 <- broom::tidy(model_m2) %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(term != "(Intercept)") %>%
+
+```{r model2_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+coef_full_m2 <- broom::tidy(model_m2) %>%
+  dplyr::mutate(
+    OddsRatio = exp(estimate),
+    Significance = ifelse(p.value < 0.001, "***",
+                         ifelse(p.value < 0.01, "**",
+                               ifelse(p.value < 0.05, "*", "")))
+  ) %>%
   dplyr::filter(p.value < 0.05) %>%
+  dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
   dplyr::arrange(desc(abs(estimate)))
 
-gt(coef_m2 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
-  fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
-  tab_header(
-    title = "Współczynniki modelu logistycznego",
-    subtitle = "Model 2: Refused vs Reszta (p < 0.05)"
-  ) %>%
-  tab_style(
-    style = cell_fill(color = "#E8F4F8"),
-    locations = cells_body(columns = p.value, rows = p.value < 0.05)
-  ) %>%
-  tab_options(table.font.size = "small")
-```
-
-## Model 3: Canceled vs Approved+Refused+Unused (Stepwise)
-
-```{r model3_stepwise, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Przygotowanie danych - Canceled (1) vs reszta (0)
-dane_m3 <- dane_model %>%
-  mutate(Decision = Decision_Canceled) %>%
-  dplyr::select(Decision, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne)))
-
-# Model pełny
-model_m3_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m3)
-
-# Model zerowy
-model_m3_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m3)
-
-# Stepwise
-model_m3 <- MASS::stepAIC(model_m3_null, 
-                          scope = list(lower = model_m3_null, upper = model_m3_full),
-                          direction = "both", trace = FALSE)
-
-# McFadden's pseudo R2
-ll_null_m3 <- logLik(model_m3_null)
-ll_model_m3 <- logLik(model_m3)
-r2_m3 <- 1 - (as.numeric(ll_model_m3) / as.numeric(ll_null_m3))
-
-# Wyświetl metryki
-metryki_m3 <- data.frame(
-  Metrika = c("Liczba zmiennych", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m3)) - 1, round(AIC(model_m3), 2), round(r2_m3, 4))
-)
-
-gt(metryki_m3) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
-  tab_header(
-    title = "Model 3: Canceled vs Reszta",
-    subtitle = "Metryki modelu (Stepwise)"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Współczynniki
-coef_m3 <- broom::tidy(model_m3) %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(term != "(Intercept)") %>%
-  dplyr::filter(p.value < 0.05) %>%
-  dplyr::arrange(desc(abs(estimate)))
-
-gt(coef_m3 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
-  fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
-  tab_header(
-    title = "Współczynniki modelu logistycznego",
-    subtitle = "Model 3: Canceled vs Reszta (p < 0.05)"
-  ) %>%
-  tab_style(
-    style = cell_fill(color = "#E8F4F8"),
-    locations = cells_body(columns = p.value, rows = p.value < 0.05)
-  ) %>%
-  tab_options(table.font.size = "small")
-```
-
-
-## Model 4: Approved vs Reszta - WSZYSTKIE ZMIENNE
-
-```{r model4_all_variables, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Dane - te same co Model 1
-predictions_m4 <- predict(model_m1, type = "response")
-predicted_class_m4 <- ifelse(predictions_m4 > 0.5, 1, 0)
-
-# Metryki
-conf_m4 <- table(predicted_class_m4, dane_m1$Decision)
-accuracy_m4 <- sum(diag(conf_m4)) / sum(conf_m4)
-sensitivity_m4 <- conf_m4[2, 2] / (conf_m4[2, 2] + conf_m4[1, 2])
-specificity_m4 <- conf_m4[1, 1] / (conf_m4[1, 1] + conf_m4[2, 1])
-
-roc_m4 <- roc(dane_m1$Decision, predictions_m4)
-auc_m4 <- auc(roc_m4)
-
-# McFadden's pseudo R2
-model_m4_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
-ll_null_m4 <- logLik(model_m4_null)
-ll_model_m4 <- logLik(model_m1)
-r2_m4 <- 1 - (as.numeric(ll_model_m4) / as.numeric(ll_null_m4))
-
-# Wyświetl metryki
-metryki_m4 <- data.frame(
-  Metrika = c("Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m1)) - 1, round(accuracy_m4, 4), round(sensitivity_m4, 4), round(specificity_m4, 4), round(auc_m4, 4), round(AIC(model_m1), 2), round(r2_m4, 4))
-)
-
-gt(metryki_m4) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
-  tab_header(
-    title = "Model 4: Approved vs Reszta (Wszystkie zmienne)",
-    subtitle = "Metryki modelu"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Zmienne w modelu
-vars_m4 <- data.frame(Zmienna = names(coef(model_m1))[-1])
-kable(vars_m4, caption = "Model 4: Zmienne w modelu")
-```
-
-
-
-## Model 5: Approved vs Reszta - TYLKO FINANSOWE
-
-```{r model5_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Przygotowanie danych - tylko zmienne finansowe
-dane_m5 <- dane_model %>%
-  mutate(Decision = Decision_Approved) %>%
-  dplyr::select(Decision, all_of(zmienne_finansowe))
-
-# Model pełny
-model_m5_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m5)
-
-# Model zerowy
-model_m5_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m5)
-
-# Stepwise
-model_m5 <- MASS::stepAIC(model_m5_null, 
-                          scope = list(lower = model_m5_null, upper = model_m5_full),
-                          direction = "both", trace = FALSE)
-
-# Przewidywania i metryki
-predictions_m5 <- predict(model_m5, type = "response")
-predicted_class_m5 <- ifelse(predictions_m5 > 0.5, 1, 0)
-
-conf_m5 <- table(predicted_class_m5, dane_m5$Decision)
-accuracy_m5 <- sum(diag(conf_m5)) / sum(conf_m5)
-sensitivity_m5 <- conf_m5[2, 2] / (conf_m5[2, 2] + conf_m5[1, 2])
-specificity_m5 <- conf_m5[1, 1] / (conf_m5[1, 1] + conf_m5[2, 1])
-
-roc_m5 <- roc(dane_m5$Decision, predictions_m5)
-auc_m5 <- auc(roc_m5)
-
-# McFadden's pseudo R2
-ll_null_m5 <- logLik(model_m5_null)
-ll_model_m5 <- logLik(model_m5)
-r2_m5 <- 1 - (as.numeric(ll_model_m5) / as.numeric(ll_null_m5))
-
-# Wyświetl metryki
-metryki_m5 <- data.frame(
-  Metrika = c("Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m5)) - 1, accuracy_m5, sensitivity_m5, specificity_m5, auc_m5, AIC(model_m5), r2_m5)
-)
-
-gt(metryki_m5) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
-  tab_header(
-    title = "Model 5: Approved vs Reszta (Tylko finansowe)",
-    subtitle = "Metryki modelu"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Zmienne w modelu
-vars_m5 <- data.frame(Zmienna = names(coef(model_m5))[-1])
-kable(vars_m5, caption = "Model 5: Zmienne w modelu")
-
-# Współczynniki
-coef_m5 <- broom::tidy(model_m5) %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(term != "(Intercept)") %>%
-  dplyr::filter(p.value < 0.05) %>%
-  dplyr::arrange(desc(abs(estimate)))
-
-kable(coef_m5 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
-      caption = "Model 5: Współczynniki (Approved - Tylko Finansowe)")
-```
-
-## Porównanie Mocy Predykcyjnej Modeli 4 i 5
-
-```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Tabela porównawcza
-porownanie <- data.frame(
-  Model = c("Model 4: Wszystkie zmienne", "Model 5: Tylko finansowe"),
-  Liczba_Zmiennych = c(length(coef(model_m1)) - 1, length(coef(model_m5)) - 1),
-  Accuracy = c(round(accuracy_m4, 4), round(accuracy_m5, 4)),
-  Sensitivity = c(round(sensitivity_m4, 4), round(sensitivity_m5, 4)),
-  Specificity = c(round(specificity_m4, 4), round(specificity_m5, 4)),
-  AUC = c(round(auc_m4, 4), round(auc_m5, 4)),
-  AIC = c(round(AIC(model_m1), 2), round(AIC(model_m5), 2)),
-  R2.McFadden = c(round(r2_m4, 4), round(r2_m5, 4))
-)
-
-gt(porownanie) %>%
-  fmt_number(columns = c(Accuracy, Sensitivity, Specificity, AUC, R2.McFadden), decimals = 4) %>%
-  fmt_number(columns = AIC, decimals = 2) %>%
-  tab_header(
-    title = "Porównanie wydajności modeli",
-    subtitle = "Model 4 vs Model 5"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Interpretacja
-diff_auc <- round(auc_m4 - auc_m5, 4)
-percent_improvement <- round(diff_auc / auc_m5 * 100, 2)
-
-# Ustal konkluzję
-if (diff_auc > 0.01) {
-  konkluzja <- "Model 4 jest ISTOTNIE lepszy"
-  uzasadnienie <- "Zmienne socjoekonomiczne wnoszą wartość predykcyjną"
-} else if (diff_auc < -0.01) {
-  konkluzja <- "Model 5 jest ISTOTNIE lepszy"
-  uzasadnienie <- "Zmienne socjoekonomiczne NIE poprawiają prognozę (mogą być szumem)"
-} else {
-  konkluzja <- "Modele są PORÓWNYWALNE"
-  uzasadnienie <- "Model 5 (prostszy) można preferować (Occam's Razor)"
-}
-
-# Tabela interpretacji
-interpretacja <- data.frame(
-  Metryka = c("Różnica AUC", "% Poprawa", "Konkluzja", "Uzasadnienie"),
-  Wartość = c(diff_auc, paste0(percent_improvement, "%"), konkluzja, uzasadnienie)
-)
-
-gt(interpretacja) %>%
-  tab_header(
-    title = "Interpretacja porównania modeli",
-    subtitle = "Model 4 vs Model 5"
-  ) %>%
-  tab_options(table.font.size = "small")
-```
-
-## Porównanie Modeli Stepwise (1, 2, 3)
-
-```{r porownanie_zmiennych_3_modele, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-
-# Zmienne w każdym modelu
-zmienne_m1 <- names(coef(model_m1))[-1]
-zmienne_m2 <- names(coef(model_m2))[-1]
-zmienne_m3 <- names(coef(model_m3))[-1]
-
-# Tabela zmiennych w modelach
-zmienne_tabela <- data.frame(
-  Model = c("Model 1 (Approved)", "Model 2 (Refused)", "Model 3 (Canceled)"),
-  Zmienne = c(paste(zmienne_m1, collapse=", "), 
-              paste(zmienne_m2, collapse=", "), 
-              paste(zmienne_m3, collapse=", "))
-)
-
-gt(zmienne_tabela) %>%
-  tab_header(
-    title = "Zmienne w modelach stepwise",
-    subtitle = "Modele 1, 2, 3: Porównanie wybranych zmiennych"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Wspólne zmienne
-wspolne <- intersect(zmienne_m1, intersect(zmienne_m2, zmienne_m3))
-
-# Tabela wspólnych zmiennych
-if (length(wspolne) > 0) {
-  zmienne_wspolne_tabela <- data.frame(
-    Zmienna = wspolne,
-    Występowanie = "We wszystkich 3 modelach"
-  )
-  gt(zmienne_wspolne_tabela) %>%
+if (nrow(coef_full_m2) > 0) {
+  gt(coef_full_m2) %>%
+    fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
     tab_header(
-      title = "Wspólne zmienne",
-      subtitle = "Zmienne obecne we WSZYSTKICH 3 modelach"
+      title = "Model 2: Parametry modelu - Zmienne statystycznie istotne",
+      subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
     ) %>%
     tab_options(table.font.size = "small")
 } else {
-  # Jeśli brak wspólnych zmiennych - wyświetl informację
-  brak_wspolnych <- data.frame(
-    Informacja = "Brak wspólnych zmiennych we wszystkich 3 modelach"
-  )
-  gt(brak_wspolnych) %>%
-    tab_header(
-      title = "Wspólne zmienne",
-      subtitle = "Wynik analizy"
-    ) %>%
+  brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+  gt(brak_tab) %>%
+    tab_header(title = "Model 2: Parametry modelu") %>%
     tab_options(table.font.size = "small")
 }
-
-# Tabela porównawcza 3 modele stepwise
-porownanie_3 <- data.frame(
-  Model = c("Model 1: Approved", "Model 2: Refused", "Model 3: Canceled"),
-  Zmienne = c(length(zmienne_m1), length(zmienne_m2), length(zmienne_m3)),
-  AIC = c(round(AIC(model_m1), 2), round(AIC(model_m2), 2), round(AIC(model_m3), 2)),
-  R2.McFadden = c(round(r2_m1, 4), round(r2_m2, 4), round(r2_m3, 4))
-)
-
-gt(porownanie_3) %>%
-  fmt_number(columns = c(AIC), decimals = 2) %>%
-  fmt_number(columns = c(R2.McFadden), decimals = 4) %>%
-  tab_header(
-    title = "Porównanie modeli stepwise",
-    subtitle = "Modele 1, 2, 3: Approved, Refused, Canceled"
-  ) %>%
-  tab_options(table.font.size = "small")
 ```
 
-## Model 6: Predykcja Problemów ze Spłatą (Opóźnienia)
+```{r model2_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Brak dodatkowych tabel do wyświetlenia
+```
 
-```{r model6_payment_problems, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Nowa zmienna: czy były problemy ze spłatą
-# Klient ma problem ze spłatą jeśli DAYS_LAST_DUE > 0 (opóźnienie względem terminu)
-dane_m6 <- dane_model %>%
-  mutate(
-    Payment_Problem = ifelse(is.na(DAYS_LAST_DUE) | DAYS_LAST_DUE <= 0, 0, 1)
-  ) %>%
-  dplyr::select(Payment_Problem, all_of(c(zmienne_finansowe, zmienne_socjoekonomiczne))) %>%
+## Model 3: Regresja Logistyczna Wielokategoryczna
+
+```{r model3_multinomial, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# Przygotowanie danych dla modelu wielokategorycznego
+dane_m3_temp <- dane_model %>%
+  dplyr::select(NAME_CONTRACT_STATUS_PL, all_of(zmienne_finansowe), all_of(zmienne_typ_produktu)) %>%
+  filter(!is.na(NAME_CONTRACT_STATUS_PL))
+
+# Filtrujemy braki w zmiennych
+dane_m3 <- dane_m3_temp %>%
   filter(complete.cases(.))
 
-# Przygotowanie danych obserwacji
-obserwacje_m6 <- data.frame(
-  Kategoria = c("Z problemami spłaty", "Bez problemów"),
-  Liczba = c(sum(dane_m6$Payment_Problem == 1), sum(dane_m6$Payment_Problem == 0))
-)
 
-gt(obserwacje_m6) %>%
-  tab_header(
-    title = "Model 6: Rozkład obserwacji",
-    subtitle = "Problemy ze spłatą"
-  ) %>%
-  tab_options(table.font.size = "small")
+  # Ustawienie "Zatwierdzony" jako kategoria referencyjna
+  dane_m3$NAME_CONTRACT_STATUS_PL <- relevel(as.factor(dane_m3$NAME_CONTRACT_STATUS_PL), ref = "Zatwierdzony")
+  
+  # Model wielokategoryczny
+  model_m3 <- nnet::multinom(NAME_CONTRACT_STATUS_PL ~ ., data = dane_m3, trace = FALSE, maxit = 200)
+  
+  # Podsumowanie
+  summary_m3 <- summary(model_m3)
+  
+  # Współczynniki i p-wartości
+  z_values <- summary_m3$coefficients / summary_m3$standard.errors
+  p_values <- (1 - pnorm(abs(z_values), 0, 1)) * 2
+  
+  # Metryki modelu
+  deviance_m3 <- deviance(model_m3)
+  aic_m3 <- AIC(model_m3)
+  
+  # Interpretacja Model 3
+  model3_interpretacja <- data.frame(
+    Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych w modelu", "Deviance", "AIC"),
+    Wartość = c(
+      nrow(dane_m3),
+      nlevels(dane_m3$NAME_CONTRACT_STATUS_PL),
+      ncol(summary_m3$coefficients),
+      round(deviance_m3, 2),
+      round(aic_m3, 2)
+    ),
+    Opis = c(
+      "Po usunięciu brakujących danych",
+      "Poziomy zmiennej zależnej",
+      "Predyktory w modelu",
+      "Miara dopasowania (niższa = lepsze)",
+      "Kryterium informacyjne do porównania z innymi modelami"
+    )
+  )
+  
+  gt(model3_interpretacja) %>%
+    tab_header(
+      title = "Model 3: Interpretacja Metryki",
+      subtitle = "Parametry modelu wielokategorycznego"
+    ) %>%
+    tab_options(table.font.size = "small")
+  
+  # Kategorie w modelu
+  kategorie_m3 <- data.frame(
+    Kategoria = c("Zatwierdzony (referencyjna)", setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony")),
+    Rola = c("Kategoria referencyjna", rep("Kategoria porównywana", length(setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony"))))
+  )
+  
+  gt(kategorie_m3) %>%
+    tab_header(
+      title = "Model 3: Kategorie w modelu",
+      subtitle = "Zmienne zależne w regresji wielokategorycznej"
+    ) %>%
+    tab_options(table.font.size = "small")
 
-# Model pełny
-model_m6_full <- glm(Payment_Problem ~ ., family = binomial(link = "logit"), data = dane_m6)
-
-# Model zerowy
-model_m6_null <- glm(Payment_Problem ~ 1, family = binomial(link = "logit"), data = dane_m6)
-
-# Stepwise
-model_m6 <- MASS::stepAIC(model_m6_null, 
-                          scope = list(lower = model_m6_null, upper = model_m6_full),
-                          direction = "both", trace = FALSE)
-
-# McFadden's pseudo R2
-ll_null_m6 <- logLik(model_m6_null)
-ll_model_m6 <- logLik(model_m6)
-r2_m6 <- 1 - (as.numeric(ll_model_m6) / as.numeric(ll_null_m6))
-
-# Metryki predykcyjne
-predictions_m6 <- predict(model_m6, type = "response")
-predicted_class_m6 <- ifelse(predictions_m6 > 0.5, 1, 0)
-
-conf_m6 <- table(predicted_class_m6, dane_m6$Payment_Problem)
-accuracy_m6 <- sum(diag(conf_m6)) / sum(conf_m6)
-sensitivity_m6 <- conf_m6[2, 2] / (conf_m6[2, 2] + conf_m6[1, 2])
-specificity_m6 <- conf_m6[1, 1] / (conf_m6[1, 1] + conf_m6[2, 1])
-
-roc_m6 <- roc(dane_m6$Payment_Problem, predictions_m6)
-auc_m6 <- auc(roc_m6)
-
-# Wyświetl metryki
-metryki_m6 <- data.frame(
-  Metrika = c("Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R2 (McFadden)"),
-  Wartość = c(length(coef(model_m6)) - 1, accuracy_m6, sensitivity_m6, specificity_m6, auc_m6, AIC(model_m6), r2_m6)
-)
-
-gt(metryki_m6) %>%
-  fmt_number(columns = Wartość, decimals = 4) %>%
-  tab_header(
-    title = "Model 6: Predykcja Problemów ze Spłatą",
-    subtitle = "Metryki modelu (Stepwise)"
-  ) %>%
-  tab_options(table.font.size = "small")
-
-# Zmienne w modelu
-vars_m6 <- data.frame(Zmienna = names(coef(model_m6))[-1])
-kable(vars_m6, caption = "Model 6: Zmienne w modelu")
-
-# Współczynniki
-coef_m6 <- broom::tidy(model_m6) %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(term != "(Intercept)") %>%
-  dplyr::filter(p.value < 0.05) %>%
-  dplyr::arrange(desc(abs(estimate)))
-
-kable(coef_m6 %>% dplyr::select(term, estimate, OddsRatio, p.value), digits = 4,
-      caption = "Model 6: Współczynniki (Predykcja Problemów ze Spłatą)")
 ```
 
 
+```{r model3_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+  # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+  coef_m3_filtered <- data.frame(
+    Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
+    Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
+    Wspolczynnik = as.vector(t(summary_m3$coefficients)),
+    P_Wartosc = as.vector(t(p_values))
+  ) %>%
+    dplyr::filter(P_Wartosc < 0.05) %>%
+    dplyr::arrange(Kategoria, desc(abs(Wspolczynnik))) %>%
+    dplyr::mutate(
+      Significance = ifelse(P_Wartosc < 0.001, "***",
+                           ifelse(P_Wartosc < 0.01, "**",
+                                 ifelse(P_Wartosc < 0.05, "*", "")))
+    )
+  
+  if (nrow(coef_m3_filtered) > 0) {
+    gt(coef_m3_filtered %>% dplyr::select(Kategoria, Zmienna, Wspolczynnik, P_Wartosc, Significance)) %>%
+      fmt_number(columns = c(Wspolczynnik, P_Wartosc), decimals = 4) %>%
+      tab_header(
+        title = "Model 3: Parametry modelu - Zmienne statystycznie istotne",
+        subtitle = "Współczynniki dla każdej kategorii vs 'Zatwierdzony' (*** p<0.001, ** p<0.01, * p<0.05)"
+      ) %>%
+      tab_options(table.font.size = "small")
+  } else {
+    brak_tab_m3 <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05)")
+    gt(brak_tab_m3) %>%
+      tab_header(title = "Model 3: Parametry modelu") %>%
+      tab_options(table.font.size = "small")
+  }
+
+```
+
+## Podsumowanie i Porównanie Modeli
+
+```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+# SEKCJA 1: Porównanie Model 1 vs Model 2
+  porownanie_12 <- data.frame(
+    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Dokładność", "Czułość", "Specyficzność", "AUC", "R2 (McFadden)", "AIC"),
+    Model1_Wszystkie = c(
+      nrow(dane_m1),
+      length(coef(model_m1)) - 1,
+      paste0(round(accuracy_m1 * 100, 2), "%"),
+      paste0(round(sensitivity_m1 * 100, 2), "%"),
+      paste0(round(specificity_m1 * 100, 2), "%"),
+      ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+      round(r2_m1, 4),
+      round(AIC(model_m1), 2)
+    ),
+    Model2_Finansowe = c(
+      nrow(dane_m2),
+      length(coef(model_m2)) - 1,
+      paste0(round(accuracy_m2 * 100, 2), "%"),
+      paste0(round(sensitivity_m2 * 100, 2), "%"),
+      paste0(round(specificity_m2 * 100, 2), "%"),
+      ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
+      round(r2_m2, 4),
+      round(AIC(model_m2), 2)
+    )
+  )
+  
+  gt(porownanie_12) %>%
+    tab_header(
+      title = "## Porównanie Model 1 i Model 2",
+      subtitle = "Wpływ zmiennych kategorialnych na jakość predykcji"
+    ) %>%
+    tab_options(table.font.size = "small")
+  
+  # Wnioski
+  wnioski_12 <- data.frame(
+    Aspekt = c("AIC", "Czułość", "Specyficzność"),
+    Obserwacja = c(
+      paste0("Model 1 lepszy (AIC=", round(AIC(model_m1), 2), " < ", round(AIC(model_m2), 2), ")"),
+      paste0("Model 2 lepszy (", round(sensitivity_m2*100, 2), "% > ", round(sensitivity_m1*100, 2), "%)"),
+      paste0("Model 1 lepszy (", round(specificity_m1*100, 2), "% > ", round(specificity_m2*100, 2), "%)")
+    )
+  )
+  
+  gt(wnioski_12) %>%
+    tab_header(
+      title = "## Wnioski z porównania Model 1 vs Model 2",
+      subtitle = "Analiza wpływu zmiennych kategorialnych"
+    ) %>%
+    tab_options(table.font.size = "small")
+
+
+```
+Dane te pokazują że zmienne niefinansowe mają realny wpływ na dopasownie modelu. Niższa wartość AIC mówi nam że model 1 lepiej
+opisuje zależność między cechami klienta a decyzją kredytową niż model 2, nie uwzględniający danych w stylu celu pożyczki.
+
+Model 2 ma jednak wyższą czułość (sensitivity), co oznacza że lepiej wykrywa faktyczne zatwierdzenia kredytów, jednak kosztem
+większej ilości fałszywych alarmów. Model jest więc zbyt optymistyczny.
+
+Specyficzność (specificity) jest wyższa w modelu 1, co oznacza że lepiej identyfikuje odmowy kredytów.

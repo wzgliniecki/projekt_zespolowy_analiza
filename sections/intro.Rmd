@@ -1,6 +1,6 @@
 ```{r setup_packages, include=FALSE, echo=FALSE}
 # Lista wymaganych pakietów
-required_packages <- c("tidyverse", "knitr", "MASS", "broom", "pROC", "ggstatsplot", "moments", "gt", "vcd", "tibble")
+required_packages <- c("tidyverse", "knitr", "MASS", "broom", "pROC", "ggstatsplot", "moments", "gt", "vcd", "tibble", "nnet")
 
 # Sprawdź które pakiety są zainstalowane
 missing_packages <- required_packages[!sapply(required_packages, function(pkg) {
@@ -88,4 +88,5 @@ library(ggstatsplot)
 library(leaps)
 library(pROC)
 library(caret)
+library(nnet)
 ```
