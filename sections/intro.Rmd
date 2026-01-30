@@ -30,28 +30,16 @@ danych (EDA), projekt ma na celu zrozumienie, w jaki sposób cechy
 konsumentów oraz parametry pożyczek wpływają na prawdopodobieństwo
 terminowej spłaty zobowiązań.
 
-Firmy udzielające pożyczek stoją przed podwójnym wyzwaniem: z jednej
-strony ryzykują utratę potencjalnych zysków, jeśli odrzucą wnioski
-klientów zdolnych do spłaty, z drugiej - mogą ponieść straty finansowe,
-jeśli zaakceptują wnioski osób, które nie wywiążą się ze zobowiązań.
-Dlatego kluczowe jest zidentyfikowanie zmiennych, które są silnymi
-wskaźnikami niewypłacalności. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
+ W analizowanym zbiorze danych nie posiadamy informacji o cechach demograficznych klientów. Punktem wyjścia stają się więc same kontrakty kredytowe oraz ich statusy, które odzwierciedlają przebieg procesu decyzyjnego i operacyjnego.
+Celem jest zrozumienie, jakie czynniki — spośród dostępnych w danych — różnicują kontrakty zakończone zatwierdzeniem, anulowaniem, odmową lub niewykorzystaniem oferty. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
 
- 
-- Czym charakteryzuje się każda grupa decyzji (zaakceptowani/odrzuceni itd.)?
+-	Jakie wzorce braków danych występują w zbiorze i co mówią o logice procesów kredytowych?
 
-- Jaka rola typu klienta - Stary vs Nowy? Czy warto pozyskiwać nowych klientów czy skupić się na utrzymaniu obecnych?
+-	Jak różnią się statusy kontraktów pod względem kluczowych parametrów finansowych (kwota kredytu, liczba rat, cena towaru)?
 
-- Które zmienne mają większy wpływ - finansowe czy socjoekonomiczne?
+-	Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo anulowania, odmowy lub niewykorzystania oferty?
 
-- Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo odmowy, anulowania lub niewykorzystania oferty?
-
-- W jaki sposób status kontraktu (zatwierdzony, anulowany, odmowa, niewykorzystana oferta) odzwierciedla potencjalne trudności klienta ze spłatą rat?
-
-- Czy istnieją wzorce w danych dotyczące liczby rat lub harmonogramu spłat, które mogą sygnalizować ryzyko problemów ze spłatą?
-
-- Jakie kombinacje czynników (np. kwota kredytu + typ klienta + status kontraktu) najlepiej przewidują trudności ze spłatą?
-
+-	Jak typ klienta różnicuje rozkład statusów kontraktu?
 
 ## Dane
 
