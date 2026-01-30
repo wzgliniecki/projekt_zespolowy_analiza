@@ -22,8 +22,23 @@ zmienne_typ_produktu <- c(
 dostepne_finansowe <- zmienne_finansowe[zmienne_finansowe %in% names(dane_clean)]
 dostepne_typ <- zmienne_typ_produktu[zmienne_typ_produktu %in% names(dane_clean)]
 
-cat("Dostępne zmienne finansowe:", length(dostepne_finansowe), "/", length(zmienne_finansowe), "\n")
-cat("Dostępne zmienne typu produktu:", length(dostepne_typ), "/", length(zmienne_typ_produktu), "\n")
+# Tabelka dostępności zmiennych
+dostepnosc_zmiennych <- data.frame(
+  Typ = c("Zmienne finansowe", "Zmienne typu produktu"),
+  Dostępne = c(length(dostepne_finansowe), length(dostepne_typ)),
+  Razem = c(length(zmienne_finansowe), length(zmienne_typ_produktu)),
+  Procent = c(
+    paste0(round(100*length(dostepne_finansowe)/length(zmienne_finansowe), 1), "%"),
+    paste0(round(100*length(dostepne_typ)/length(zmienne_typ_produktu), 1), "%")
+  )
+)
+
+gt(dostepnosc_zmiennych) %>%
+  tab_header(
+    title = "Dostępność zmiennych w zbiorze danych",
+    subtitle = "Sprawdzenie kompletności danych"
+  ) %>%
+  tab_options(table.font.size = "small")
 
 # Przygotowanie datasetu do modelowania - tylko z dostępnych zmiennych
 dane_model <- dane_clean %>%
@@ -47,12 +62,24 @@ dane_model <- dane_clean %>%
   ))) %>%
   filter(!is.na(NAME_CONTRACT_STATUS_PL))
 
-cat("Przygotowano dane do modelowania:\n")
-cat("- Liczba obserwacji:", nrow(dane_model), "\n")
-cat("- Zmienne finansowe:", length(dostepne_finansowe), "\n")
-cat("- Zmienne typu produktu:", length(dostepne_typ), "\n")
-cat("- Zatwierdzone:", sum(dane_model$Decision_Approved), "(",
-    round(100*sum(dane_model$Decision_Approved)/nrow(dane_model), 1), "%)\n")
+# Tabelka przygotowania danych
+przygotowanie_danych_tab <- data.frame(
+  Metryka = c("Liczba obserwacji", "Zmienne finansowe", "Zmienne typu produktu", "Zatwierdzenia", "Procent zatwierdzeń"),
+  Wartość = c(
+    nrow(dane_model),
+    length(dostepne_finansowe),
+    length(dostepne_typ),
+    sum(dane_model$Decision_Approved),
+    paste0(round(100*sum(dane_model$Decision_Approved)/nrow(dane_model), 1), "%")
+  )
+)
+
+gt(przygotowanie_danych_tab) %>%
+  tab_header(
+    title = "Przygotowanie danych do modelowania",
+    subtitle = "Statystyki opisowe zbioru"
+  ) %>%
+  tab_options(table.font.size = "small")
 ```
 
 ## Model 1: Approved vs Reszta - Wszystkie Zmienne
@@ -68,10 +95,30 @@ dane_m1 <- dane_m1_temp %>%
   filter(complete.cases(.)) %>%
   rename(Decision = Decision_Approved)
 
-cat("Model 1: Liczba obserwacji po usunięciu NA:", nrow(dane_m1), "\n")
+# Tabelka obserwacji Model 1
+obserwacje_m1 <- data.frame(
+  Model = "Model 1: Approved vs Reszta",
+  Obserwacje = nrow(dane_m1),
+  Zatwierdzone = sum(dane_m1$Decision),
+  Odmowy = sum(1 - dane_m1$Decision),
+  Procent_Zatwierdzeń = paste0(round(100*sum(dane_m1$Decision)/nrow(dane_m1), 1), "%")
+)
+
+gt(obserwacje_m1) %>%
+  tab_header(
+    title = "Model 1: Przygotowanie danych",
+    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
+  ) %>%
+  tab_options(table.font.size = "small")
 
 if (nrow(dane_m1) == 0) {
-  cat("Brak obserwacji do modelowania - wszystkie mają NA w zmiennych\n")
+  # Błąd - brak obserwacji
+  blad_m1 <- data.frame(
+    Status = "⚠️ BŁĄD",
+    Opis = "Brak obserwacji do modelowania - wszystkie mają NA w zmiennych"
+  )
+  gt(blad_m1) %>%
+    tab_header(title = "Model 1: Problem z danymi")
   
 } else {
   # Model pełny
@@ -155,8 +202,43 @@ if (nrow(dane_m1) == 0) {
       ) %>%
       tab_options(table.font.size = "small")
   } else {
-    cat("Brak istotnych zmiennych (p < 0.05) w modelu")
+    # Brak istotnych zmiennych
+    brak_istotnych <- data.frame(
+      Komunikat = "Brak istotnych zmiennych (p < 0.05) w modelu"
+    )
+    gt(brak_istotnych) %>%
+      tab_header(title = "Model 1: Zmienne") %>%
+      tab_options(table.font.size = "small")
   }
+  
+  
+  # Interpretacja Model 1
+  interpretacja_m1 <- data.frame(
+    Metryka = c("Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R² McFadden"),
+    Wartość = c(
+      paste0(round(accuracy_m1 * 100, 2), "%"),
+      paste0(round(sensitivity_m1 * 100, 2), "%"),
+      paste0(round(specificity_m1 * 100, 2), "%"),
+      ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+      round(AIC(model_m1), 2),
+      round(r2_m1, 4)
+    ),
+    Interpretacja = c(
+      "Odsetek prawidłowych klasyfikacji",
+      "Zdolność do wykrycia zatwierdzeń",
+      "Zdolność do wykrycia odmów",
+      "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
+      "Kryterium informacyjne (niższe = lepsze)",
+      "Udział wyjaśnianej wariancji"
+    )
+  )
+  
+  gt(interpretacja_m1) %>%
+    tab_header(
+      title = "### Model 1: Interpretacja Metryki",
+      subtitle = "Wyjaśnienie wskaźników jakości modelu"
+    ) %>%
+    tab_options(table.font.size = "small")
 }
 ```
 
@@ -172,10 +254,30 @@ dane_m2 <- dane_m2_temp %>%
   filter(complete.cases(.)) %>%
   rename(Decision = Decision_Approved)
 
-cat("Model 2: Liczba obserwacji po usunięciu NA:", nrow(dane_m2), "\n")
+# Tabelka obserwacji Model 2
+obserwacje_m2 <- data.frame(
+  Model = "Model 2: Approved vs Reszta (Tylko zmienne finansowe)",
+  Obserwacje = nrow(dane_m2),
+  Zatwierdzone = sum(dane_m2$Decision),
+  Odmowy = sum(1 - dane_m2$Decision),
+  Procent_Zatwierdzeń = paste0(round(100*sum(dane_m2$Decision)/nrow(dane_m2), 1), "%")
+)
+
+gt(obserwacje_m2) %>%
+  tab_header(
+    title = "Model 2: Przygotowanie danych",
+    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
+  ) %>%
+  tab_options(table.font.size = "small")
 
 if (nrow(dane_m2) == 0) {
-  cat("Brak obserwacji do modelowania - wszystkie mają NA w zmiennych finansowych\n")
+  # Błąd - brak obserwacji
+  blad_m2 <- data.frame(
+    Status = "⚠️ BŁĄD",
+    Opis = "Brak obserwacji do modelowania - wszystkie mają NA w zmiennych finansowych"
+  )
+  gt(blad_m2) %>%
+    tab_header(title = "Model 2: Problem z danymi")
   
 } else {
   # Model pełny
@@ -259,8 +361,42 @@ if (nrow(dane_m2) == 0) {
       ) %>%
       tab_options(table.font.size = "small")
   } else {
-    cat("Brak istotnych zmiennych finansowych (p < 0.05) w modelu")
+    # Brak istotnych zmiennych
+    brak_istotnych_m2 <- data.frame(
+      Komunikat = "Brak istotnych zmiennych finansowych (p < 0.05) w modelu"
+    )
+    gt(brak_istotnych_m2) %>%
+      tab_header(title = "Model 2: Zmienne") %>%
+      tab_options(table.font.size = "small")
   }
+  
+  # Interpretacja Model 2
+  interpretacja_m2 <- data.frame(
+    Metryka = c("Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R² McFadden"),
+    Wartość = c(
+      paste0(round(accuracy_m2 * 100, 2), "%"),
+      paste0(round(sensitivity_m2 * 100, 2), "%"),
+      paste0(round(specificity_m2 * 100, 2), "%"),
+      ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
+      round(AIC(model_m2), 2),
+      round(r2_m2, 4)
+    ),
+    Interpretacja = c(
+      "Odsetek prawidłowych klasyfikacji",
+      "Zdolność do wykrycia zatwierdzeń",
+      "Zdolność do wykrycia odmów",
+      "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
+      "Kryterium informacyjne (niższe = lepsze)",
+      "Udział wyjaśnianej wariancji"
+    )
+  )
+  
+  gt(interpretacja_m2) %>%
+    tab_header(
+      title = "### Model 2: Interpretacja Metryki",
+      subtitle = "Wyjaśnienie wskaźników jakości modelu (tylko zmienne finansowe)"
+    ) %>%
+    tab_options(table.font.size = "small")
 }
 ```
 
@@ -281,7 +417,19 @@ dane_m3_temp <- dane_model %>%
 dane_m3 <- dane_m3_temp %>%
   filter(complete.cases(.))
 
-cat("Model 3: Liczba obserwacji po usunięciu NA:", nrow(dane_m3), "\n")
+# Tabelka obserwacji Model 3
+obserwacje_m3 <- data.frame(
+  Model = "Model 3: Wielokategoryczny (wszystkie decyzje)",
+  Obserwacje = nrow(dane_m3),
+  Liczba_Kategorii = length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
+)
+
+gt(obserwacje_m3) %>%
+  tab_header(
+    title = "Model 3: Przygotowanie danych",
+    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
+  ) %>%
+  tab_options(table.font.size = "small")
 
 # Sprawdzenie liczby klas
 n_classes <- length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
@@ -301,7 +449,13 @@ gt(rozkład_klas) %>%
   tab_options(table.font.size = "small")
 
 if (n_classes < 2 || nrow(dane_m3) == 0) {
-  cat("\n⚠️  **Uwaga**: Model wielokategoryczny wymaga co najmniej 2 klasy i obserwacji. W danych jest:", n_classes, "klas i", nrow(dane_m3), "obserwacji.\n")
+  # Błąd - brak wystarczających klas lub obserwacji
+  blad_m3 <- data.frame(
+    Status = "⚠️ UWAGA",
+    Opis = paste0("Model wielokategoryczny wymaga co najmniej 2 klasy i obserwacji. W danych jest: ", n_classes, " klas i ", nrow(dane_m3), " obserwacji.")
+  )
+  gt(blad_m3) %>%
+    tab_header(title = "Model 3: Problem z danymi")
   model_m3 <- NULL
   
 } else {
@@ -361,15 +515,212 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
         ) %>%
         tab_options(table.font.size = "small")
     } else {
-      cat("Brak istotnych zmiennych (p < 0.05) w modelu wielokategorycznym")
+      brak_istotnych_m3 <- data.frame(
+        Komunikat = "Brak istotnych zmiennych (p < 0.05) w modelu wielokategorycznym"
+      )
+      gt(brak_istotnych_m3) %>%
+        tab_header(title = "Model 3: Zmienne") %>%
+        tab_options(table.font.size = "small")
     }
     
+    # Interpretacja Model 3
+    model3_interpretacja <- data.frame(
+      Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych w modelu", "Deviance", "AIC"),
+      Wartość = c(
+        nrow(dane_m3),
+        nlevels(dane_m3$NAME_CONTRACT_STATUS_PL),
+        ncol(summary_m3$coefficients),
+        round(deviance_m3, 2),
+        round(aic_m3, 2)
+      ),
+      Opis = c(
+        "Po usunięciu brakujących danych",
+        "Poziomy zmiennej zależnej",
+        "Predyktory w modelu",
+        "Miara dopasowania (niższa = lepsze)",
+        "Kryterium informacyjne do porównania z innymi modelami"
+      )
+    )
+    
+    gt(model3_interpretacja) %>%
+      tab_header(
+        title = "### Model 3: Interpretacja Metryki",
+        subtitle = "Parametry modelu wielokategorycznego"
+      ) %>%
+      tab_options(table.font.size = "small")
+    
+    # Kategorie w modelu
+    kategorie_m3 <- data.frame(
+      Kategoria = c("Zatwierdzony (referencyjna)", setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony")),
+      Rola = c("Kategoria referencyjna", rep("Kategoria porównywana", length(setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony"))))
+    )
+    
+    gt(kategorie_m3) %>%
+      tab_header(
+        title = "Model 3: Kategorie w modelu",
+        subtitle = "Zmienne zależne w regresji wielokategorycznej"
+      ) %>%
+      tab_options(table.font.size = "small")
+    
   }, error = function(e) {
-    cat("\n⚠️  **Błąd podczas budowy modelu wielokategorycznego:**\n")
-    cat(conditionMessage(e))
+    blad_budowa <- data.frame(
+      Status = "⚠️ BŁĄD",
+      Opis = conditionMessage(e)
+    )
+    gt(blad_budowa) %>%
+      tab_header(title = "Model 3: Błąd podczas budowy")
     model_m3 <<- NULL
   })
 }
 ```
 
+## Podsumowanie i Porównanie Modeli
+
+```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+
+# SEKCJA 1: Porównanie Model 1 vs Model 2
+if (exists("accuracy_m1") && exists("accuracy_m2")) {
+  porownanie_12 <- data.frame(
+    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC"),
+    Model1_Wszystkie = c(
+      nrow(dane_m1),
+      length(coef(model_m1)) - 1,
+      paste0(round(accuracy_m1 * 100, 2), "%"),
+      paste0(round(sensitivity_m1 * 100, 2), "%"),
+      paste0(round(specificity_m1 * 100, 2), "%"),
+      ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+      round(AIC(model_m1), 2)
+    ),
+    Model2_Finansowe = c(
+      nrow(dane_m2),
+      length(coef(model_m2)) - 1,
+      paste0(round(accuracy_m2 * 100, 2), "%"),
+      paste0(round(sensitivity_m2 * 100, 2), "%"),
+      paste0(round(specificity_m2 * 100, 2), "%"),
+      ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
+      round(AIC(model_m2), 2)
+    )
+  )
+  
+  gt(porownanie_12) %>%
+    tab_header(
+      title = "## Porównanie Model 1 i Model 2",
+      subtitle = "Wpływ zmiennych kategorialnych na jakość predykcji"
+    ) %>%
+    tab_options(table.font.size = "small")
+  
+  # Wnioski
+  wnioski_12 <- data.frame(
+    Aspekt = c("AIC", "Sensitivity", "Specificity", "Wniosek główny"),
+    Obserwacja = c(
+      if (AIC(model_m1) < AIC(model_m2)) {
+        paste0("Model 1 lepszy (AIC=", round(AIC(model_m1), 2), " < ", round(AIC(model_m2), 2), ")")
+      } else {
+        paste0("Model 2 lepszy lub porównywalny (AIC=", round(AIC(model_m2), 2), " ≤ ", round(AIC(model_m1), 2), ")")
+      },
+      if (sensitivity_m1 >= sensitivity_m2) {
+        paste0("Model 1 lepszy (", round(sensitivity_m1*100, 2), "% > ", round(sensitivity_m2*100, 2), "%)")
+      } else {
+        paste0("Model 2 lepszy (", round(sensitivity_m2*100, 2), "% > ", round(sensitivity_m1*100, 2), "%)")
+      },
+      if (specificity_m1 >= specificity_m2) {
+        paste0("Model 1 lepszy (", round(specificity_m1*100, 2), "% > ", round(specificity_m2*100, 2), "%)")
+      } else {
+        paste0("Model 2 lepszy (", round(specificity_m2*100, 2), "% > ", round(specificity_m1*100, 2), "%)")
+      },
+      if (AIC(model_m1) < AIC(model_m2)) {
+        "Zmienne kategorialne znacząco poprawiają dopasowanie"
+      } else {
+        "Zmienne finansowe wystarczające; kategorialne nie wnoszą istotnego ulepszenia"
+      }
+    )
+  )
+  
+  gt(wnioski_12) %>%
+    tab_header(
+      title = "## Wnioski z porównania Model 1 vs Model 2",
+      subtitle = "Analiza wpływu zmiennych kategorialnych"
+    ) %>%
+    tab_options(table.font.size = "small")
+}
+
+# SEKCJA 2: Model 3
+if (!is.null(model_m3)) {
+  model3_info <- data.frame(
+    Charakterystyka = c("Cel", "Typ modelu", "Liczba kategorii", "AIC", "Zastosowanie"),
+    Opis = c(
+      "Przewidywanie wszystkich kategorii decyzji kredytowej",
+      "Regresja logistyczna wielokategoryczna",
+      "4 kategorie (Zatwierdzony, Odmowa, Anulowany, Niewykorzystana oferta)",
+      round(aic_m3, 2),
+      "Zrozumienie wszystkich możliwych wyników procesu decyzyjnego"
+    )
+  )
+  
+  gt(model3_info) %>%
+    tab_header(
+      title = "## Model 3: Regresja Wielokategoryczna",
+      subtitle = "Charakterystyka i zastosowanie"
+    ) %>%
+    tab_options(table.font.size = "small")
+}
+
+# SEKCJA 3: Kluczowe zmienne
+if (exists("coef_m1") && nrow(coef_m1) > 0) {
+  top_vars_m1_data <- coef_m1 %>% slice_head(n = 5) %>% 
+    mutate(Ranking = seq_len(n())) %>%
+    dplyr::select(Ranking, term, estimate, p.value)
+  
+  gt(top_vars_m1_data) %>%
+    fmt_number(columns = c(estimate, p.value), decimals = 4) %>%
+    tab_header(
+      title = "## Top 5 Zmiennych - Model 1",
+      subtitle = "Zmienne o największym wpływie (p < 0.05)"
+    ) %>%
+    tab_options(table.font.size = "small")
+}
+
+if (exists("coef_m2") && nrow(coef_m2) > 0) {
+  top_vars_m2_data <- coef_m2 %>% slice_head(n = 5) %>% 
+    mutate(Ranking = seq_len(n())) %>%
+    dplyr::select(Ranking, term, estimate, p.value)
+  
+  gt(top_vars_m2_data) %>%
+    fmt_number(columns = c(estimate, p.value), decimals = 4) %>%
+    tab_header(
+      title = "## Top 5 Zmiennych Finansowych - Model 2",
+      subtitle = "Zmienne finansowe o największym wpływie (p < 0.05)"
+    ) %>%
+    tab_options(table.font.size = "small")
+}
+
+# SEKCJA 4: Rekomendacje
+rekomendacje_lista <- data.frame(
+  Obszar = c(
+    "Aplikacje praktyczne",
+    "Analiza danych",
+    "Dalsze badania - 1",
+    "Dalsze badania - 2",
+    "Dalsze badania - 3"
+  ),
+  Rekomendacja = c(
+    if (exists("accuracy_m1") && accuracy_m1 > 0.75) {
+      paste0("Modele osiągają dokładność ", round(accuracy_m1*100, 2), "% (>75%) - gotowe do wdrażania")
+    } else {
+      "Modele wymagają dalszego ulepszenia (rozważ dodatkowe zmienne lub ansambli)"
+    },
+    "Zmienne finansowe są silnymi predyktorami. Typ produktu dodaje wartość predykcyjną",
+    "Analiza interakcji między zmiennymi",
+    "Cross-walidacja modeli",
+    "Analiza ROC i optymalizacja progu decyzyjnego"
+  )
+)
+
+gt(rekomendacje_lista) %>%
+  tab_header(
+    title = "## Rekomendacje",
+    subtitle = "Wytyczne dla praktycznego wdrażania i dalszych badań"
+  ) %>%
+  tab_options(table.font.size = "small")
+```
 
