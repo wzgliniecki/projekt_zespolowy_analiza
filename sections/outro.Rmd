@@ -71,6 +71,11 @@ Analiza segmentów pokazała, że:
 
 **Wniosek:** ryzyko operacyjne i kredytowe jest silnie związane z kombinacją kwoty, typu klienta i statusu kontraktu.
 
+## Znaczenie zmiennych niefinansowych w modelach predykcyjnych
+Na podstawie wyliczonych modeli regresji logistycznej stwierdzono, że zmienne niefinansowe mają istotny wpływ na decyzje kredytowe. 
+Modele nieuwzgledniające tych zmiennych wykazywały gorsze dopasowanie i niższą zdolność predykcyjną. 
+Jedyną przewagą modeli opartych wyłącznie na zmiennych finansowych była nieco wyższa czułość, jednak kosztem znacznego wzrostu fałszywych alarmów.
+
 ## Podsumowanie ogólne
 
 Analiza EDA pozwoliła na pełne zrozumienie struktury danych, identyfikację kluczowych wzorców oraz ocenę jakości informacji wykorzystywanych w procesie kredytowym. Najważniejsze ustalenia to:
