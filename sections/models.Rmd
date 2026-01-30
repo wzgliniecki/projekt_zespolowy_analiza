@@ -93,13 +93,6 @@ dostepnosc_zmiennych <- data.frame(
   )
 )
 
-gt(dostepnosc_zmiennych) %>%
-  tab_header(
-    title = "Dostępność zmiennych w zbiorze danych",
-    subtitle = "Sprawdzenie kompletności danych"
-  ) %>%
-  tab_options(table.font.size = "small")
-
 # Przygotowanie datasetu do modelowania - tylko z dostępnych zmiennych
 dane_model <- dane_clean %>%
   mutate(
@@ -134,12 +127,6 @@ przygotowanie_danych_tab <- data.frame(
   )
 )
 
-gt(przygotowanie_danych_tab) %>%
-  tab_header(
-    title = "Przygotowanie danych do modelowania",
-    subtitle = "Statystyki opisowe zbioru"
-  ) %>%
-  tab_options(table.font.size = "small")
 ```
 
 ## Model 1: Approved vs Reszta - Wszystkie Zmienne
@@ -163,13 +150,6 @@ obserwacje_m1 <- data.frame(
   Odmowy = sum(1 - dane_m1$Decision),
   Procent_Zatwierdzeń = paste0(round(100*sum(dane_m1$Decision)/nrow(dane_m1), 1), "%")
 )
-
-gt(obserwacje_m1) %>%
-  tab_header(
-    title = "Model 1: Przygotowanie danych",
-    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
-  ) %>%
-  tab_options(table.font.size = "small")
 
 if (nrow(dane_m1) == 0) {
   # Błąd - brak obserwacji
@@ -324,12 +304,6 @@ if (exists("model_m1") && !is.null(model_m1) && nrow(dane_m1) > 0) {
     )
   )
   
-  gt(interpretacja_m1) %>%
-    tab_header(
-      title = "### Model 1: Interpretacja Metryki",
-      subtitle = "Wyjaśnienie wskaźników jakości modelu"
-    ) %>%
-    tab_options(table.font.size = "small")
 }
 ```
 
@@ -353,13 +327,6 @@ obserwacje_m2 <- data.frame(
   Odmowy = sum(1 - dane_m2$Decision),
   Procent_Zatwierdzeń = paste0(round(100*sum(dane_m2$Decision)/nrow(dane_m2), 1), "%")
 )
-
-gt(obserwacje_m2) %>%
-  tab_header(
-    title = "Model 2: Przygotowanie danych",
-    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
-  ) %>%
-  tab_options(table.font.size = "small")
 
 if (nrow(dane_m2) == 0) {
   # Błąd - brak obserwacji
@@ -438,11 +405,6 @@ if (nrow(dane_m2) == 0) {
 }
 ```
 
-### Postać modelu
-
-$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
-
-gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji (tylko zmienne finansowe).
 
 ```{r model2_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 if (nrow(dane_m2) > 0 && !is.null(model_m2)) {
@@ -520,23 +482,12 @@ if (exists("model_m2") && !is.null(model_m2) && nrow(dane_m2) > 0) {
     )
   )
   
-  gt(interpretacja_m2) %>%
-    tab_header(
-      title = "### Model 2: Interpretacja Metryki",
-      subtitle = "Wyjaśnienie wskaźników jakości modelu (tylko zmienne finansowe)"
-    ) %>%
-    tab_options(table.font.size = "small")
 }
 ```
 
 ## Model 3: Regresja Logistyczna Wielokategoryczna
 
 ```{r model3_multinomial, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Sprawdzenie pakietu nnet
-if (!requireNamespace("nnet", quietly = TRUE)) {
-  install.packages("nnet", quiet = TRUE)
-}
-
 # Przygotowanie danych dla modelu wielokategorycznego
 dane_m3_temp <- dane_model %>%
   dplyr::select(NAME_CONTRACT_STATUS_PL, all_of(dostepne_finansowe), all_of(dostepne_typ)) %>%
@@ -546,36 +497,8 @@ dane_m3_temp <- dane_model %>%
 dane_m3 <- dane_m3_temp %>%
   filter(complete.cases(.))
 
-# Tabelka obserwacji Model 3
-obserwacje_m3 <- data.frame(
-  Model = "Model 3: Wielokategoryczny (wszystkie decyzje)",
-  Obserwacje = nrow(dane_m3),
-  Liczba_Kategorii = length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
-)
-
-gt(obserwacje_m3) %>%
-  tab_header(
-    title = "Model 3: Przygotowanie danych",
-    subtitle = "Liczba obserwacji po usunięciu brakujących wartości"
-  ) %>%
-  tab_options(table.font.size = "small")
-
 # Sprawdzenie liczby klas
 n_classes <- length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
-
-# Rozkład klas
-rozkład_klas <- data.frame(
-  Klasa = names(table(dane_m3$NAME_CONTRACT_STATUS_PL)),
-  Liczba = as.vector(table(dane_m3$NAME_CONTRACT_STATUS_PL)),
-  Procent = round(100 * as.vector(table(dane_m3$NAME_CONTRACT_STATUS_PL)) / nrow(dane_m3), 1)
-)
-
-gt(rozkład_klas) %>%
-  tab_header(
-    title = "Model 3: Rozkład kategorii decyzji",
-    subtitle = paste("Liczba klas:", n_classes)
-  ) %>%
-  tab_options(table.font.size = "small")
 
 if (n_classes < 2 || nrow(dane_m3) == 0) {
   # Błąd - brak wystarczających klas lub obserwacji
@@ -723,11 +646,10 @@ if (!is.null(model_m3) && nrow(dane_m3) > 0) {
 ## Podsumowanie i Porównanie Modeli
 
 ```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-
 # SEKCJA 1: Porównanie Model 1 vs Model 2
 if (exists("accuracy_m1") && exists("accuracy_m2")) {
   porownanie_12 <- data.frame(
-    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC"),
+    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "R2 (McFadden)", "AIC"),
     Model1_Wszystkie = c(
       nrow(dane_m1),
       length(coef(model_m1)) - 1,
@@ -735,6 +657,7 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
       paste0(round(sensitivity_m1 * 100, 2), "%"),
       paste0(round(specificity_m1 * 100, 2), "%"),
       ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+      round(r2_m1, 4),
       round(AIC(model_m1), 2)
     ),
     Model2_Finansowe = c(
@@ -744,6 +667,7 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
       paste0(round(sensitivity_m2 * 100, 2), "%"),
       paste0(round(specificity_m2 * 100, 2), "%"),
       ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
+      round(r2_m2, 4),
       round(AIC(model_m2), 2)
     )
   )
@@ -757,28 +681,11 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
   
   # Wnioski
   wnioski_12 <- data.frame(
-    Aspekt = c("AIC", "Sensitivity", "Specificity", "Wniosek główny"),
+    Aspekt = c("AIC", "Sensitivity", "Specificity"),
     Obserwacja = c(
-      if (AIC(model_m1) < AIC(model_m2)) {
-        paste0("Model 1 lepszy (AIC=", round(AIC(model_m1), 2), " < ", round(AIC(model_m2), 2), ")")
-      } else {
-        paste0("Model 2 lepszy lub porównywalny (AIC=", round(AIC(model_m2), 2), " ≤ ", round(AIC(model_m1), 2), ")")
-      },
-      if (sensitivity_m1 >= sensitivity_m2) {
-        paste0("Model 1 lepszy (", round(sensitivity_m1*100, 2), "% > ", round(sensitivity_m2*100, 2), "%)")
-      } else {
-        paste0("Model 2 lepszy (", round(sensitivity_m2*100, 2), "% > ", round(sensitivity_m1*100, 2), "%)")
-      },
-      if (specificity_m1 >= specificity_m2) {
-        paste0("Model 1 lepszy (", round(specificity_m1*100, 2), "% > ", round(specificity_m2*100, 2), "%)")
-      } else {
-        paste0("Model 2 lepszy (", round(specificity_m2*100, 2), "% > ", round(specificity_m1*100, 2), "%)")
-      },
-      if (AIC(model_m1) < AIC(model_m2)) {
-        "Zmienne kategorialne znacząco poprawiają dopasowanie"
-      } else {
-        "Zmienne finansowe wystarczające; kategorialne nie wnoszą istotnego ulepszenia"
-      }
+      paste0("Model 1 lepszy (AIC=", round(AIC(model_m1), 2), " < ", round(AIC(model_m2), 2), ")"),
+      paste0("Model 2 lepszy (", round(sensitivity_m2*100, 2), "% > ", round(sensitivity_m1*100, 2), "%)"),
+      paste0("Model 1 lepszy (", round(specificity_m1*100, 2), "% > ", round(specificity_m2*100, 2), "%)")
     )
   )
   
@@ -790,83 +697,12 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
     tab_options(table.font.size = "small")
 }
 
-# SEKCJA 2: Model 3
-if (!is.null(model_m3)) {
-  model3_info <- data.frame(
-    Charakterystyka = c("Cel", "Typ modelu", "Liczba kategorii", "AIC", "Zastosowanie"),
-    Opis = c(
-      "Przewidywanie wszystkich kategorii decyzji kredytowej",
-      "Regresja logistyczna wielokategoryczna",
-      "4 kategorie (Zatwierdzony, Odmowa, Anulowany, Niewykorzystana oferta)",
-      round(aic_m3, 2),
-      "Zrozumienie wszystkich możliwych wyników procesu decyzyjnego"
-    )
-  )
-  
-  gt(model3_info) %>%
-    tab_header(
-      title = "## Model 3: Regresja Wielokategoryczna",
-      subtitle = "Charakterystyka i zastosowanie"
-    ) %>%
-    tab_options(table.font.size = "small")
-}
 
-# SEKCJA 3: Kluczowe zmienne
-if (exists("coef_m1") && nrow(coef_m1) > 0) {
-  top_vars_m1_data <- coef_m1 %>% slice_head(n = 5) %>% 
-    mutate(Ranking = seq_len(n())) %>%
-    dplyr::select(Ranking, term, estimate, p.value)
-  
-  gt(top_vars_m1_data) %>%
-    fmt_number(columns = c(estimate, p.value), decimals = 4) %>%
-    tab_header(
-      title = "## Top 5 Zmiennych - Model 1",
-      subtitle = "Zmienne o największym wpływie (p < 0.05)"
-    ) %>%
-    tab_options(table.font.size = "small")
-}
-
-if (exists("coef_m2") && nrow(coef_m2) > 0) {
-  top_vars_m2_data <- coef_m2 %>% slice_head(n = 5) %>% 
-    mutate(Ranking = seq_len(n())) %>%
-    dplyr::select(Ranking, term, estimate, p.value)
-  
-  gt(top_vars_m2_data) %>%
-    fmt_number(columns = c(estimate, p.value), decimals = 4) %>%
-    tab_header(
-      title = "## Top 5 Zmiennych Finansowych - Model 2",
-      subtitle = "Zmienne finansowe o największym wpływie (p < 0.05)"
-    ) %>%
-    tab_options(table.font.size = "small")
-}
-
-# SEKCJA 4: Rekomendacje
-rekomendacje_lista <- data.frame(
-  Obszar = c(
-    "Aplikacje praktyczne",
-    "Analiza danych",
-    "Dalsze badania - 1",
-    "Dalsze badania - 2",
-    "Dalsze badania - 3"
-  ),
-  Rekomendacja = c(
-    if (exists("accuracy_m1") && accuracy_m1 > 0.75) {
-      paste0("Modele osiągają dokładność ", round(accuracy_m1*100, 2), "% (>75%) - gotowe do wdrażania")
-    } else {
-      "Modele wymagają dalszego ulepszenia (rozważ dodatkowe zmienne lub ansambli)"
-    },
-    "Zmienne finansowe są silnymi predyktorami. Typ produktu dodaje wartość predykcyjną",
-    "Analiza interakcji między zmiennymi",
-    "Cross-walidacja modeli",
-    "Analiza ROC i optymalizacja progu decyzyjnego"
-  )
-)
-
-gt(rekomendacje_lista) %>%
-  tab_header(
-    title = "## Rekomendacje",
-    subtitle = "Wytyczne dla praktycznego wdrażania i dalszych badań"
-  ) %>%
-  tab_options(table.font.size = "small")
 ```
+Dane te pokazują że zmienne niefinansowe mają realny wpływ na dopasownie modelu. Niższa wartość AIC mówi nam że model 1 lepiej
+opisuje zależność między cechami klienta a decyzją kredytową niż model 2, nie uwzględniający danych w stylu celu pożyczki.
 
+Model 2 ma jednak wyższą czułość (sensitivity), co oznacza że lepiej wykrywa faktyczne zatwierdzenia kredytów, jednak kosztem
+większej ilości fałszywych alarmów. Model jest więc zbyt optymistyczny.
+
+Specyficzność (specificity) jest wyższa w modelu 1, co oznacza że lepiej identyfikuje odmowy kredytów.
