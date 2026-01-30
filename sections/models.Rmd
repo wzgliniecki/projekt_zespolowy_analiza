@@ -103,6 +103,9 @@ dane_model <- dane_clean %>%
 ```
 
 ## Model 1: Approved vs Reszta - Wszystkie Zmienne
+Model ten oceni na bazie wszystkich dostępnych zmiennych czy aplikacja zostanie zatwierdzona czy odrzucona. 
+Zostanie użyty do późniejszego porównania z modelem 2, który będzie używał tylko zmiennych finansowych.
+Zostanie także zinterpretowany najsilniejszy predyktor modelu.
 
 ```{r model1_all_variables, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych - Approved (1) vs reszta (0)
@@ -219,7 +222,18 @@ interpretacja_m1 <- data.frame(
 )
 ```
 
+
+Model osiąga wysoką czułość (0.967), co oznacza, że bardzo skutecznie identyfikuje przypadki `Approved`, natomiast niska specyficzność (0.3578) wskazuje, że słabo rozpoznaje wnioski odrzucane. 
+AUC na poziomie 0.7908 sugeruje dobrą, choć nie idealną zdolność separacji klas, a dokładność równa 0.835 pokazuje stabilną ogólną skuteczność modelu.
+
+Najsilniejszym predyktorem jest zmienna `NAME_PORTFOLIOPOS`. Jest to zmienna typu dummy opisująca konkretną wartość przyjmowaną przez zmienną `NAME_PORTFOLIO`.
+W tym wypadku oznacza ona kredyty przyznawane w punktach sprzedaży AGD/RTV oraz tym podobne niskokwotowe pożyczki.
+Iloraz szans w tym wypadku wynosi około 12.9 — oznacza to, że wnioski z portfela POS mają ponad dwunastokrotnie wyższe szanse akceptacji niż kategoria bazowa, przy kontroli pozostałych zmiennych.
+Interpretować należy to raczej jednak jako korelację niż konkretna przyczyna - takie wnioski z natury mają większą szansę na akceptację przed kredytodawcę, chociażby ze względu na mniejsze kwoty czy umowy banku ze sklepem.
+
 ## Model 2: Approved vs Reszta - Tylko Zmienne Finansowe
+Podobnie jak model 1, model 2 będzie przewidywał czy aplikacja zostanie zatwierdzona czy odrzucona.
+Jednak cenem oceny istotności danych niefinansowych (np. cel pożyczki), zostaną użyte wyłącznie zmienne finansowe.
 
 ```{r model2_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych - TYLKO zmienne finansowe
@@ -320,12 +334,18 @@ if (nrow(coef_full_m2) > 0) {
 }
 ```
 
-```{r model2_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Brak dodatkowych tabel do wyświetlenia
-```
+Model 2 osiąga wysoką czułość (0.9824), co oznacza, że niemal wszystkie przypadki `Approved` są poprawnie wykrywane, jednak bardzo niska specyficzność (0.1248) wskazuje, że model prawie w ogóle nie rozpoznaje odrzuceń. 
+AUC na poziomie 0.7240 jest zauważalnie niższe niż w Modelu 1, a dokładność 0.7966 potwierdza, że model oparty wyłącznie na zmiennych finansowych ma ograniczoną zdolność separacji klas.
+
+Najsilniejszym predyktorem jest `RATE_DOWN_PAYMENT` z ilorazem szans około 350, co oznacza, że wyższy udział wkładu własnego dramatycznie zwiększa szanse akceptacji wniosku. 
+Sugeruje to że w wypadku porzucenia zmiennych pozafinansowych, wkład własny staje się kluczowym czynnikiem decyzyjnym.
+ Jest to zgodne z intuicją biznesową - wysoki wkład własny oznacza większe środki kredytobiorcy, a do tego na starcie zmniejsza kwotę kredytu do spłaty.
+
 
 ## Model 3: Regresja Logistyczna Wielokategoryczna
-
+Model ten pokazuje jakie są szanse przypisania do każdej z kategorii decyzji kredytowej, w porównaniu do kategorii referencyjnej "Zatwierdzony".
+Zmienne oceniające model takie jak wartość AIC zostały podane tylko dla informacji czytelnika - nie będzie go porównywać z poprzednimi modelami ze względu na inną naturę problemu.
+Zostanie dokonana także interpretacja najbardziej znaczącego współczynnika dla każdej kategorii.
 ```{r model3_multinomial, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych dla modelu wielokategorycznego
 dane_m3_temp <- dane_model %>%
@@ -428,6 +448,19 @@ dane_m3 <- dane_m3_temp %>%
   }
 
 ```
+Model 3 pokazuje, że każda z alternatywnych decyzji („Odmowa”, „Anulowany”, „Niewykorzystana oferta”) ma własny, odmienny profil predykcyjny względem kategorii referencyjnej `Zatwierdzony`.
+
+Dla kategorii `Odmowa` najsilniejszym predyktorem jest `CNT_PAYMENT` (współczynnik −17.39).
+Dłuższy okres kredytowania będzie korelował z wysoką kwotą kredytu, a także z gorszą sytuacją finansową klienta.
+
+Dla kategorii `Anulowany` najbardziej wyróżnia się `NAME_CONTRACT_TYPERevolving loans` (współczynnik −46.09).
+Revolving loans to kredyty odnawialne, które klienci mogą spłacać i ponownie wykorzystywać w ramach przyznanego limitu. 
+Dane te wyłapują więc najpewniej ludzi, którzy zrezygnowali z takiego produktu po pewnym czasie, a nie "anulowane" kredyty w sensie formalnym.
+
+Dla kategorii `Niewykorzystana oferta` najsilniejszym predyktorem jest dummy variable `CHANNEL_TYPECredit and cash offices` (współczynnik 11.12).
+Wskazuje to na specyfikę kanału, w którym klienci częściej rezygnują po otrzymaniu poprzedniego kredytu w siedzibie banku.
+Grupa która była w stanie otrzymać i spłacić poprzedni kredyt, jest najbardziej skłonna do zrezygnowania z nowej oferty, pomimo akceptacji.
+Można uznać że mają oni największe środki i najmniejszą potrzebę zaciągania kolejnych zobowiązań, wobec czego oferta kredytowa jest dla nich mniej atrakcyjna.
 
 ## Podsumowanie i Porównanie Modeli
 
@@ -490,3 +523,11 @@ Model 2 ma jednak wyższą czułość (sensitivity), co oznacza że lepiej wykry
 większej ilości fałszywych alarmów. Model jest więc zbyt optymistyczny.
 
 Specyficzność (specificity) jest wyższa w modelu 1, co oznacza że lepiej identyfikuje odmowy kredytów.
+
+Różnica w R2 McFaddena między modelami jest bardzo wyraźna: Model 1 osiąga 0.2348, podczas gdy Model 2 jedynie 0.0986.
+ W logitach wartości powyżej 0.2 uznaje się za dobre dopasowanie, natomiast wartości poniżej 0.1 wskazują na słabą moc wyjaśniającą.
+  Oznacza to, że zmienne niefinansowe znacząco zwiększają zdolność modelu do wyjaśniania decyzji kredytowych,
+   a Model 2 — pozbawiony tych informacji — traci dużą część struktury zależności obecnej w danych.
+
+Analiza modeli wydaje się potwierdzać tezę, że dane niefinansowe mają istotny wpływ na decyzje kredytowe
+ i ich uwzględnienie jest niezbędne do budowy skutecznych modeli predykcyjnych. 
