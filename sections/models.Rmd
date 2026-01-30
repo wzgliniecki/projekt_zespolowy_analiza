@@ -1,10 +1,70 @@
 # Modelowanie Decyzji Kredytowej
 
-W tej sekcji budujemy 3 kluczowe modele predykcyjne:
+Celem odpowiedzi na pytania badawcze, zbudowane zostaną 3 modele.
 
-1. **Model 1**: Kiedy aplikacja jest zatwierdzona? (Approved vs reszta) - wszystkie zmienne
-2. **Model 2**: Kiedy aplikacja jest zatwierdzona? (Approved vs reszta) - tylko zmienne finansowe
-3. **Model 3**: Regresja logistyczna wielokategoryczna dla wszystkich decyzji
+1. **Model 1**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - wszystkie zmienne
+2. **Model 2**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - tylko zmienne finansowe
+3. **Model 3**: Regresja logistyczna wielokategoryczna dla wszystkich decyzji - co możemy wywnioskować na temat danych kategorii?
+
+W dalszej części analizy porównana zostanie moc predykcyjna Modeli 1 i 2, aby ocenić, czy zmienne finansowe same w sobie są wystarczające do przewidywania decyzji kredytowej, czy też dodatkowe zmienne poprawiają dokładność modelu.
+A jeżeli tak to w jakim stopniu. 
+
+Pod każdym modelem zostaną wyświetlone tylko te wartości parametrów, które są statystycznie istotne, reszta została odfiltrowana, w celu lepszej czytelności wyników.
+
+## Postać modelu logitowego
+
+$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
+
+gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji. $\beta_n$ to $n-ta$ waga przypisana do zmiennej $X_n$. 
+$\beta_0$ to wyraz wolny.
+
+Obliczając wartość takiego wyrażania otrzymujemy logit ilorazu szans, który wymaga dodatkowej interpretacji.
+
+Przykład:
+
+Załóżmy, że dla zmiennej \(X_1\) otrzymano wartość:
+
+\[
+\beta_1 = -0.4.
+\]
+Iloraz szans (odds ratio) obliczamy jako:
+
+\[
+\text{OR}_1 = e^{\beta_1} = e^{-0.4} \approx 0.67.
+\]
+
+Interpretacja:
+
+Wzrost zmiennej \(X_1\) o jednostkę powoduje spadek szans zajścia zdarzenia o około \(33\%\), ponieważ
+
+
+\[
+0.67 - 1 = -0.33.
+\]
+
+
+
+Gdyby \(\beta_1\) było dodatnie, oznaczałoby to wzrost szans zajścia zdarzenia.
+
+
+## Postać modelu regresji logistycznej wielokategorowej
+
+$$\log\left(\frac{P(Y=j)}{P(Y=0)}\right) = \beta_0^{(j)} + \sum_{i=1}^{k} \beta_i^{(j)} X_i$$
+
+znaczenie zmiennych identyczne jak w modelu logitowym, z dodatkowym indeksem $j$ oznaczającym kategorię docelową.
+
+Ze względu na charakter modelu, część zmiennych pokazuje dane dummy variables - może się okazać że statystycznie istotny jest np. tylko kredyt na samochód, a nie cała kategoria jako taka.
+
+Przykład interpretacji wartości logitu:
+
+Przykład interpretacji współczynnika w modelu regresji logistycznej wielokategorowej:
+ Dla kategorii \(j\) względem kategorii referencyjnej (np. "Zatwierdzony") otrzymano: \[ \beta_i^{(j)} = 0.6. \] 
+ Iloraz szans obliczamy jako: \[ \text{OR}_i^{(j)} = e^{0.6} \approx 1.82. \] 
+ Interpretacja: Wzrost zmiennej \(X_i\) o jednostkę zwiększa szanse, że obserwacja trafi do kategorii \(j\), 
+ a nie do kategorii referencyjnej, o około \(82\%\). 
+
+Analogicznie - ujemny współczynnik zmniejszałby szansę.
+
 
 ```{r przygotowanie_danych_modelowanie, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Zmienne finansowe (dostępne w dane_clean)
@@ -187,12 +247,6 @@ if (nrow(dane_m1) == 0) {
     tab_options(table.font.size = "small")
 }
 ```
-
-### Postać modelu
-
-$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
-
-gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji.
 
 ```{r model1_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 if (nrow(dane_m1) > 0 && !is.null(model_m1)) {
@@ -580,36 +634,6 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
       ) %>%
       tab_options(table.font.size = "small")
     
-    # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
-    coef_m3_filtered <- data.frame(
-      Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
-      Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
-      Wspolczynnik = as.vector(t(summary_m3$coefficients)),
-      P_Wartosc = as.vector(t(p_values))
-    ) %>%
-      dplyr::filter(P_Wartosc < 0.05) %>%
-      dplyr::arrange(Kategoria, desc(abs(Wspolczynnik))) %>%
-      dplyr::mutate(
-        Significance = ifelse(P_Wartosc < 0.001, "***",
-                             ifelse(P_Wartosc < 0.01, "**",
-                                   ifelse(P_Wartosc < 0.05, "*", "")))
-      )
-    
-    if (nrow(coef_m3_filtered) > 0) {
-      gt(coef_m3_filtered %>% dplyr::select(Kategoria, Zmienna, Wspolczynnik, P_Wartosc, Significance)) %>%
-        fmt_number(columns = c(Wspolczynnik, P_Wartosc), decimals = 4) %>%
-        tab_header(
-          title = "Model 3: Parametry modelu - Zmienne statystycznie istotne",
-          subtitle = "Współczynniki dla każdej kategorii vs 'Zatwierdzony' (*** p<0.001, ** p<0.01, * p<0.05)"
-        ) %>%
-        tab_options(table.font.size = "small")
-    } else {
-      brak_tab_m3 <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05)")
-      gt(brak_tab_m3) %>%
-        tab_header(title = "Model 3: Parametry modelu") %>%
-        tab_options(table.font.size = "small")
-    }
-    
     # Interpretacja Model 3
     model3_interpretacja <- data.frame(
       Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych w modelu", "Deviance", "AIC"),
@@ -661,15 +685,40 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
 }
 ```
 
-### Postać modelu
 
-$$\log\left(\frac{P(Y=j)}{P(Y=0)}\right) = \beta_0^{(j)} + \sum_{i=1}^{k} \beta_i^{(j)} X_i$$
-
-gdzie:
-- $j = 1, 2, \ldots, K-1$ (kategorie porównywane vs referencyjna)
-- $Y=0$ to kategoria referencyjna "Zatwierdzony"
-- $P(Y=j)$ to prawdopodobieństwo kategorii $j$
-- $\beta_i^{(j)}$ to współczynniki dla każdej kategorii
+```{r model3_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+if (!is.null(model_m3) && nrow(dane_m3) > 0) {
+  # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+  coef_m3_filtered <- data.frame(
+    Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
+    Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
+    Wspolczynnik = as.vector(t(summary_m3$coefficients)),
+    P_Wartosc = as.vector(t(p_values))
+  ) %>%
+    dplyr::filter(P_Wartosc < 0.05) %>%
+    dplyr::arrange(Kategoria, desc(abs(Wspolczynnik))) %>%
+    dplyr::mutate(
+      Significance = ifelse(P_Wartosc < 0.001, "***",
+                           ifelse(P_Wartosc < 0.01, "**",
+                                 ifelse(P_Wartosc < 0.05, "*", "")))
+    )
+  
+  if (nrow(coef_m3_filtered) > 0) {
+    gt(coef_m3_filtered %>% dplyr::select(Kategoria, Zmienna, Wspolczynnik, P_Wartosc, Significance)) %>%
+      fmt_number(columns = c(Wspolczynnik, P_Wartosc), decimals = 4) %>%
+      tab_header(
+        title = "Model 3: Parametry modelu - Zmienne statystycznie istotne",
+        subtitle = "Współczynniki dla każdej kategorii vs 'Zatwierdzony' (*** p<0.001, ** p<0.01, * p<0.05)"
+      ) %>%
+      tab_options(table.font.size = "small")
+  } else {
+    brak_tab_m3 <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05)")
+    gt(brak_tab_m3) %>%
+      tab_header(title = "Model 3: Parametry modelu") %>%
+      tab_options(table.font.size = "small")
+  }
+}
+```
 
 ## Podsumowanie i Porównanie Modeli
 
