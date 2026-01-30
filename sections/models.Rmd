@@ -78,21 +78,6 @@ zmienne_typ_produktu <- c(
   "NAME_CONTRACT_TYPE", "CHANNEL_TYPE", "NAME_PORTFOLIO", "NAME_PRODUCT_TYPE"
 )
 
-# Sprawdzenie dostępności zmiennych w dane_clean
-dostepne_finansowe <- zmienne_finansowe[zmienne_finansowe %in% names(dane_clean)]
-dostepne_typ <- zmienne_typ_produktu[zmienne_typ_produktu %in% names(dane_clean)]
-
-# Tabelka dostępności zmiennych
-dostepnosc_zmiennych <- data.frame(
-  Typ = c("Zmienne finansowe", "Zmienne typu produktu"),
-  Dostępne = c(length(dostepne_finansowe), length(dostepne_typ)),
-  Razem = c(length(zmienne_finansowe), length(zmienne_typ_produktu)),
-  Procent = c(
-    paste0(round(100*length(dostepne_finansowe)/length(zmienne_finansowe), 1), "%"),
-    paste0(round(100*length(dostepne_typ)/length(zmienne_typ_produktu), 1), "%")
-  )
-)
-
 # Przygotowanie datasetu do modelowania - tylko z dostępnych zmiennych
 dane_model <- dane_clean %>%
   mutate(
@@ -106,26 +91,14 @@ dane_model <- dane_clean %>%
     Decision_Approved = ifelse(NAME_CONTRACT_STATUS == "Approved", 1, 0)
   ) %>%
   dplyr::select(all_of(c(
-    dostepne_finansowe,
-    dostepne_typ,
+    zmienne_finansowe,
+    zmienne_typ_produktu,
     "NAME_CONTRACT_STATUS_PL",
     "NAME_CONTRACT_STATUS",
     "Decision_Approved",
     "DAYS_LAST_DUE"
   ))) %>%
   filter(!is.na(NAME_CONTRACT_STATUS_PL))
-
-# Tabelka przygotowania danych
-przygotowanie_danych_tab <- data.frame(
-  Metryka = c("Liczba obserwacji", "Zmienne finansowe", "Zmienne typu produktu", "Zatwierdzenia", "Procent zatwierdzeń"),
-  Wartość = c(
-    nrow(dane_model),
-    length(dostepne_finansowe),
-    length(dostepne_typ),
-    sum(dane_model$Decision_Approved),
-    paste0(round(100*sum(dane_model$Decision_Approved)/nrow(dane_model), 1), "%")
-  )
-)
 
 ```
 
@@ -135,21 +108,12 @@ przygotowanie_danych_tab <- data.frame(
 # Przygotowanie danych - Approved (1) vs reszta (0)
 # Filtrujemy complete.cases TYLKO dla zmiennych używanych w modelu
 dane_m1_temp <- dane_model %>%
-  dplyr::select(Decision_Approved, all_of(dostepne_finansowe), all_of(dostepne_typ))
+  dplyr::select(Decision_Approved, all_of(zmienne_finansowe), all_of(zmienne_typ_produktu))
 
 # Filtrujemy braki TYLKO w zmiennych które faktycznie będziemy używać
 dane_m1 <- dane_m1_temp %>%
   filter(complete.cases(.)) %>%
   rename(Decision = Decision_Approved)
-
-# Tabelka obserwacji Model 1
-obserwacje_m1 <- data.frame(
-  Model = "Model 1: Approved vs Reszta",
-  Obserwacje = nrow(dane_m1),
-  Zatwierdzone = sum(dane_m1$Decision),
-  Odmowy = sum(1 - dane_m1$Decision),
-  Procent_Zatwierdzeń = paste0(round(100*sum(dane_m1$Decision)/nrow(dane_m1), 1), "%")
-)
 
 # Model pełny
 model_m1_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m1)
@@ -260,21 +224,12 @@ interpretacja_m1 <- data.frame(
 ```{r model2_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych - TYLKO zmienne finansowe
 dane_m2_temp <- dane_model %>%
-  dplyr::select(Decision_Approved, all_of(dostepne_finansowe))
+  dplyr::select(Decision_Approved, all_of(zmienne_finansowe))
 
 # Filtrujemy braki TYLKO w zmiennych finansowych
 dane_m2 <- dane_m2_temp %>%
   filter(complete.cases(.)) %>%
   rename(Decision = Decision_Approved)
-
-# Tabelka obserwacji Model 2
-obserwacje_m2 <- data.frame(
-  Model = "Model 2: Approved vs Reszta (Tylko zmienne finansowe)",
-  Obserwacje = nrow(dane_m2),
-  Zatwierdzone = sum(dane_m2$Decision),
-  Odmowy = sum(1 - dane_m2$Decision),
-  Procent_Zatwierdzeń = paste0(round(100*sum(dane_m2$Decision)/nrow(dane_m2), 1), "%")
-)
 
 # Model pełny
 model_m2_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m2)
@@ -366,33 +321,7 @@ if (nrow(coef_full_m2) > 0) {
 ```
 
 ```{r model2_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Współczynniki istotne
-coef_m2 <- broom::tidy(model_m2) %>%
-  dplyr::filter(term != "(Intercept)") %>%
-  dplyr::mutate(OddsRatio = exp(estimate)) %>%
-  dplyr::filter(p.value < 0.05) %>%
-  dplyr::arrange(desc(abs(estimate)))
-
-# Interpretacja Model 2
-interpretacja_m2 <- data.frame(
-  Metryka = c("Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R² McFadden"),
-  Wartość = c(
-    paste0(round(accuracy_m2 * 100, 2), "%"),
-    paste0(round(sensitivity_m2 * 100, 2), "%"),
-    paste0(round(specificity_m2 * 100, 2), "%"),
-    ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
-    round(AIC(model_m2), 2),
-    round(r2_m2, 4)
-  ),
-  Interpretacja = c(
-    "Odsetek prawidłowych klasyfikacji",
-    "Zdolność do wykrycia zatwierdzeń",
-    "Zdolność do wykrycia odmów",
-    "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
-    "Kryterium informacyjne (niższe = lepsze)",
-    "Udział wyjaśnianej wariancji"
-  )
-)
+# Brak dodatkowych tabel do wyświetlenia
 ```
 
 ## Model 3: Regresja Logistyczna Wielokategoryczna
@@ -400,15 +329,12 @@ interpretacja_m2 <- data.frame(
 ```{r model3_multinomial, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych dla modelu wielokategorycznego
 dane_m3_temp <- dane_model %>%
-  dplyr::select(NAME_CONTRACT_STATUS_PL, all_of(dostepne_finansowe), all_of(dostepne_typ)) %>%
+  dplyr::select(NAME_CONTRACT_STATUS_PL, all_of(zmienne_finansowe), all_of(zmienne_typ_produktu)) %>%
   filter(!is.na(NAME_CONTRACT_STATUS_PL))
 
 # Filtrujemy braki w zmiennych
 dane_m3 <- dane_m3_temp %>%
   filter(complete.cases(.))
-
-# Sprawdzenie liczby klas
-n_classes <- length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
 
 
   # Ustawienie "Zatwierdzony" jako kategoria referencyjna
@@ -423,16 +349,6 @@ n_classes <- length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
   # Współczynniki i p-wartości
   z_values <- summary_m3$coefficients / summary_m3$standard.errors
   p_values <- (1 - pnorm(abs(z_values), 0, 1)) * 2
-  
-  # Tabela współczynników
-  coef_m3 <- data.frame(
-    Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
-    Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
-    Wspolczynnik = as.vector(t(summary_m3$coefficients)),
-    P_Wartosc = as.vector(t(p_values))
-  ) %>%
-    filter(P_Wartosc < 0.05) %>%
-    arrange(Kategoria, desc(abs(Wspolczynnik)))
   
   # Metryki modelu
   deviance_m3 <- deviance(model_m3)
