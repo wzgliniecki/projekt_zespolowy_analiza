@@ -67,13 +67,13 @@ Analogicznie - ujemny współczynnik zmniejszałby szansę.
 
 
 ```{r przygotowanie_danych_modelowanie, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-# Zmienne finansowe (dostępne w dane_clean)
+# Zmienne finansowe
 zmienne_finansowe <- c(
   "AMT_APPLICATION", "AMT_DOWN_PAYMENT", "CNT_PAYMENT",
   "RATE_DOWN_PAYMENT", "AMT_CREDIT", "DAYS_DECISION", "AMT_ANNUITY"
 )
 
-# Zmienne opisujące typ produktu i kanał dystrybucji (dostępne w dane_clean)
+# Zmienne opisujące typ produktu i kanał dystrybucji
 zmienne_typ_produktu <- c(
   "NAME_CONTRACT_TYPE", "CHANNEL_TYPE", "NAME_PORTFOLIO", "NAME_PRODUCT_TYPE"
 )
@@ -151,18 +151,8 @@ obserwacje_m1 <- data.frame(
   Procent_Zatwierdzeń = paste0(round(100*sum(dane_m1$Decision)/nrow(dane_m1), 1), "%")
 )
 
-if (nrow(dane_m1) == 0) {
-  # Błąd - brak obserwacji
-  blad_m1 <- data.frame(
-    Status = "⚠️ BŁĄD",
-    Opis = "Brak obserwacji do modelowania - wszystkie mają NA w zmiennych"
-  )
-  gt(blad_m1) %>%
-    tab_header(title = "Model 1: Problem z danymi")
-  
-} else {
-  # Model pełny
-  model_m1_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m1)
+# Model pełny
+model_m1_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m1)
 
   # Model zerowy
   model_m1_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m1)
@@ -193,20 +183,13 @@ if (nrow(dane_m1) == 0) {
     specificity_m1 <- NA
   }
 
-  # ROC i AUC - sprawdzenie czy mamy dwie klasy
-  auc_m1 <- NA
-  if (length(unique(dane_m1$Decision)) == 2) {
-    tryCatch({
-      roc_m1 <- roc(dane_m1$Decision, predictions_m1)
-      auc_m1 <- auc(roc_m1)
-    }, error = function(e) {
-      auc_m1 <<- NA
-    })
-  }
+  # ROC i AUC
+  roc_m1 <- roc(dane_m1$Decision, predictions_m1)
+  auc_m1 <- auc(roc_m1)
 
   # Wyświetl metryki
   metryki_m1 <- data.frame(
-    Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R2 (McFadden)"),
+    Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R2 (McFadden)"),
     Wartość = c(
       length(coef(model_m1)) - 1, 
       nrow(dane_m1),
@@ -225,86 +208,51 @@ if (nrow(dane_m1) == 0) {
       subtitle = "Metryki modelu logistycznego"
     ) %>%
     tab_options(table.font.size = "small")
-}
 ```
 
 ```{r model1_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-if (nrow(dane_m1) > 0 && !is.null(model_m1)) {
-  # Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
-  coef_full_m1 <- broom::tidy(model_m1) %>%
-    dplyr::mutate(
-      OddsRatio = exp(estimate),
-      Significance = ifelse(p.value < 0.001, "***",
-                           ifelse(p.value < 0.01, "**",
-                                 ifelse(p.value < 0.05, "*", "")))
-    ) %>%
-    dplyr::filter(p.value < 0.05) %>%
-    dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
-    dplyr::arrange(desc(abs(estimate)))
-  
-  if (nrow(coef_full_m1) > 0) {
-    gt(coef_full_m1) %>%
-      fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
-      tab_header(
-        title = "Model 1: Parametry modelu - Zmienne statystycznie istotne",
-        subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
-      ) %>%
-      tab_options(table.font.size = "small")
-  } else {
-    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
-    gt(brak_tab) %>%
-      tab_header(title = "Model 1: Parametry modelu") %>%
-      tab_options(table.font.size = "small")
-  }
-}
+# Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+coef_full_m1 <- broom::tidy(model_m1) %>%
+  dplyr::mutate(
+    OddsRatio = exp(estimate),
+    Significance = ifelse(p.value < 0.001, "***",
+                         ifelse(p.value < 0.01, "**",
+                               ifelse(p.value < 0.05, "*", "")))
+  ) %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+gt(coef_full_m1) %>%
+  fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
+  tab_header(
+    title = "Model 1: Parametry modelu - Zmienne statystycznie istotne",
+    subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
+  ) %>%
+  tab_options(table.font.size = "small")
 ```
 
 ```{r model1_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-if (exists("model_m1") && !is.null(model_m1) && nrow(dane_m1) > 0) {
-  # Współczynniki istotne
-  coef_m1 <- broom::tidy(model_m1) %>%
-    dplyr::filter(term != "(Intercept)") %>%
-    dplyr::mutate(OddsRatio = exp(estimate)) %>%
-    dplyr::filter(p.value < 0.05) %>%
-    dplyr::arrange(desc(abs(estimate)))
-
-  if (nrow(coef_m1) > 0) {
-    gt(coef_m1 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
-      fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
-      tab_header(
-        title = "Model 1: Istotne zmienne (p < 0.05)",
-        subtitle = "Zmienne statystycznie istotne w modelu"
-      ) %>%
-      tab_options(table.font.size = "small")
-  } else {
-    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
-    gt(brak_tab) %>%
-      tab_header(title = "Model 1: Zmienne") %>%
-      tab_options(table.font.size = "small")
-  }
-  
-  # Interpretacja Model 1
-  interpretacja_m1 <- data.frame(
-    Metryka = c("Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R² McFadden"),
-    Wartość = c(
-      paste0(round(accuracy_m1 * 100, 2), "%"),
-      paste0(round(sensitivity_m1 * 100, 2), "%"),
-      paste0(round(specificity_m1 * 100, 2), "%"),
-      ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
-      round(AIC(model_m1), 2),
-      round(r2_m1, 4)
-    ),
-    Interpretacja = c(
-      "Odsetek prawidłowych klasyfikacji",
-      "Zdolność do wykrycia zatwierdzeń",
-      "Zdolność do wykrycia odmów",
-      "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
-      "Kryterium informacyjne (niższe = lepsze)",
-      "Udział wyjaśnianej wariancji"
-    )
+# Interpretacja Model 1
+interpretacja_m1 <- data.frame(
+  Metryka = c("Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R² McFadden"),
+  Wartość = c(
+    paste0(round(accuracy_m1 * 100, 2), "%"),
+    paste0(round(sensitivity_m1 * 100, 2), "%"),
+    paste0(round(specificity_m1 * 100, 2), "%"),
+    ifelse(is.na(auc_m1), "N/A", round(auc_m1, 4)),
+    round(AIC(model_m1), 2),
+    round(r2_m1, 4)
+  ),
+  Interpretacja = c(
+    "Odsetek prawidłowych klasyfikacji",
+    "Zdolność do wykrycia zatwierdzeń",
+    "Zdolność do wykrycia odmów",
+    "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
+    "Kryterium informacyjne (niższe = lepsze)",
+    "Udział wyjaśnianej wariancji"
   )
-  
-}
+)
 ```
 
 ## Model 2: Approved vs Reszta - Tylko Zmienne Finansowe
@@ -328,161 +276,123 @@ obserwacje_m2 <- data.frame(
   Procent_Zatwierdzeń = paste0(round(100*sum(dane_m2$Decision)/nrow(dane_m2), 1), "%")
 )
 
-if (nrow(dane_m2) == 0) {
-  # Błąd - brak obserwacji
-  blad_m2 <- data.frame(
-    Status = "⚠️ BŁĄD",
-    Opis = "Brak obserwacji do modelowania - wszystkie mają NA w zmiennych finansowych"
-  )
-  gt(blad_m2) %>%
-    tab_header(title = "Model 2: Problem z danymi")
-  
+# Model pełny
+model_m2_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m2)
+
+# Model zerowy
+model_m2_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m2)
+
+# Stepwise
+model_m2 <- MASS::stepAIC(model_m2_null, 
+                          scope = list(lower = model_m2_null, upper = model_m2_full),
+                          direction = "both", trace = FALSE)
+
+# McFadden's pseudo R2
+ll_null_m2 <- logLik(model_m2_null)
+ll_model_m2 <- logLik(model_m2)
+r2_m2 <- 1 - (as.numeric(ll_model_m2) / as.numeric(ll_null_m2))
+
+# Metryki predykcyjne
+predictions_m2 <- predict(model_m2, type = "response")
+predicted_class_m2 <- ifelse(predictions_m2 > 0.5, 1, 0)
+
+conf_m2 <- table(predicted_class_m2, dane_m2$Decision)
+accuracy_m2 <- sum(diag(conf_m2)) / sum(conf_m2)
+
+# Bezpieczne obliczanie sensitivity i specificity
+if (nrow(conf_m2) == 2 && ncol(conf_m2) == 2) {
+  sensitivity_m2 <- conf_m2[2, 2] / (conf_m2[2, 2] + conf_m2[1, 2])
+  specificity_m2 <- conf_m2[1, 1] / (conf_m2[1, 1] + conf_m2[2, 1])
 } else {
-  # Model pełny
-  model_m2_full <- glm(Decision ~ ., family = binomial(link = "logit"), data = dane_m2)
-
-  # Model zerowy
-  model_m2_null <- glm(Decision ~ 1, family = binomial(link = "logit"), data = dane_m2)
-
-  # Stepwise
-  model_m2 <- MASS::stepAIC(model_m2_null, 
-                            scope = list(lower = model_m2_null, upper = model_m2_full),
-                            direction = "both", trace = FALSE)
-
-  # McFadden's pseudo R2
-  ll_null_m2 <- logLik(model_m2_null)
-  ll_model_m2 <- logLik(model_m2)
-  r2_m2 <- 1 - (as.numeric(ll_model_m2) / as.numeric(ll_null_m2))
-
-  # Metryki predykcyjne
-  predictions_m2 <- predict(model_m2, type = "response")
-  predicted_class_m2 <- ifelse(predictions_m2 > 0.5, 1, 0)
-
-  conf_m2 <- table(predicted_class_m2, dane_m2$Decision)
-  accuracy_m2 <- sum(diag(conf_m2)) / sum(conf_m2)
-
-  # Bezpieczne obliczanie sensitivity i specificity
-  if (nrow(conf_m2) == 2 && ncol(conf_m2) == 2) {
-    sensitivity_m2 <- conf_m2[2, 2] / (conf_m2[2, 2] + conf_m2[1, 2])
-    specificity_m2 <- conf_m2[1, 1] / (conf_m2[1, 1] + conf_m2[2, 1])
-  } else {
-    sensitivity_m2 <- NA
-    specificity_m2 <- NA
-  }
-
-  # ROC i AUC
-  auc_m2 <- NA
-  if (length(unique(dane_m2$Decision)) == 2) {
-    tryCatch({
-      roc_m2 <- roc(dane_m2$Decision, predictions_m2)
-      auc_m2 <- auc(roc_m2)
-    }, error = function(e) {
-      auc_m2 <<- NA
-    })
-  }
-
-  # Wyświetl metryki
-  metryki_m2 <- data.frame(
-    Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R2 (McFadden)"),
-    Wartość = c(
-      length(coef(model_m2)) - 1,
-      nrow(dane_m2),
-      round(accuracy_m2, 4), 
-      round(sensitivity_m2, 4), 
-      round(specificity_m2, 4), 
-      ifelse(is.na(auc_m2), "NA", round(auc_m2, 4)),
-      round(AIC(model_m2), 2), 
-      round(r2_m2, 4)
-    )
-  )
-
-  gt(metryki_m2) %>%
-    tab_header(
-      title = "Model 2: Approved vs Reszta (TYLKO zmienne finansowe)",
-      subtitle = "Metryki modelu logistycznego"
-    ) %>%
-    tab_options(table.font.size = "small")
+  sensitivity_m2 <- NA
+  specificity_m2 <- NA
 }
+
+# ROC i AUC
+roc_m2 <- roc(dane_m2$Decision, predictions_m2)
+auc_m2 <- auc(roc_m2)
+
+# Wyświetl metryki
+metryki_m2 <- data.frame(
+  Metryka = c("Liczba zmiennych", "Liczba obserwacji", "Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R2 (McFadden)"),
+  Wartość = c(
+    length(coef(model_m2)) - 1,
+    nrow(dane_m2),
+    round(accuracy_m2, 4), 
+    round(sensitivity_m2, 4), 
+    round(specificity_m2, 4), 
+    ifelse(is.na(auc_m2), "NA", round(auc_m2, 4)),
+    round(AIC(model_m2), 2), 
+    round(r2_m2, 4)
+  )
+)
+
+gt(metryki_m2) %>%
+  tab_header(
+    title = "Model 2: Approved vs Reszta (TYLKO zmienne finansowe)",
+    subtitle = "Metryki modelu logistycznego"
+  ) %>%
+  tab_options(table.font.size = "small")
 ```
 
 
 ```{r model2_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-if (nrow(dane_m2) > 0 && !is.null(model_m2)) {
-  # Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
-  coef_full_m2 <- broom::tidy(model_m2) %>%
-    dplyr::mutate(
-      OddsRatio = exp(estimate),
-      Significance = ifelse(p.value < 0.001, "***",
-                           ifelse(p.value < 0.01, "**",
-                                 ifelse(p.value < 0.05, "*", "")))
+# Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+coef_full_m2 <- broom::tidy(model_m2) %>%
+  dplyr::mutate(
+    OddsRatio = exp(estimate),
+    Significance = ifelse(p.value < 0.001, "***",
+                         ifelse(p.value < 0.01, "**",
+                               ifelse(p.value < 0.05, "*", "")))
+  ) %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
+  dplyr::arrange(desc(abs(estimate)))
+
+if (nrow(coef_full_m2) > 0) {
+  gt(coef_full_m2) %>%
+    fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
+    tab_header(
+      title = "Model 2: Parametry modelu - Zmienne statystycznie istotne",
+      subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
     ) %>%
-    dplyr::filter(p.value < 0.05) %>%
-    dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
-    dplyr::arrange(desc(abs(estimate)))
-  
-  if (nrow(coef_full_m2) > 0) {
-    gt(coef_full_m2) %>%
-      fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
-      tab_header(
-        title = "Model 2: Parametry modelu - Zmienne statystycznie istotne",
-        subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
-      ) %>%
-      tab_options(table.font.size = "small")
-  } else {
-    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
-    gt(brak_tab) %>%
-      tab_header(title = "Model 2: Parametry modelu") %>%
-      tab_options(table.font.size = "small")
-  }
+    tab_options(table.font.size = "small")
+} else {
+  brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+  gt(brak_tab) %>%
+    tab_header(title = "Model 2: Parametry modelu") %>%
+    tab_options(table.font.size = "small")
 }
 ```
 
 ```{r model2_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-if (exists("model_m2") && !is.null(model_m2) && nrow(dane_m2) > 0) {
-  # Współczynniki istotne
-  coef_m2 <- broom::tidy(model_m2) %>%
-    dplyr::filter(term != "(Intercept)") %>%
-    dplyr::mutate(OddsRatio = exp(estimate)) %>%
-    dplyr::filter(p.value < 0.05) %>%
-    dplyr::arrange(desc(abs(estimate)))
+# Współczynniki istotne
+coef_m2 <- broom::tidy(model_m2) %>%
+  dplyr::filter(term != "(Intercept)") %>%
+  dplyr::mutate(OddsRatio = exp(estimate)) %>%
+  dplyr::filter(p.value < 0.05) %>%
+  dplyr::arrange(desc(abs(estimate)))
 
-  if (nrow(coef_m2) > 0) {
-    gt(coef_m2 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
-      fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
-      tab_header(
-        title = "Model 2: Istotne zmienne finansowe (p < 0.05)",
-        subtitle = "Zmienne statystycznie istotne w modelu"
-      ) %>%
-      tab_options(table.font.size = "small")
-  } else {
-    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
-    gt(brak_tab) %>%
-      tab_header(title = "Model 2: Zmienne") %>%
-      tab_options(table.font.size = "small")
-  }
-  
-  # Interpretacja Model 2
-  interpretacja_m2 <- data.frame(
-    Metryka = c("Accuracy", "Sensitivity", "Specificity", "AUC", "AIC", "R² McFadden"),
-    Wartość = c(
-      paste0(round(accuracy_m2 * 100, 2), "%"),
-      paste0(round(sensitivity_m2 * 100, 2), "%"),
-      paste0(round(specificity_m2 * 100, 2), "%"),
-      ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
-      round(AIC(model_m2), 2),
-      round(r2_m2, 4)
-    ),
-    Interpretacja = c(
-      "Odsetek prawidłowych klasyfikacji",
-      "Zdolność do wykrycia zatwierdzeń",
-      "Zdolność do wykrycia odmów",
-      "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
-      "Kryterium informacyjne (niższe = lepsze)",
-      "Udział wyjaśnianej wariancji"
-    )
+# Interpretacja Model 2
+interpretacja_m2 <- data.frame(
+  Metryka = c("Dokładność", "Czułość", "Specyficzność", "AUC", "AIC", "R² McFadden"),
+  Wartość = c(
+    paste0(round(accuracy_m2 * 100, 2), "%"),
+    paste0(round(sensitivity_m2 * 100, 2), "%"),
+    paste0(round(specificity_m2 * 100, 2), "%"),
+    ifelse(is.na(auc_m2), "N/A", round(auc_m2, 4)),
+    round(AIC(model_m2), 2),
+    round(r2_m2, 4)
+  ),
+  Interpretacja = c(
+    "Odsetek prawidłowych klasyfikacji",
+    "Zdolność do wykrycia zatwierdzeń",
+    "Zdolność do wykrycia odmów",
+    "Miara jakości klasyfikacji (0.5=losowe, 1.0=idealne)",
+    "Kryterium informacyjne (niższe = lepsze)",
+    "Udział wyjaśnianej wariancji"
   )
-  
-}
+)
 ```
 
 ## Model 3: Regresja Logistyczna Wielokategoryczna
@@ -500,117 +410,77 @@ dane_m3 <- dane_m3_temp %>%
 # Sprawdzenie liczby klas
 n_classes <- length(unique(dane_m3$NAME_CONTRACT_STATUS_PL))
 
-if (n_classes < 2 || nrow(dane_m3) == 0) {
-  # Błąd - brak wystarczających klas lub obserwacji
-  blad_m3 <- data.frame(
-    Status = "⚠️ UWAGA",
-    Opis = paste0("Model wielokategoryczny wymaga co najmniej 2 klasy i obserwacji. W danych jest: ", n_classes, " klas i ", nrow(dane_m3), " obserwacji.")
-  )
-  gt(blad_m3) %>%
-    tab_header(title = "Model 3: Problem z danymi")
-  model_m3 <- NULL
-  
-} else {
+
   # Ustawienie "Zatwierdzony" jako kategoria referencyjna
   dane_m3$NAME_CONTRACT_STATUS_PL <- relevel(as.factor(dane_m3$NAME_CONTRACT_STATUS_PL), ref = "Zatwierdzony")
   
   # Model wielokategoryczny
-  tryCatch({
-    model_m3 <- nnet::multinom(NAME_CONTRACT_STATUS_PL ~ ., data = dane_m3, trace = FALSE, maxit = 200)
-    
-    # Podsumowanie
-    summary_m3 <- summary(model_m3)
-    
-    # Współczynniki i p-wartości
-    z_values <- summary_m3$coefficients / summary_m3$standard.errors
-    p_values <- (1 - pnorm(abs(z_values), 0, 1)) * 2
-    
-    # Tabela współczynników
-    coef_m3 <- data.frame(
-      Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
-      Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
-      Wspolczynnik = as.vector(t(summary_m3$coefficients)),
-      P_Wartosc = as.vector(t(p_values))
+  model_m3 <- nnet::multinom(NAME_CONTRACT_STATUS_PL ~ ., data = dane_m3, trace = FALSE, maxit = 200)
+  
+  # Podsumowanie
+  summary_m3 <- summary(model_m3)
+  
+  # Współczynniki i p-wartości
+  z_values <- summary_m3$coefficients / summary_m3$standard.errors
+  p_values <- (1 - pnorm(abs(z_values), 0, 1)) * 2
+  
+  # Tabela współczynników
+  coef_m3 <- data.frame(
+    Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
+    Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
+    Wspolczynnik = as.vector(t(summary_m3$coefficients)),
+    P_Wartosc = as.vector(t(p_values))
+  ) %>%
+    filter(P_Wartosc < 0.05) %>%
+    arrange(Kategoria, desc(abs(Wspolczynnik)))
+  
+  # Metryki modelu
+  deviance_m3 <- deviance(model_m3)
+  aic_m3 <- AIC(model_m3)
+  
+  # Interpretacja Model 3
+  model3_interpretacja <- data.frame(
+    Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych w modelu", "Deviance", "AIC"),
+    Wartość = c(
+      nrow(dane_m3),
+      nlevels(dane_m3$NAME_CONTRACT_STATUS_PL),
+      ncol(summary_m3$coefficients),
+      round(deviance_m3, 2),
+      round(aic_m3, 2)
+    ),
+    Opis = c(
+      "Po usunięciu brakujących danych",
+      "Poziomy zmiennej zależnej",
+      "Predyktory w modelu",
+      "Miara dopasowania (niższa = lepsze)",
+      "Kryterium informacyjne do porównania z innymi modelami"
+    )
+  )
+  
+  gt(model3_interpretacja) %>%
+    tab_header(
+      title = "Model 3: Interpretacja Metryki",
+      subtitle = "Parametry modelu wielokategorycznego"
     ) %>%
-      filter(P_Wartosc < 0.05) %>%
-      arrange(Kategoria, desc(abs(Wspolczynnik)))
-    
-    # Metryki modelu
-    deviance_m3 <- deviance(model_m3)
-    aic_m3 <- AIC(model_m3)
-    
-    metryki_m3 <- data.frame(
-      Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych", "Deviance", "AIC"),
-      Wartość = c(
-        nrow(dane_m3),
-        nlevels(dane_m3$NAME_CONTRACT_STATUS_PL),
-        ncol(summary_m3$coefficients),
-        round(deviance_m3, 2),
-        round(aic_m3, 2)
-      )
-    )
-    
-    gt(metryki_m3) %>%
-      tab_header(
-        title = "Model 3: Regresja logistyczna wielokategoryczna",
-        subtitle = "Metryki modelu"
-      ) %>%
-      tab_options(table.font.size = "small")
-    
-    # Interpretacja Model 3
-    model3_interpretacja <- data.frame(
-      Metryka = c("Liczba obserwacji", "Liczba kategorii", "Liczba zmiennych w modelu", "Deviance", "AIC"),
-      Wartość = c(
-        nrow(dane_m3),
-        nlevels(dane_m3$NAME_CONTRACT_STATUS_PL),
-        ncol(summary_m3$coefficients),
-        round(deviance_m3, 2),
-        round(aic_m3, 2)
-      ),
-      Opis = c(
-        "Po usunięciu brakujących danych",
-        "Poziomy zmiennej zależnej",
-        "Predyktory w modelu",
-        "Miara dopasowania (niższa = lepsze)",
-        "Kryterium informacyjne do porównania z innymi modelami"
-      )
-    )
-    
-    gt(model3_interpretacja) %>%
-      tab_header(
-        title = "Model 3: Interpretacja Metryki",
-        subtitle = "Parametry modelu wielokategorycznego"
-      ) %>%
-      tab_options(table.font.size = "small")
-    
-    # Kategorie w modelu
-    kategorie_m3 <- data.frame(
-      Kategoria = c("Zatwierdzony (referencyjna)", setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony")),
-      Rola = c("Kategoria referencyjna", rep("Kategoria porównywana", length(setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony"))))
-    )
-    
-    gt(kategorie_m3) %>%
-      tab_header(
-        title = "Model 3: Kategorie w modelu",
-        subtitle = "Zmienne zależne w regresji wielokategorycznej"
-      ) %>%
-      tab_options(table.font.size = "small")
-    
-  }, error = function(e) {
-    blad_budowa <- data.frame(
-      Status = "⚠️ BŁĄD",
-      Opis = conditionMessage(e)
-    )
-    gt(blad_budowa) %>%
-      tab_header(title = "Model 3: Błąd podczas budowy")
-    model_m3 <<- NULL
-  })
-}
+    tab_options(table.font.size = "small")
+  
+  # Kategorie w modelu
+  kategorie_m3 <- data.frame(
+    Kategoria = c("Zatwierdzony (referencyjna)", setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony")),
+    Rola = c("Kategoria referencyjna", rep("Kategoria porównywana", length(setdiff(unique(dane_m3$NAME_CONTRACT_STATUS_PL), "Zatwierdzony"))))
+  )
+  
+  gt(kategorie_m3) %>%
+    tab_header(
+      title = "Model 3: Kategorie w modelu",
+      subtitle = "Zmienne zależne w regresji wielokategorycznej"
+    ) %>%
+    tab_options(table.font.size = "small")
+
 ```
 
 
 ```{r model3_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
-if (!is.null(model_m3) && nrow(dane_m3) > 0) {
   # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
   coef_m3_filtered <- data.frame(
     Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
@@ -640,16 +510,15 @@ if (!is.null(model_m3) && nrow(dane_m3) > 0) {
       tab_header(title = "Model 3: Parametry modelu") %>%
       tab_options(table.font.size = "small")
   }
-}
+
 ```
 
 ## Podsumowanie i Porównanie Modeli
 
 ```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # SEKCJA 1: Porównanie Model 1 vs Model 2
-if (exists("accuracy_m1") && exists("accuracy_m2")) {
   porownanie_12 <- data.frame(
-    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Accuracy", "Sensitivity", "Specificity", "AUC", "R2 (McFadden)", "AIC"),
+    Metryka = c("Liczba obserwacji", "Liczba zmiennych", "Dokładność", "Czułość", "Specyficzność", "AUC", "R2 (McFadden)", "AIC"),
     Model1_Wszystkie = c(
       nrow(dane_m1),
       length(coef(model_m1)) - 1,
@@ -681,7 +550,7 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
   
   # Wnioski
   wnioski_12 <- data.frame(
-    Aspekt = c("AIC", "Sensitivity", "Specificity"),
+    Aspekt = c("AIC", "Czułość", "Specyficzność"),
     Obserwacja = c(
       paste0("Model 1 lepszy (AIC=", round(AIC(model_m1), 2), " < ", round(AIC(model_m2), 2), ")"),
       paste0("Model 2 lepszy (", round(sensitivity_m2*100, 2), "% > ", round(sensitivity_m1*100, 2), "%)"),
@@ -695,7 +564,6 @@ if (exists("accuracy_m1") && exists("accuracy_m2")) {
       subtitle = "Analiza wpływu zmiennych kategorialnych"
     ) %>%
     tab_options(table.font.size = "small")
-}
 
 
 ```
