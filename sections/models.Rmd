@@ -185,7 +185,48 @@ if (nrow(dane_m1) == 0) {
       subtitle = "Metryki modelu logistycznego"
     ) %>%
     tab_options(table.font.size = "small")
+}
+```
 
+### Postać modelu
+
+$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
+
+gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji.
+
+```{r model1_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+if (nrow(dane_m1) > 0 && !is.null(model_m1)) {
+  # Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+  coef_full_m1 <- broom::tidy(model_m1) %>%
+    dplyr::mutate(
+      OddsRatio = exp(estimate),
+      Significance = ifelse(p.value < 0.001, "***",
+                           ifelse(p.value < 0.01, "**",
+                                 ifelse(p.value < 0.05, "*", "")))
+    ) %>%
+    dplyr::filter(p.value < 0.05) %>%
+    dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
+    dplyr::arrange(desc(abs(estimate)))
+  
+  if (nrow(coef_full_m1) > 0) {
+    gt(coef_full_m1) %>%
+      fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
+      tab_header(
+        title = "Model 1: Parametry modelu - Zmienne statystycznie istotne",
+        subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
+      ) %>%
+      tab_options(table.font.size = "small")
+  } else {
+    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+    gt(brak_tab) %>%
+      tab_header(title = "Model 1: Parametry modelu") %>%
+      tab_options(table.font.size = "small")
+  }
+}
+```
+
+```{r model1_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+if (exists("model_m1") && !is.null(model_m1) && nrow(dane_m1) > 0) {
   # Współczynniki istotne
   coef_m1 <- broom::tidy(model_m1) %>%
     dplyr::filter(term != "(Intercept)") %>%
@@ -197,20 +238,16 @@ if (nrow(dane_m1) == 0) {
     gt(coef_m1 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
       fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
       tab_header(
-        title = "Model 1: Istotne zmienne",
-        subtitle = "p-value < 0.05"
+        title = "Model 1: Istotne zmienne (p < 0.05)",
+        subtitle = "Zmienne statystycznie istotne w modelu"
       ) %>%
       tab_options(table.font.size = "small")
   } else {
-    # Brak istotnych zmiennych
-    brak_istotnych <- data.frame(
-      Komunikat = "Brak istotnych zmiennych (p < 0.05) w modelu"
-    )
-    gt(brak_istotnych) %>%
+    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+    gt(brak_tab) %>%
       tab_header(title = "Model 1: Zmienne") %>%
       tab_options(table.font.size = "small")
   }
-  
   
   # Interpretacja Model 1
   interpretacja_m1 <- data.frame(
@@ -344,7 +381,48 @@ if (nrow(dane_m2) == 0) {
       subtitle = "Metryki modelu logistycznego"
     ) %>%
     tab_options(table.font.size = "small")
+}
+```
 
+### Postać modelu
+
+$$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
+
+gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji (tylko zmienne finansowe).
+
+```{r model2_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+if (nrow(dane_m2) > 0 && !is.null(model_m2)) {
+  # Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+  coef_full_m2 <- broom::tidy(model_m2) %>%
+    dplyr::mutate(
+      OddsRatio = exp(estimate),
+      Significance = ifelse(p.value < 0.001, "***",
+                           ifelse(p.value < 0.01, "**",
+                                 ifelse(p.value < 0.05, "*", "")))
+    ) %>%
+    dplyr::filter(p.value < 0.05) %>%
+    dplyr::select(term, estimate, std.error, statistic, p.value, OddsRatio, Significance) %>%
+    dplyr::arrange(desc(abs(estimate)))
+  
+  if (nrow(coef_full_m2) > 0) {
+    gt(coef_full_m2) %>%
+      fmt_number(columns = c(estimate, std.error, statistic, p.value, OddsRatio), decimals = 4) %>%
+      tab_header(
+        title = "Model 2: Parametry modelu - Zmienne statystycznie istotne",
+        subtitle = "Współczynniki regresji logistycznej (*** p<0.001, ** p<0.01, * p<0.05)"
+      ) %>%
+      tab_options(table.font.size = "small")
+  } else {
+    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+    gt(brak_tab) %>%
+      tab_header(title = "Model 2: Parametry modelu") %>%
+      tab_options(table.font.size = "small")
+  }
+}
+```
+
+```{r model2_interpretacja, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
+if (exists("model_m2") && !is.null(model_m2) && nrow(dane_m2) > 0) {
   # Współczynniki istotne
   coef_m2 <- broom::tidy(model_m2) %>%
     dplyr::filter(term != "(Intercept)") %>%
@@ -356,16 +434,13 @@ if (nrow(dane_m2) == 0) {
     gt(coef_m2 %>% dplyr::select(term, estimate, OddsRatio, p.value)) %>%
       fmt_number(columns = c(estimate, OddsRatio, p.value), decimals = 4) %>%
       tab_header(
-        title = "Model 2: Istotne zmienne finansowe",
-        subtitle = "p-value < 0.05"
+        title = "Model 2: Istotne zmienne finansowe (p < 0.05)",
+        subtitle = "Zmienne statystycznie istotne w modelu"
       ) %>%
       tab_options(table.font.size = "small")
   } else {
-    # Brak istotnych zmiennych
-    brak_istotnych_m2 <- data.frame(
-      Komunikat = "Brak istotnych zmiennych finansowych (p < 0.05) w modelu"
-    )
-    gt(brak_istotnych_m2) %>%
+    brak_tab <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05) w modelu")
+    gt(brak_tab) %>%
       tab_header(title = "Model 2: Zmienne") %>%
       tab_options(table.font.size = "small")
   }
@@ -505,21 +580,33 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
       ) %>%
       tab_options(table.font.size = "small")
     
-    # Istotne współczynniki
-    if (nrow(coef_m3) > 0) {
-      gt(coef_m3) %>%
+    # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
+    coef_m3_filtered <- data.frame(
+      Kategoria = rep(rownames(summary_m3$coefficients), times = ncol(summary_m3$coefficients)),
+      Zmienna = rep(colnames(summary_m3$coefficients), each = nrow(summary_m3$coefficients)),
+      Wspolczynnik = as.vector(t(summary_m3$coefficients)),
+      P_Wartosc = as.vector(t(p_values))
+    ) %>%
+      dplyr::filter(P_Wartosc < 0.05) %>%
+      dplyr::arrange(Kategoria, desc(abs(Wspolczynnik))) %>%
+      dplyr::mutate(
+        Significance = ifelse(P_Wartosc < 0.001, "***",
+                             ifelse(P_Wartosc < 0.01, "**",
+                                   ifelse(P_Wartosc < 0.05, "*", "")))
+      )
+    
+    if (nrow(coef_m3_filtered) > 0) {
+      gt(coef_m3_filtered %>% dplyr::select(Kategoria, Zmienna, Wspolczynnik, P_Wartosc, Significance)) %>%
         fmt_number(columns = c(Wspolczynnik, P_Wartosc), decimals = 4) %>%
         tab_header(
-          title = "Model 3: Istotne zmienne",
-          subtitle = "vs kategoria referencyjna 'Zatwierdzony' (p < 0.05)"
+          title = "Model 3: Parametry modelu - Zmienne statystycznie istotne",
+          subtitle = "Współczynniki dla każdej kategorii vs 'Zatwierdzony' (*** p<0.001, ** p<0.01, * p<0.05)"
         ) %>%
         tab_options(table.font.size = "small")
     } else {
-      brak_istotnych_m3 <- data.frame(
-        Komunikat = "Brak istotnych zmiennych (p < 0.05) w modelu wielokategorycznym"
-      )
-      gt(brak_istotnych_m3) %>%
-        tab_header(title = "Model 3: Zmienne") %>%
+      brak_tab_m3 <- data.frame(Status = "ℹ️ Info", Opis = "Brak zmiennych statystycznie istotnych (p < 0.05)")
+      gt(brak_tab_m3) %>%
+        tab_header(title = "Model 3: Parametry modelu") %>%
         tab_options(table.font.size = "small")
     }
     
@@ -544,7 +631,7 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
     
     gt(model3_interpretacja) %>%
       tab_header(
-        title = "### Model 3: Interpretacja Metryki",
+        title = "Model 3: Interpretacja Metryki",
         subtitle = "Parametry modelu wielokategorycznego"
       ) %>%
       tab_options(table.font.size = "small")
@@ -573,6 +660,16 @@ if (n_classes < 2 || nrow(dane_m3) == 0) {
   })
 }
 ```
+
+### Postać modelu
+
+$$\log\left(\frac{P(Y=j)}{P(Y=0)}\right) = \beta_0^{(j)} + \sum_{i=1}^{k} \beta_i^{(j)} X_i$$
+
+gdzie:
+- $j = 1, 2, \ldots, K-1$ (kategorie porównywane vs referencyjna)
+- $Y=0$ to kategoria referencyjna "Zatwierdzony"
+- $P(Y=j)$ to prawdopodobieństwo kategorii $j$
+- $\beta_i^{(j)}$ to współczynniki dla każdej kategorii
 
 ## Podsumowanie i Porównanie Modeli
 
