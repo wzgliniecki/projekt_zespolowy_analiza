@@ -1,3 +1,84 @@
 # Wnioski i Podsumowanie
 
-TODO
+Przeprowadzona eksploracyjna analiza danych pozwoliła na szczegółowe zrozumienie struktury zbioru danych dotyczących decyzji kredytowych oraz identyfikację kluczowych wzorców związanych z procesem udzielania kredytów. Analiza objęła zarówno ocenę jakości danych, jak i porównanie parametrów finansowych oraz cech klientów w zależności od statusu kontraktu.
+
+## Wzorce braków danych i ich znaczenie biznesowe
+
+Braki danych nie były przypadkowe — tworzyły wyraźne bloki logiczne, które odzwierciedlały przebieg procesu kredytowego:
+
+- **Blok rat** (`AMT_ANNUITY`, `CNT_PAYMENT`) występował wyłącznie w kontraktach anulowanych, odrzuconych lub niewykorzystanych. Brak rat oznacza brak uruchomionego kredytu.
+- **Blok harmonogramu** (`DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`) dotyczył głównie kontraktów nieuruchomionych. Wyjątek: **603 zatwierdzone wnioski bez dat**, z których część miała pełne dane finansowe — wskazuje to na błąd systemowy.
+- **Blok wkładu własnego** (`AMT_DOWN_PAYMENT`, `RATE_DOWN_PAYMENT`) wynikał z faktu, że wkład własny nie jest obowiązkowy.
+- **Stopy procentowe** (`RATE_INTEREST_PRIMARY`, `RATE_INTEREST_PRIVILEGED`) były niemal całkowicie puste (99,7%), co czyni je bezużytecznymi analitycznie.
+- **Anomalie typu 365243 dni** były technicznymi placeholderami.
+
+Wnioski te pozwoliły na zastosowanie imputacji opartej na logice biznesowej, a nie statystycznej.
+
+## Charakterystyka statusów kontraktu
+
+Analiza rozkładu statusów pokazała, że:
+
+- Zdecydowana większość wniosków kończy się **zatwierdzeniem**, co sugeruje skuteczny proces selekcji klientów.
+- **Anulowania i odmowy** stanowią istotną część portfela, wskazując na ryzyko operacyjne i kredytowe.
+- **Niewykorzystane oferty** są marginalne, ale potwierdzają, że część klientów rezygnuje mimo pozytywnej decyzji.
+
+Jednocześnie status **„Approved”** nie zawsze oznacza uruchomienie kredytu — część zatwierdzonych wniosków nie posiadała harmonogramu ani rat, co wymagało dodatkowej segmentacji.
+
+## Zależność między kwotą kredytu a statusem kontraktu
+
+Wyniki wskazują na wyraźny związek między wysokością kwoty a decyzją kredytową:
+
+- Najwyższe kwoty pojawiają się wśród **wniosków anulowanych** — sugeruje to rezygnację klientów na późnym etapie.
+- **Wnioski odrzucone** dotyczą kwot wyższych niż przeciętne zatwierdzone — instytucja jest bardziej restrykcyjna wobec dużych kredytów.
+- **Zatwierdzone wnioski** obejmują szeroki zakres kwot, ale ich mediana jest niższa niż w anulowanych i odrzuconych.
+
+**Wniosek:** im wyższa kwota, tym większe ryzyko odmowy lub rezygnacji.
+
+## Typ klienta a decyzja kredytowa
+
+Analiza wykazała istotne różnice między typami klientów:
+
+- **Nowi klienci** mają najwyższy udział zatwierdzonych wniosków — możliwa polityka pozyskiwania nowych odbiorców.
+- **Stali klienci** częściej anulują wnioski — mogą lepiej rozumieć koszty lub mniej akceptować warunki.
+- **Reaktywowany klient** jest zbliżony do nowego, ale z nieco większym udziałem odmów.
+- **Klienci o nieznanym typie** mają najwyższy udział odmów — brak danych zwiększa niepewność i ryzyko.
+
+**Wniosek:** typ klienta istotnie różnicuje decyzje kredytowe.
+
+## Grupy kontraktów na podstawie kompletności danych
+
+W analizie wyodrębniono trzy kluczowe grupy:
+
+1. **Kontrakty nieuruchomione**  
+   - brak rat, brak harmonogramu, brak kwot — logiczne braki wynikające z procesu.
+
+2. **Kontrakty zatwierdzone, ale nieuruchomione (martwe)**  
+   - `CNT_PAYMENT = 0` i `AMT_CREDIT = 0` mimo statusu „Approved”.
+
+3. **Kontrakty z błędami systemowymi**  
+   - pełne dane finansowe, ale brak dat harmonogramu lub placeholdery 365243.
+
+Segmentacja ta pozwala lepiej zrozumieć jakość danych i ryzyka operacyjne.
+
+## Najczęściej współwystępujące kombinacje cech w grupach ryzyka
+
+Analiza segmentów pokazała, że:
+
+- **Anulowania** najczęściej dotyczą wysokich kwot i klientów stałych.
+- **Odmowy** częściej pojawiają się przy dużych kwotach i klientach o niepełnym profilu.
+- **Niewykorzystane oferty** dotyczą kwot zbliżonych do zatwierdzonych, ale klienci rezygnują na późnym etapie.
+- **Zatwierdzenia** dominują wśród nowych klientów i przy umiarkowanych kwotach.
+
+**Wniosek:** ryzyko operacyjne i kredytowe jest silnie związane z kombinacją kwoty, typu klienta i statusu kontraktu.
+
+## Podsumowanie ogólne
+
+Analiza EDA pozwoliła na pełne zrozumienie struktury danych, identyfikację kluczowych wzorców oraz ocenę jakości informacji wykorzystywanych w procesie kredytowym. Najważniejsze ustalenia to:
+
+- Braki danych są logiczne i wynikają z przebiegu procesu kredytowego.
+- Statusy kontraktu silnie różnicują parametry finansowe i zachowania klientów.
+- Wysokie kwoty zwiększają ryzyko odmowy lub rezygnacji.
+- Typ klienta istotnie wpływa na decyzję kredytową.
+- Segmentacja kontraktów na podstawie kompletności danych pozwala lepiej zrozumieć ryzyka operacyjne.
+
+Przeprowadzone badania umożliwiły szczegółową ocenę jakości danych oraz identyfikację kluczowych zależności między parametrami finansowymi, typami klientów i statusami kontraktów, tworząc całościowy obraz funkcjonowania procesu kredytowego.
