@@ -2,7 +2,7 @@
 
 W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze danych, aby lepiej zrozumieć rozkłady i powiązania między zmiennymi a statusem kontraktu.
 
-## Statystyki Opisowe - Zmienne Numeryczne
+## Statystyki opisowe kluczowych zmiennych numerycznych
 
 Poniższa tabela przedstawia podstawowe statystyki opisowe dla kluczowych zmiennych numerycznych wykorzystanych w analizie. Obejmują one zarówno zmienne finansowe i  czasowe opisujące przebieg procesu kredytowego.
 
@@ -127,7 +127,7 @@ Dominują krótkie i średnie okresy spłaty. Mediana liczby rat to 12, średnia
 
 Zmienne czasowe opisują harmonogram i przebieg procesu kredytowego w odniesieniu do daty decyzji. `DAYS_DECISION` ze średnią: −884, i medianą −588 - większość decyzji zapada ok. 1,5 roku po pierwszym kontakcie klienta. Mediana i oba kwartyle `DAYS_FIRST_DRAWING` równe −632 wskazują, że pierwsze uruchomienie środków jest planowane w bardzo podobnym momencie względem decyzji dla niemal wszystkich klientów. `DAYS_FIRST_DUE` , `DAYS_LAST_DUE` i `DAYS_TERMINATION` mają dużą rozpiętość, co odzwierciedla różne długości kredytów i różne harmonogramy spłat. `DAYS_FIRST_DUE` jest najbardziej odległy od decyzji, bo opisuje początek harmonogramu. `DAYS_LAST_DUE` i `DAYS_TERMINATION` są do siebie bardzo zbliżone, bo oba opisują koniec cyklu kredytowego.
 
-## Standaryzacja Zmiennych - Wartości Z
+## Standaryzacja parametrów kredytowych i analiza odchyleń od wartości przeciętnych
 
 Przeprowadzono analizę standaryzowanych wartości (Z-score) wybranych zmiennych ilościowych związanych z konstrukcją kredytu: wysokość raty (`AMT_ANNUITY`), kwotę wnioskowaną (`AMT_APPLICATION`), wkład własny (`AMT_DOWN_PAYMENT`) oraz liczbę rat (`CNT_PAYMENT`). Standaryzacja pozwala porównywać te zmienne na wspólnej skali, niezależnie od ich jednostek i poziomu wartości.
 Z-score mierzy, o ile typowych odchyleń dana obserwacja odbiega od średniej. 
@@ -184,7 +184,7 @@ Najbardziej „średni” profil dotyczy wniosków zatwierdzonych. Wszystkie Z�
 
 Podsumowując to jednym zdaniem - im wniosek kredytowy był bliższy przeciętnemu tym większa była szansa na jego akceptację.
 
-## Analiza Zmiennych Kategorycznych (Testy Chi-kwadrat)
+## Ocena zależności pomiędzy zmiennymi kategorycznymi a statusem kontraktu z wykorzystaniem testu chi‑kwadrat
 
 W tej części analizie poddano zależności pomiędzy wybranymi zmiennymi kategorycznymi a statusem kontraktu kredytowego. Do oceny istotności statystycznej wykorzystano test chi‑kwadrat niezależności, który pozwala sprawdzić, czy rozkład kategorii danej zmiennej różni się pomiędzy grupami statusów.
 
@@ -318,7 +318,7 @@ Wynik Chi² ≈ 6649 potwierdza, że status kontraktu silnie zależy od rodzaju 
 
 Zależność dla typu klienta również jest istotna (Chi² ≈ 2754). Nowi klienci, stali klienci i klienci reaktywowani różnią się prawdopodobieństwem zatwierdzenia i odmowy, co jest zgodne z praktyką kredytową — historia relacji z instytucją wpływa na decyzję.
 
-## Porównanie kwot kredytu między statusami kontraktu
+## Analiza różnic w wysokości przyznanego finansowania w zależności od statusu kontraktu
 
 Za pomocą funkcji `ggbetweenstats` przedstawiono rozkład kwoty kredytu (`AMT_CREDIT`) w podziale na status kontraktu. Każda grupa zawiera indywidualne punkty obserwacji oraz średnią, co pozwala ocenić różnice między kategoriami zarówno wizualnie, jak i statystycznie.
 
@@ -348,7 +348,7 @@ ggstatsplot::ggbetweenstats(
 
 - Segmentacja klientów według kwoty wnioskowanej może wspierać scoring ryzyka i optymalizację procesu decyzyjnego.
 
-## Zależność między typem klienta a statusem kontraktu
+## Wpływ typu klienta na wynik procesu kredytowego – analiza statystyczna
 
 Każdy słupek reprezentuje jedną kategorię statusu, a kolory wskazują typ klienta. Dodatkowo wykres zawiera wyniki testu chi‑kwadrat oraz miarę siły zależności (Cramér’s V), co pozwala ocenić istotność statystyczną obserwowanych różnic.
 
@@ -384,7 +384,7 @@ ggstatsplot::ggbarstats(
 
 - Nowi klienci mogą być bardziej skłonni do finalizacji umowy, co może wspierać strategie pozyskiwania.
 
-## Liczba rat a status kontraktu
+## Porównanie długości harmonogramu spłaty w grupach statusów kontraktu
 
 Wykres zawiera średnie wartości dla każdej grupy oraz wyniki testu Welch’a i porównań post hoc.
 
@@ -415,7 +415,7 @@ ggstatsplot::ggbetweenstats(
 
 - Wnioski z minimalną liczbą rat często kończą się anulowaniem lub brakiem realizacji, co może wskazywać na niską jakość aplikacji.
 
-## Związek między kwotą aplikowaną a przyznaną
+## Analiza zależności pomiędzy kwotą wnioskowaną a przyznaną w procesie kredytowym
 
 Wykres zawiera linię regresji oraz histogramy brzegowe, co pozwala jednocześnie ocenić siłę korelacji i rozkład obu zmiennych. Statystyki testowe wskazują na związek między tymi wartościami.
 
@@ -445,7 +445,7 @@ ggstatsplot::ggscatterstats(
 
 - Wysoka zgodność kwot może świadczyć o efektywnym dopasowaniu produktów do profilu klienta — warto analizować wyjątki jako potencjalne przypadki ryzyka lub niedopasowania.
 
-## Rozkład liczby rat w zatwierdzonych kontraktach
+## Charakterystyka liczby rat wśród zatwierdzonych kontraktów kredytowych
 
 Histogram pokazuje zarówno częstość występowania poszczególnych wartości, jak i statystyki opisowe oraz wynik testu t‑Studenta, co pozwala ocenić, jak typowa jest liczba rat w tej grupie klientów.
 
@@ -478,7 +478,7 @@ ggstatsplot::gghistostats(
 
 - Warto uwzględnić liczbę rat jako zmienną w scoringu ryzyka
 
-## Udział typów umów w całym zbiorze
+## Struktura typów umów kredytowych w populacji oraz ich powiązanie ze statusem kontraktu
 
 Dwa wykresy kołowe pokazują udział poszczególnych statusów w każdej grupie, a dodatkowe statystyki (test chi‑kwadrat, Cramér’s V) pozwalają ocenić siłę i istotność zależności między typem klienta a statusem kontraktu.
 
@@ -513,7 +513,7 @@ ggpiestats(
 
 - Typ klienta powinien być uwzględniany w scoringu ryzyka i strategii sprzedażowej — szczególnie przy automatyzacji decyzji.
 
-## Współczynniki modelu regresji: kwota kredytu ~ typ klienta + wkład własny
+## Model regresji liniowej wyjaśniający kwotę kredytu na podstawie typu klienta i wkładu własnego
 
 Wykres przedstawia estymowane współczynniki regresji dla modelu liniowego, w którym zmienną zależną jest kwota przyznanego kredytu (`AMT_CREDIT`). Model uwzględnia dwa predyktory: typ klienta (`NAME_CLIENT_TYPE_PL`) oraz wkład własny (`AMT_DOWN_PAYMENT`). Wykres pokazuje wartość współczynnika β, przedział ufności, wartość statystyki t oraz poziom istotności dla każdego predyktora, co pozwala ocenić ich wpływ na kwotę kredytu.
 
@@ -537,7 +537,7 @@ ggstatsplot::ggcoefstats(
 
 - Stały klient otrzymuje średnio wyższą kwotę niż nowy, ale różnica nie jest istotna — warto to zbadać w modelu z dodatkowymi zmiennymi (np. kanał, cel pożyczki).
 
-## Porównanie parametrów kredytowych względem statusu kontraktu (ANOVA)
+## Analiza wariancji parametrów kredytowych w zależności od statusu kontraktu (Welch ANOVA)
 
 W tej części przedstawiono trzy wykresy porównujące wybrane zmienne finansowe w zależności od statusu kontraktu:
 
@@ -577,7 +577,7 @@ Efekt wielkości ω² przyjmuje wartości od 0 do 1 i informuje, jak duża czę�
 
 - ω² ≥ 0.30 – efekt bardzo silny.
 
-### ANOVA Kwota wnioskowana vs status kontraktu
+### Różnice w kwocie wnioskowanej pomiędzy grupami statusów kontraktu (Welch ANOVA)
 
 ```{r anova, echo=FALSE}
 library(tidyr)
@@ -613,7 +613,7 @@ ggstatsplot::ggbetweenstats(
 
 Wszystkie porównania parowe są istotne (p_Holm-adj < 1e−7), co potwierdza, że każda grupa różni się od pozostałych.
 
-## ANOVA Liczba rat vs status kontraktu
+## Analiza wariancji liczby rat w zależności od statusu kontraktu (Welch ANOVA)
 
 ```{r anova2, echo=FALSE}
 ggstatsplot::ggbetweenstats(
@@ -638,7 +638,7 @@ Test Welch’a wykazał bardzo silny efekt, a efekt wielkości 𝜔2= 0.79. Ozna
 
 - Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
 
-## ANOVA Kwota raty vs status kontraktu
+## Porównanie wysokości rat kredytowych pomiędzy grupami statusów kontraktu (Welch ANOVA)
 
 ```{r anova3, echo=FALSE}
 ggstatsplot::ggbetweenstats(
@@ -662,7 +662,7 @@ ggstatsplot::ggbetweenstats(
 
 - Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
 
-## Wnioski końcowe z analizy statystycznej
+## Syntetyczne podsumowanie wyników analizy statystycznej parametrów kredytowych
 
 Przeprowadzona analiza statystyczna pozwala bardzo precyzyjnie opisać profil klientów, charakterystykę wniosków kredytowych oraz czynniki związane z ostatecznym statusem kontraktu. Wyniki są spójne i wskazują na kilka kluczowych zależności, które mogą wspierać zarówno scoring ryzyka, jak i decyzje operacyjne.
 
@@ -724,8 +724,7 @@ Model regresji pokazał:
 
 To oznacza, że czynniki finansowe dominują nad demograficznymi w procesie ustalania kwoty.
 
-## Podsumowanie strategiczne
-
+## Implikacje analityczne i rekomendacje strategiczne wynikające z analizy statystycznej
 - Największe szanse na zatwierdzenie mają wnioski o parametrach bliskich średnim.
 
 - Kanał sprzedaży jest najważniejszym czynnikiem jakościowym — silniejszym niż typ klienta.

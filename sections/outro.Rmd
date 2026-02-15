@@ -2,7 +2,7 @@
 
 Przeprowadzona eksploracyjna analiza danych pozwoliła na szczegółowe zrozumienie struktury zbioru danych dotyczących decyzji kredytowych oraz identyfikację kluczowych wzorców związanych z procesem udzielania kredytów. Analiza objęła zarówno ocenę jakości danych, jak i porównanie parametrów finansowych oraz cech klientów w zależności od statusu kontraktu.
 
-## Wzorce braków danych i ich znaczenie biznesowe
+## Struktura braków danych oraz ich implikacje dla procesu kredytowego
 
 Braki danych nie były przypadkowe — tworzyły wyraźne bloki logiczne, które odzwierciedlały przebieg procesu kredytowego:
 
@@ -14,7 +14,7 @@ Braki danych nie były przypadkowe — tworzyły wyraźne bloki logiczne, które
 
 Wnioski te pozwoliły na zastosowanie imputacji opartej na logice biznesowej, a nie statystycznej.
 
-## Charakterystyka statusów kontraktu
+## Profil i znaczenie poszczególnych statusów kontraktu
 
 Analiza rozkładu statusów pokazała, że:
 
@@ -24,7 +24,7 @@ Analiza rozkładu statusów pokazała, że:
 
 Jednocześnie status **„Approved”** nie zawsze oznacza uruchomienie kredytu — część zatwierdzonych wniosków nie posiadała harmonogramu ani rat, co wymagało dodatkowej segmentacji.
 
-## Zależność między kwotą kredytu a statusem kontraktu
+## Wpływ wysokości finansowania na prawdopodobieństwo zatwierdzenia, odmowy i rezygnacji
 
 Wyniki wskazują na wyraźny związek między wysokością kwoty a decyzją kredytową:
 
@@ -34,7 +34,7 @@ Wyniki wskazują na wyraźny związek między wysokością kwoty a decyzją kred
 
 **Wniosek:** im wyższa kwota, tym większe ryzyko odmowy lub rezygnacji.
 
-## Typ klienta a decyzja kredytowa
+## Rola typu klienta w kształtowaniu decyzji kredytowych
 
 Analiza wykazała istotne różnice między typami klientów:
 
@@ -45,7 +45,7 @@ Analiza wykazała istotne różnice między typami klientów:
 
 **Wniosek:** typ klienta istotnie różnicuje decyzje kredytowe.
 
-## Grupy kontraktów na podstawie kompletności danych
+## Segmentacja kontraktów według kompletności danych i jej znaczenie analityczne
 
 W analizie wyodrębniono trzy kluczowe grupy:
 
@@ -60,7 +60,7 @@ W analizie wyodrębniono trzy kluczowe grupy:
 
 Segmentacja ta pozwala lepiej zrozumieć jakość danych i ryzyka operacyjne.
 
-## Najczęściej współwystępujące kombinacje cech w grupach ryzyka
+## Charakterystyka profili ryzyka na podstawie współwystępujących parametrów kontraktów
 
 Analiza segmentów pokazała, że:
 
@@ -71,12 +71,12 @@ Analiza segmentów pokazała, że:
 
 **Wniosek:** ryzyko operacyjne i kredytowe jest silnie związane z kombinacją kwoty, typu klienta i statusu kontraktu.
 
-## Znaczenie zmiennych niefinansowych w modelach predykcyjnych
+## Wpływ zmiennych niefinansowych na jakość modeli predykcyjnych decyzji kredytowych
 Na podstawie wyliczonych modeli regresji logistycznej stwierdzono, że zmienne niefinansowe mają istotny wpływ na decyzje kredytowe. 
 Modele nieuwzgledniające tych zmiennych wykazywały gorsze dopasowanie i niższą zdolność predykcyjną. 
 Jedyną przewagą modeli opartych wyłącznie na zmiennych finansowych była nieco wyższa czułość, jednak kosztem znacznego wzrostu fałszywych alarmów.
 
-## Podsumowanie ogólne
+## Podsumowanie kluczowych ustaleń dotyczących procesu kredytowego i jakości danych
 
 Analiza EDA pozwoliła na pełne zrozumienie struktury danych, identyfikację kluczowych wzorców oraz ocenę jakości informacji wykorzystywanych w procesie kredytowym. Najważniejsze ustalenia to:
 
