@@ -1,4 +1,4 @@
-# Modelowanie Decyzji Kredytowej
+# Modelowanie predykcyjne decyzji kredytowych z wykorzystaniem regresji logistycznej
 
 Celem odpowiedzi na pytania badawcze, zbudowane zostaną 3 modele.
 
@@ -11,7 +11,7 @@ A jeżeli tak to w jakim stopniu.
 
 Pod każdym modelem zostaną wyświetlone tylko te wartości parametrów, które są statystycznie istotne, reszta została odfiltrowana, w celu lepszej czytelności wyników.
 
-## Postać modelu logitowego
+## Formalna postać i interpretacja modelu regresji logistycznej binarnej
 
 $$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
 
@@ -102,7 +102,7 @@ dane_model <- dane_clean %>%
 
 ```
 
-## Model 1: Approved vs Reszta - Wszystkie Zmienne
+## Model 1: Binarna regresja logistyczna oparta na pełnym zestawie zmiennych
 Model ten oceni na bazie wszystkich dostępnych zmiennych czy aplikacja zostanie zatwierdzona czy odrzucona. 
 Zostanie użyty do późniejszego porównania z modelem 2, który będzie używał tylko zmiennych finansowych.
 Zostanie także zinterpretowany najsilniejszy predyktor modelu.
@@ -231,7 +231,7 @@ W tym wypadku oznacza ona kredyty przyznawane w punktach sprzedaży AGD/RTV oraz
 Iloraz szans w tym wypadku wynosi około 12.9 — oznacza to, że wnioski z portfela POS mają ponad dwunastokrotnie wyższe szanse akceptacji niż kategoria bazowa, przy kontroli pozostałych zmiennych.
 Interpretować należy to raczej jednak jako korelację niż konkretna przyczyna - takie wnioski z natury mają większą szansę na akceptację przed kredytodawcę, chociażby ze względu na mniejsze kwoty czy umowy banku ze sklepem.
 
-## Model 2: Approved vs Reszta - Tylko Zmienne Finansowe
+## Model 2: Binarna regresja logistyczna oparta wyłącznie na zmiennych finansowych
 Podobnie jak model 1, model 2 będzie przewidywał czy aplikacja zostanie zatwierdzona czy odrzucona.
 Jednak cenem oceny istotności danych niefinansowych (np. cel pożyczki), zostaną użyte wyłącznie zmienne finansowe.
 
@@ -342,7 +342,7 @@ Sugeruje to że w wypadku porzucenia zmiennych pozafinansowych, wkład własny s
  Jest to zgodne z intuicją biznesową - wysoki wkład własny oznacza większe środki kredytobiorcy, a do tego na starcie zmniejsza kwotę kredytu do spłaty.
 
 
-## Model 3: Regresja Logistyczna Wielokategoryczna
+## Model 3: Wielokategorialna regresja logistyczna dla pełnego spektrum decyzji kredytowych
 Model ten pokazuje jakie są szanse przypisania do każdej z kategorii decyzji kredytowej, w porównaniu do kategorii referencyjnej "Zatwierdzony".
 Zmienne oceniające model takie jak wartość AIC zostały podane tylko dla informacji czytelnika - nie będzie go porównywać z poprzednimi modelami ze względu na inną naturę problemu.
 Zostanie dokonana także interpretacja najbardziej znaczącego współczynnika dla każdej kategorii.
@@ -462,7 +462,7 @@ Wskazuje to na specyfikę kanału, w którym klienci częściej rezygnują po ot
 Grupa która była w stanie otrzymać i spłacić poprzedni kredyt, jest najbardziej skłonna do zrezygnowania z nowej oferty, pomimo akceptacji.
 Można uznać że mają oni największe środki i najmniejszą potrzebę zaciągania kolejnych zobowiązań, wobec czego oferta kredytowa jest dla nich mniej atrakcyjna.
 
-## Podsumowanie i Porównanie Modeli
+## Porównanie jakości predykcyjnej modeli oraz wpływu zmiennych finansowych i niefinansowych
 
 ```{r porownanie_modeli, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # SEKCJA 1: Porównanie Model 1 vs Model 2

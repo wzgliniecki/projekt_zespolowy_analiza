@@ -21,7 +21,7 @@ invisible(lapply(required_packages, function(pkg) {
 cat("✓ Wszystkie pakiety załadowane pomyślnie\n")
 ```
 
-# Wprowadzenie
+# Wprowadzenie do analizy procesu oceny ryzyka kredytowego
 
 Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
 pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
@@ -41,7 +41,7 @@ Celem jest zrozumienie, jakie czynniki — spośród dostępnych w danych — r�
 
 -	Jak typ klienta różnicuje rozkład statusów kontraktu?
 
-## Dane
+## Charakterystyka wykorzystanego zbioru danych i jego struktury informacyjnej
 
 W niniejszym projekcie wykorzystane zostaną dane z pliku
 „previous_application_new.csv”, zawierającego informacje o decyzjach
@@ -50,7 +50,7 @@ słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
 atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
 ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
 
-## Użyte biblioteki
+## Zestaw użytych bibliotek zastosowanych w analizie
 
 W dokumencie wykorzystano zestaw bibliotek służących do wczytywania, czyszczenia, przekształcania i wizualizacji danych, takich jak `tidyverse`, `dplyr`, `ggplot2`, `naniar`, `VIM` czy `corrplot`. Dodatkowo użyto pakietów wspierających modelowanie statystyczne i ocenę jakości modeli, m.in. . `leaps`, `pROC`, `caret` oraz narzędzi do tworzenia interaktywnych tabel i wykresów, takich jak `gt`, `kableExtra`, `plotly` i `networkD3`.
 
