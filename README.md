@@ -12,37 +12,29 @@ wizualizacji oraz modelowania statystycznego.
 
 ## Zakres analizy
 
-Praca rozpoczyna się od szczegółowej eksploracji struktury danych, 
-identyfikacji braków oraz oceny ich logiki biznesowej. 
-Wykryto charakterystyczne bloki braków związane z harmonogramem kredytu, 
-ratami czy wkładem własnym, a także anomalie systemowe, 
-które wymagały odpowiedniego traktowania podczas czyszczenia danych. 
-Proces przygotowania danych obejmował imputację opartą na logice procesów 
-kredytowych i usunięcie zmiennych nie dodających żadnej wartości.
+# Eksploracja i czyszczenie danych
+- identyfikacja braków danych i ich logiki biznesowej,
+- wykrycie bloków braków związanych z harmonogramem kredytu, ratami czy wkładem własnym,
+- usunięcie zmiennych nieistotnych oraz imputację opartą na procesach kredytowych.
 
-W dalszej części przeprowadzono rozbudowaną wizualizację danych,
-która pozwoliła uchwycić zależności między kwotami kredytu, liczbą rat, 
-typem klienta, kanałem sprzedaży i innymi cechami. Analiza statystyczna 
-obejmowała zarówno statystyki opisowe, jak i testy zależności oraz 
-porównania między grupami, co umożliwiło identyfikację kluczowych 
-czynników różnicujących statusy kontraktów.
+# Analiza statystyczna i wizualizacje
+- zależności między kwotą kredytu, liczbą rat, typem klienta, kanałem sprzedaży i innymi cechami,
+- statystyki opisowe, testy zależności i porównania między grupami,
+- identyfikacja czynników różnicujących statusy kontraktów.
 
-Ostatnim etapem było modelowanie predykcyjne. Zbudowano trzy modele 
-regresji logistycznej: dwa binarne (zatwierdzenie vs pozostałe decyzje) oraz 
-jeden wielokategorialny, pozwalający przewidywać wszystkie statusy kontraktu 
-jednocześnie. Modele porównano pod względem jakości predykcji, 
-a szczególną uwagę poświęcono roli zmiennych niefinansowych, które 
-okazały się istotnie poprawiać dopasowanie modeli.
+# Modelowanie predykcyjne
+- dwa modele regresji logistycznej binarnej,
+- jeden model wielokategorialny przewidujący wszystkie statusy kontraktu,
+- porównanie jakości predykcji i ocena wpływu zmiennych niefinansowych.
 
 ## Najważniejsze wnioski
 
-Analiza wykazała, że braki danych nie są przypadkowe, lecz wynikają z 
-logiki procesu kredytowego. Status kontraktu silnie różnicuje 
-parametry finansowe, a wysokie kwoty wiążą się z większym ryzykiem odmowy 
-lub rezygnacji. Typ klienta oraz kanał pozyskania mają istotny wpływ na 
-decyzję kredytową, a modele predykcyjne potwierdziły, że zmienne 
-niefinansowe znacząco zwiększają zdolność wyjaśniania decyzji.
+- Braki danych wynikają z logiki procesu kredytowego, a nie z losowości.
+- Status kontraktu silnie różnicuje parametry finansowe.
+- Wyższe kwoty kredytu wiążą się z większym ryzykiem odmowy lub rezygnacji.
+- Typ klienta i kanał pozyskania mają istotny wpływ na decyzję kredytową.
+- Zmienne niefinansowe znacząco poprawiają jakość modeli predykcyjnych.
 
-Projekt dostarcza pełnego obrazu funkcjonowania procesu kredytowego, 
-łącząc analizę jakości danych, eksplorację statystyczną i modelowanie 
-predykcyjne w spójną całość.
+Projekt łączy analizę jakości danych, eksplorację statystyczną i modelowanie predykcyjne w spójną całość.
+
+Pełny raport dostępny na RPubs: https://rpubs.com/jullab/1391499
