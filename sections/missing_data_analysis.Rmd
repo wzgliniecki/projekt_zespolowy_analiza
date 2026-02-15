@@ -14,11 +14,11 @@ status_map <- c(
 
 Zbiór previous_application_new.csv zawiera 25 000 obserwacji oraz 37 zmiennych, które dzielą się na:
 
-- 16 zmiennych tekstowych (chr) – opisujących m.in. typ umowy, status wniosku czy dzień tygodnia złożenia aplikacji,
+-   **16 zmiennych tekstowych (chr)** – opisujących m.in. typ umowy, status wniosku czy dzień tygodnia złożenia aplikacji,
 
-- 21 zmiennych numerycznych (dbl) – zawierających identyfikatory, kwoty finansowe (wnioskowane i przyznane) oraz wskaźniki czasu.
+-   **21 zmiennych numerycznych (dbl)** – zawierających identyfikatory, kwoty finansowe (wnioskowane i przyznane) oraz wskaźniki czasu.
 
-Takie zestawienie danych pozwala na przeprowadzenie wielowymiarowej analizy – zarówno jakościowej (wzorce zachowań), jak i ilościowej (wartości kredytowe).
+Takie zestawienie danych pozwala na przeprowadzenie wielowymiarowej analizy – zarówno [jakościowej]{.underline} (wzorce zachowań), jak i [ilościowej]{.underline} (wartości kredytowe).
 
 ```{r podglad_danych, echo=FALSE}
 gt(head(dane,10))
@@ -28,15 +28,15 @@ Wstępny przegląd pierwszych dziesięciu wierszy ujawnia dużą złożoność z
 
 Zmienne oznaczają kolejno:
 
-1. `SK_ID_PREV`: Unikalny identyfikator poprzedniego wniosku
-2. `SK_ID_CURR`: Unikalny identyfikator bieżącego wniosku
-3. `NAME_CONTRACT_TYPE`: Typ umowy (np. gotówkowy, ratalny)
-4. `AMT_ANNUITY`: Kwota raty kredytowej
-5. `AMT_APPLICATION`: Kwota, o którą klient wnioskował
-6. `AMT_CREDIT`: Ostateczna przyznana kwota kredytu
-7. `AMT_DOWN_PAYMENT`: Wkład własny w poprzedniej aplikacji
-8. `AMT_GOODS_PRICE`: Cena towaru, o który wnioskowano
-9. `WEEKDAY_APPR_PROCESS_START`: Dzień tygodnia złożenia aplikacji
+1.  `SK_ID_PREV`: Unikalny identyfikator poprzedniego wniosku
+2.  `SK_ID_CURR`: Unikalny identyfikator bieżącego wniosku
+3.  `NAME_CONTRACT_TYPE`: Typ umowy (np. gotówkowy, ratalny)
+4.  `AMT_ANNUITY`: Kwota raty kredytowej
+5.  `AMT_APPLICATION`: Kwota, o którą klient wnioskował
+6.  `AMT_CREDIT`: Ostateczna przyznana kwota kredytu
+7.  `AMT_DOWN_PAYMENT`: Wkład własny w poprzedniej aplikacji
+8.  `AMT_GOODS_PRICE`: Cena towaru, o który wnioskowano
+9.  `WEEKDAY_APPR_PROCESS_START`: Dzień tygodnia złożenia aplikacji
 10. `HOUR_APPR_PROCESS_START`: Godzina złożenia aplikacji
 11. `FLAG_LAST_APPL_PER_CONTRACT`: Flaga: czy była to ostatnia aplikacja dla danego kontraktu
 12. `NFLAG_LAST_APPL_IN_DAY`: Flaga: czy była to ostatnia aplikacja klienta danego dnia
@@ -58,12 +58,12 @@ Zmienne oznaczają kolejno:
 28. `NAME_SELLER_INDUSTRY`: Branża sprzedawcy
 29. `CNT_PAYMENT`: Liczba rat kredytu w aplikacji
 30. `NAME_YIELD_GROUP`: Grupa oprocentowania (niska, średnia, wysoka)
-32. `DAYS_FIRST_DRAWING`: Dni do pierwszej wypłaty względem bieżącej aplikacji
-33. `DAYS_FIRST_DUE`: Dni do pierwszej raty względem bieżącej aplikacji
-34. `DAYS_LAST_DUE_1ST_VERSION`: Dni do pierwszej wersji ostatniej raty
-35. `DAYS_LAST_DUE`: Dni do ostatniej raty względem bieżącej aplikacji
-36. `DAYS_TERMINATION`: Dni do zakończenia kontraktu względem bieżącej aplikacji
-37. `NFLAG_INSURED_ON_APPROVAL`: Flaga: czy klient wybrał ubezpieczenie przy aplikacji
+31. `DAYS_FIRST_DRAWING`: Dni do pierwszej wypłaty względem bieżącej aplikacji
+32. `DAYS_FIRST_DUE`: Dni do pierwszej raty względem bieżącej aplikacji
+33. `DAYS_LAST_DUE_1ST_VERSION`: Dni do pierwszej wersji ostatniej raty
+34. `DAYS_LAST_DUE`: Dni do ostatniej raty względem bieżącej aplikacji
+35. `DAYS_TERMINATION`: Dni do zakończenia kontraktu względem bieżącej aplikacji
+36. `NFLAG_INSURED_ON_APPROVAL`: Flaga: czy klient wybrał ubezpieczenie przy aplikacji
 
 # Metody czyszczenia, transformacji i przygotowania danych do analizy statystycznej
 
@@ -98,14 +98,14 @@ missing_summary_sorted %>%
 
 Analiza wykazała, że 15 z 37 zmiennych posiada braki o różnym natężeniu:
 
-- Braki marginalne: `PRODUCT_COMBINATION` (0.02%).
+-   [Braki marginalne]{.underline}: `PRODUCT_COMBINATION` (0.02%).
 
-- Średni poziom: Zmienne finansowe (`AMT_ANNUITY`, `CNT_PAYMENT`, `AMT_GOODS_PRICE`) oscylują wokół 22-23% braków.
+-   [Średni poziom]{.underline}: Zmienne finansowe (`AMT_ANNUITY`, `CNT_PAYMENT`, `AMT_GOODS_PRICE`) oscylują wokół 22-23% braków.
 
-- Wysoki poziom: Zmienne związane z harmonogramem spłat i ubezpieczeniem wykazują blisko 40% braków.
+-   [Wysoki poziom]{.underline}: Zmienne związane z harmonogramem spłat i ubezpieczeniem wykazują blisko 40% braków.
 
-- Krytyczny poziom: Wkład własny przekracza 53%, a stopy procentowe są niemal całkowicie puste (99.69% braków).
-        
+-   [Krytyczny poziom]{.underline}: Wkład własny przekracza 53%, a stopy procentowe są niemal całkowicie puste (99.69% braków).
+
 ### Wizualna analiza struktury i współwystępowania braków danych
 
 Aby zrozumieć naturę braków, wykorzystano funkcje z pakietów `naniar` oraz `VIM`. Ze względu na dużą ilość zmiennych zdecydowano się ograniczyć dane do wykresu jedynie do kolumn zawierających minimum jedną wartość NA.
@@ -145,22 +145,21 @@ aggr(dane_sorted, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=s
 
 Wykresy ujawniły istnienie silnych powiązań między zmiennymi (tzw. bloki braków):
 
-- Blok raty: `AMT_ANNUITY` i `CNT_PAYMENT` - brak raty (`AMT_ANNUITY`) idzie w parze z brakiem liczby płatności (`CNT_PAYMENT`).
+-   Blok raty: `AMT_ANNUITY` i `CNT_PAYMENT` - brak raty (`AMT_ANNUITY`) idzie w parze z brakiem liczby płatności (`CNT_PAYMENT`).
 
-- Blok harmonogramu: `DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE_1ST_VERSION`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`, `NFLAG_INSURED_ON_APPROVAL` - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
+-   Blok harmonogramu: `DAYS_FIRST_DRAWING`, `DAYS_FIRST_DUE`, `DAYS_LAST_DUE_1ST_VERSION`, `DAYS_LAST_DUE`, `DAYS_TERMINATION`, `NFLAG_INSURED_ON_APPROVAL` - wszystkie mają 9940 braków. To wygląda jak wspólny blok zmiennych związanych z harmonogramem kredytu i ubezpieczeniem — jeśli brakuje jednej, brakuje wszystkich.
 
-- Blok wkładu własnego: `AMT_DOWN_PAYMENT` i `RATE_DOWN_PAYMENT` - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
+-   Blok wkładu własnego: `AMT_DOWN_PAYMENT` i `RATE_DOWN_PAYMENT` - 13261 braków. Naturalne, bo wskaźnik wkładu własnego nie istnieje, jeśli brak samej kwoty wkładu.
 
-- Blok stóp procentowych: `RATE_INTEREST_PRIMARY` i `RATE_INTEREST_PRIVILEGED` - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
+-   Blok stóp procentowych: `RATE_INTEREST_PRIMARY` i `RATE_INTEREST_PRIVILEGED` - 24922 braków. Obie zmienne dotyczą stóp procentowych, więc brak jednej oznacza brak drugiej.
 
-- Pojedyncze, unikalne wartości braków:
+-   Pojedyncze, unikalne wartości braków:
 
-   - `PRODUCT_COMBINATION` - tylko 4 braki, marginalny problem.
+    -   `PRODUCT_COMBINATION` - tylko 4 braki, marginalny problem.
 
-   - `AMT_GOODS_PRICE` - 5754 braków, niezależny od innych zmiennych.
+    -   `AMT_GOODS_PRICE` - 5754 braków, niezależny od innych zmiennych.
 
-   - `NAME_TYPE_SUITE` - 12246 braków, czyli brak informacji o osobie towarzyszącej klientowi.
-   
+    -   `NAME_TYPE_SUITE` - 12246 braków, czyli brak informacji o osobie towarzyszącej klientowi.
 
 ### Analiza współzależności braków danych pomiędzy zmiennymi
 
@@ -185,7 +184,8 @@ as.data.frame(tab_annuity) %>%
   kable_classic(full_width = FALSE, html_font = "Arial") %>%
   row_spec(0, bold = TRUE)
 ```
-Zmienna `AMT_ANNUITY` reprezentuje kwotę miesięcznej raty kredytowej, natomiast `CNT_PAYMENT` określa liczbę rat przewidzianych w harmonogramie spłat dla danego wniosku. Analiza wykazała, że braki występują wyłącznie w kontraktach o statusie anulowanym, niewykorzystanym lub po odmowie. Wynika to z logiki biznesowej: dla wniosku, który nie został uruchomiony, nie wylicza się harmonogramu spłat. Brak danych jest więc informacją samą w sobie – "kontrakt nie powstał".
+
+Zmienna `AMT_ANNUITY` reprezentuje [kwotę miesięcznej raty kredytowej]{.underline}, natomiast `CNT_PAYMENT` określa [liczbę rat]{.underline} przewidzianych w harmonogramie spłat dla danego wniosku. Analiza wykazała, że braki występują wyłącznie w kontraktach o statusie anulowanym, niewykorzystanym lub po odmowie. Wynika to z logiki biznesowej: dla wniosku, który nie został uruchomiony, nie wylicza się harmonogramu spłat. Brak danych jest więc informacją samą w sobie – "kontrakt nie powstał".
 
 #### Braki danych w zmiennych harmonogramu kredytu i ich znaczenie dla interpretacji cyklu życia kontraktu
 
@@ -204,19 +204,20 @@ as.data.frame(tab) %>%
   kable_classic(full_width = FALSE, html_font = "Arial") %>%
   row_spec(0, bold = TRUE)
 ```
-Zmienne z tej grupy opisują kluczowe momenty w harmonogramie kredytu oraz jedną cechę dotyczącą decyzji klienta przy składaniu wniosku. Określają one, ile dni upływa od daty aplikacji do poszczególnych etapów cyklu życia kontraktu.
 
-- `DAYS_FIRST_DRAWING` – liczba dni do pierwszej wypłaty środków.
+Zmienne z tej grupy opisują kluczowe momenty w harmonogramie kredytu oraz jedną cechę dotyczącą decyzji klienta przy składaniu wniosku. Określają one, [ile dni]{.underline} upływa od daty aplikacji do poszczególnych etapów cyklu życia kontraktu.
 
-- `DAYS_FIRST_DUE` – liczba dni do pierwszej raty kredytu.
+-   `DAYS_FIRST_DRAWING` – liczba dni do pierwszej wypłaty środków.
 
-- `DAYS_LAST_DUE_1ST_VERSION` – liczba dni do pierwotnie planowanej daty ostatniej raty.
+-   `DAYS_FIRST_DUE` – liczba dni do pierwszej raty kredytu.
 
-- `DAYS_LAST_DUE` – liczba dni do ostatecznej daty ostatniej raty.
+-   `DAYS_LAST_DUE_1ST_VERSION` – liczba dni do pierwotnie planowanej daty ostatniej raty.
 
-- `DAYS_TERMINATION` – liczba dni do zakończenia kontraktu.
+-   `DAYS_LAST_DUE` – liczba dni do ostatecznej daty ostatniej raty.
 
-- `NFLAG_INSURED_ON_APPROVAL` – informacja, czy klient wybrał ubezpieczenie podczas składania wniosku.
+-   `DAYS_TERMINATION` – liczba dni do zakończenia kontraktu.
+
+-   `NFLAG_INSURED_ON_APPROVAL` – informacja, czy klient wybrał ubezpieczenie podczas składania wniosku.
 
 Podobnie jak w przypadku rat, braki w datach dotyczą głównie wniosków odrzuconych lub anulowanych. Zidentyfikowano jednak 603 rekordy o statusie zatwierdzonym, które mimo tego nie posiadają dat. Zdecydowano się sprawdzić inne pola (`AMT_CREDIT` - przyznana kwota kredytu i `CNT_PAYMENT` - liczba rat) dla tych 603 rekordów. Jeśli mają pełne dane finansowe, ale brakuje tylko terminów - to raczej jest to błąd. Jeśli brakuje też innych pól, to najpewniej kontrakt nigdy nie został uruchomiony mimo zaakceptowanego statusu.
 
@@ -359,7 +360,7 @@ summary_cnt %>%
   row_spec(0, bold = TRUE)
 ```
 
-Podobnie jak w przypadku rzeczywistych braków, również tutaj obserwujemy dwa odmienne scenariusze. Część rekordów posiada `CNT_PAYMENT` = 0 oraz oraz `AMT_CREDIT` = 0, co wskazuje, że mimo formalnego statusu „Zatwierdzony”, kontrakt nie został faktycznie uruchomiony i nie nadano mu parametrów spłaty. W takich przypadkach odstające wartości `DAYS` potraktowano jako braki danych, a same kontrakty jako nieaktywne.
+Podobnie jak w przypadku rzeczywistych braków, również tutaj obserwujemy dwa odmienne scenariusze. Część rekordów posiada `CNT_PAYMENT` = 0 oraz oraz `AMT_CREDIT` = 0, co wskazuje, że mimo formalnego statusu *„Zatwierdzony”*, kontrakt nie został faktycznie uruchomiony i nie nadano mu parametrów spłaty. W takich przypadkach odstające wartości `DAYS` potraktowano jako braki danych, a same kontrakty jako nieaktywne.
 
 Jednak część obserwacji posiada zarówno dodatnią liczbę rat (mediana 12, maksimum 60) jak i realne kwoty kredytu (mediana ok. 102 tys., maksimum 3,15 mln), co świadczy o tym, że warunki finansowe zostały ustalone, a produkt był przygotowany do uruchomienia. Brak dat harmonogramu wynika więc z błędu systemowego, a nie z decyzji klienta. Dla tej grupy zdecydowano się na imputację brakujących dat wartościami medianowymi wyznaczonymi dla porównywalnych produktów, aby odtworzyć realistyczny przebieg harmonogramu.
 
@@ -369,16 +370,13 @@ Jednak część obserwacji posiada zarówno dodatnią liczbę rat (mediana 12, m
 
 #### Ocena przydatności zmiennych dotyczących oprocentowania w kontekście niemal całkowitego braku danych
 
-`RATE_INTEREST_PRIMARY` to oprocentowanie podstawowe, czyli standardowa stopa procentowa przypisana do kredytu.
-`RATE_INTEREST_PRIVILEGED` to oprocentowanie uprzywilejowane, czyli specjalna, obniżona stopa dla wybranych klientów lub produktów.
+`RATE_INTEREST_PRIMARY` to oprocentowanie podstawowe, czyli standardowa stopa procentowa przypisana do kredytu. `RATE_INTEREST_PRIVILEGED` to oprocentowanie uprzywilejowane, czyli specjalna, obniżona stopa dla wybranych klientów lub produktów.
 
-Ponad 99% braków oznacza, że w praktyce te pola nie są wypełniane w bazie.
-Możliwe, że system nie rejestrował oprocentowania w tych zmiennych, albo były one używane tylko w wyjątkowych przypadkach. To zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
+Ponad 99% braków oznacza, że w praktyce te pola nie są wypełniane w bazie. Możliwe, że system nie rejestrował oprocentowania w tych zmiennych, albo były one używane tylko w wyjątkowych przypadkach. To zmienne praktycznie bezużyteczne – nie ma danych, najlepiej je usunąć ze zbioru, bo nie wniosą informacji.
 
 #### Incydentalne braki w zmiennej opisującej kombinacje produktów kredytowych
 
-Zmienne `PRODUCT_COMBINATION` mają tylko 4 braki (0,02%), czyli praktycznie nie występują w zbiorze. Zmienna ta opisuje kombinację produktów kredytowych (np. kredyt gotówkowy + karta kredytowa, kredyt ratalny + ubezpieczenie).
-NA stanowią śladową liczbę obserwacji – można je traktować jako incydentalne braki, nie wpływają one na całość danych.
+Zmienne `PRODUCT_COMBINATION` mają tylko 4 braki (0,02%), czyli praktycznie nie występują w zbiorze. Zmienna ta opisuje kombinację produktów kredytowych (np. kredyt gotówkowy + karta kredytowa, kredyt ratalny + ubezpieczenie). NA stanowią śladową liczbę obserwacji – można je traktować jako incydentalne braki, nie wpływają one na całość danych.
 
 #### Analiza braków danych dotyczących wartości towaru i ich związek ze statusem kontraktu
 
@@ -462,9 +460,9 @@ W zmiennej `NAME_TYPE_SUITE` występuje 12 246 braków, co stanowi prawie połow
 
 Zmienna ta opisuje, kto towarzyszył klientowi podczas składania wniosku (np. członek rodziny, znajomy, partner). Braki mogą być naturalne:
 
-- klient mógł przyjść samodzielnie, więc informacja o osobie towarzyszącej nie istnieje,
+-   klient mógł przyjść samodzielnie, więc informacja o osobie towarzyszącej nie istnieje,
 
-- bank mógł nie zbierać tej informacji w każdym przypadku, traktując ją jako dodatkową, nieobowiązkową.
+-   bank mógł nie zbierać tej informacji w każdym przypadku, traktując ją jako dodatkową, nieobowiązkową.
 
 Braki zostaną zaklasyfikowane jako nowa kategoria "Unknown", gdyż mogą nieść informację o samodzielnym składaniu wniosku przez klienta.
 
@@ -497,9 +495,9 @@ tab_app0 %>%
 
 ```
 
-Wartości `AMT_APPLICATION` = 0 występują przede wszystkim w kontraktach Anulowanych (4596) oraz Odmówionych (578), co jest zgodne z logiką procesu — brak kwoty aplikowanej oznacza, że wniosek nie przeszedł do etapu pełnej parametryzacji. Niewielka liczba przypadków dotyczy statusu Niewykorzystana oferta (6), co również jest spójne z sytuacją, w której klient nie finalizuje procesu.
+Wartości `AMT_APPLICATION` = 0 występują przede wszystkim w kontraktach *Anulowanych* (4596) oraz *Odmówionych* (578), co jest zgodne z logiką procesu — brak kwoty aplikowanej oznacza, że wniosek nie przeszedł do etapu pełnej parametryzacji. Niewielka liczba przypadków dotyczy statusu *Niewykorzystana oferta* (6), co również jest spójne z sytuacją, w której klient nie finalizuje procesu.
 
-Jednak szczególnej uwagi wymagaja 665 kontraktów o statusie zatwierdzonym.W tej grupie brak kwoty aplikowanej nie jest logicznym elementem procesu i może wskazywać na błąd systemowy lub niekompletne zapisanie danych w momencie decyzji kredytowej. Aby ustalić, czy zatwierdzone kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych
+Jednak szczególnej uwagi wymagaja 665 kontraktów o statusie *zatwierdzonym*.W tej grupie brak kwoty aplikowanej nie jest logicznym elementem procesu i może wskazywać na błąd systemowy lub niekompletne zapisanie danych w momencie decyzji kredytowej. Aby ustalić, czy zatwierdzone kontrakty były faktycznie przygotowane do uruchomienia, konieczne jest sprawdzenie ich parametrów finansowych
 
 ```{r werfyfikacja amt_app, echo=FALSE}
 library(dplyr)
@@ -548,25 +546,25 @@ summary_app0 %>%
   row_spec(0, bold = TRUE)
 ```
 
-W danych dostrzegamy anomalię: zatwierdzone kontrakty z `AMT_APPLICATION` = 0, ale z dodatnią kwotą kredytu (`AMT_CREDIT` > 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
+W danych dostrzegamy anomalię: zatwierdzone kontrakty z `AMT_APPLICATION` = 0, ale z dodatnią kwotą kredytu (`AMT_CREDIT` \> 0). Takie rekordy są niespójne – klient nie wnioskował o żadną kwotę, a mimo to kredyt został przyznany.
 
 Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` = 0, traktujemy to jako brak danych, zamieniamy na NA. To są martwe wnioski, nie ma sensu trzymać zera jako „wnioskowanej kwoty”.
 
-Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` > 0, to imputujemy `AMT_APPLICATION` wartością z `AMT_CREDIT`. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
+Jeśli `AMT_APPLICATION` = 0 i `AMT_CREDIT` \> 0, to imputujemy `AMT_APPLICATION` wartością z `AMT_CREDIT`. W praktyce oznacza to, że skoro kredyt został przyznany, to kwota wnioskowana musiała być zbliżona do przyznanej.
 
 W pozostałych przypadkach zostawiamy wartość bez zmian.
 
 ### Strategia czyszczenia danych oparta na logice procesów kredytowych i imputacji biznesowej
 
-Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze nie jest przypadkowe, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie anulowanym, odmówionym oraz przy niewykorzystanych ofertach. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
+Na podstawie przeprowadzonej analizy brakujących wartości (EDA), stwierdzono, że występowanie NA w zbiorze [nie jest przypadkowe]{.underline}, lecz ściśle powiązane z logiką procesów kredytowych. Większość braków w kluczowych zmiennych finansowych i harmonogramowych występuje przy wnioskach o statusie *anulowanym*, *odmówionym* oraz przy *niewykorzystanych ofertach*. Oznacza to, że parametry takie jak rata kredytu, liczba płatności czy dokładne daty spłat fizycznie nie istnieją dla kontraktów, które nigdy nie weszły w fazę realizacji.
 
-Zastosowana strategia czyszczenia danych opiera się na imputacji biznesowej, a nie statystycznej. Zamiast usuwać rekordy lub stosować średnie, nadajemy brakom znaczenie analityczne:
+Zastosowana strategia czyszczenia danych opiera się na imputacji **biznesowej**, a nie statystycznej. Zamiast usuwać rekordy lub stosować średnie, nadajemy brakom znaczenie analityczne:
 
-- W polach kwotowych i liczbowych (np. wkład własny, rata) wartości NA zastępujemy zerami, co pozwala zachować pełną bazę do analizy ryzyka.
+-   W polach **kwotowych i liczbowych** (np. wkład własny, rata) wartości NA zastępujemy zerami, co pozwala zachować pełną bazę do analizy ryzyka.
 
-- W zmiennych kategorycznych tworzymy nową klasę „Unknown”, traktując brak informacji jako istotną cechę klienta.
+-   W zmiennych **kategorycznych** tworzymy nową klasę „*Unknown*”, traktując brak informacji jako istotną cechę klienta.
 
-- Usuwamy zmienne dotyczące stóp procentowych ze względu na niemal całkowity brak danych (99%), co uniemożliwia ich rzetelne wykorzystanie.
+-   Usuwamy zmienne dotyczące stóp procentowych ze względu na niemal całkowity brak danych (99%), co uniemożliwia ich rzetelne wykorzystanie.
 
 #### Implementacja reguł imputacji wynikających z analizy procesowej i struktury braków danych
 
@@ -636,4 +634,3 @@ dane_clean <- dane %>%
   )
 )
 ```
-
