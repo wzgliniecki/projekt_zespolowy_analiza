@@ -1,3 +1,9 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
 ```{r setup_packages, include=FALSE, echo=FALSE}
 # Lista wymaganych pakietów
 required_packages <- c("tidyverse", "knitr", "MASS", "broom", "pROC", "ggstatsplot", "moments", "gt", "vcd", "tibble", "nnet")
@@ -23,36 +29,51 @@ cat("✓ Wszystkie pakiety załadowane pomyślnie\n")
 
 # Wprowadzenie do analizy procesu oceny ryzyka kredytowego
 
-Studium przypadku „Kredyty - Identyfikacja docelowych odbiorców
-pożyczki” koncentruje się na analizie ryzyka w procesie udzielania
+Studium przypadku **„Kredyty - Identyfikacja docelowych odbiorców
+pożyczki”** koncentruje się na analizie ryzyka w procesie udzielania
 finansowania klientom. Wykorzystując techniki eksploracyjnej analizy
 danych (EDA), projekt ma na celu zrozumienie, w jaki sposób cechy
 konsumentów oraz parametry pożyczek wpływają na prawdopodobieństwo
 terminowej spłaty zobowiązań.
 
- W analizowanym zbiorze danych nie posiadamy informacji o cechach demograficznych klientów. Punktem wyjścia stają się więc same kontrakty kredytowe oraz ich statusy, które odzwierciedlają przebieg procesu decyzyjnego i operacyjnego.
-Celem jest zrozumienie, jakie czynniki — spośród dostępnych w danych — różnicują kontrakty zakończone zatwierdzeniem, anulowaniem, odmową lub niewykorzystaniem oferty. W związku z tym niniejsze studium przypadku stawia następujące pytania badawcze:
+W analizowanym zbiorze danych nie posiadamy informacji o cechach
+demograficznych klientów. Punktem wyjścia stają się więc same kontrakty
+kredytowe oraz ich statusy, które odzwierciedlają przebieg procesu
+decyzyjnego i operacyjnego. Celem jest zrozumienie, jakie czynniki —
+spośród dostępnych w danych — różnicują kontrakty zakończone
+**zatwierdzeniem**, **anulowaniem**, **odmową** lub **niewykorzystaniem
+oferty**. W związku z tym niniejsze studium przypadku stawia następujące
+pytania badawcze:
 
--	Jakie wzorce braków danych występują w zbiorze i co mówią o logice procesów kredytowych?
+-   Jakie wzorce braków danych występują w zbiorze i co mówią o logice
+    procesów kredytowych?
 
--	Jak różnią się statusy kontraktów pod względem kluczowych parametrów finansowych (kwota kredytu, liczba rat, cena towaru)?
+-   Jak różnią się statusy kontraktów pod względem kluczowych parametrów
+    finansowych (kwota kredytu, liczba rat, cena towaru)?
 
--	Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo anulowania, odmowy lub niewykorzystania oferty?
+-   Czy wysokość kwoty kredytu wpływa na prawdopodobieństwo anulowania,
+    odmowy lub niewykorzystania oferty?
 
--	Jak typ klienta różnicuje rozkład statusów kontraktu?
+-   Jak typ klienta różnicuje rozkład statusów kontraktu?
 
 ## Charakterystyka wykorzystanego zbioru danych i jego struktury informacyjnej
 
 W niniejszym projekcie wykorzystane zostaną dane z pliku
-„previous_application_new.csv”, zawierającego informacje o decyzjach
+*„previous_application_new.csv”*, zawierającego informacje o decyzjach
 kredytowych (zatwierdzone, anulowane, odrzucone, niewykorzystane), oraz
-słownik zmiennych „opis_zmiennych.xlsx”, który ułatwi interpretację
+słownik zmiennych *„opis_zmiennych.xlsx”,* który ułatwi interpretację
 atrybutów. Analiza pozwoli wskazać wzorce zachowań klientów i czynniki
 ryzyka, które mogą wspierać proces podejmowania decyzji kredytowych.
 
 ## Zestaw użytych bibliotek zastosowanych w analizie
 
-W dokumencie wykorzystano zestaw bibliotek służących do wczytywania, czyszczenia, przekształcania i wizualizacji danych, takich jak `tidyverse`, `dplyr`, `ggplot2`, `naniar`, `VIM` czy `corrplot`. Dodatkowo użyto pakietów wspierających modelowanie statystyczne i ocenę jakości modeli, m.in. . `leaps`, `pROC`, `caret` oraz narzędzi do tworzenia interaktywnych tabel i wykresów, takich jak `gt`, `kableExtra`, `plotly` i `networkD3`.
+W dokumencie wykorzystano zestaw bibliotek służących do wczytywania,
+czyszczenia, przekształcania i wizualizacji danych, takich jak
+`tidyverse`, `dplyr`, `ggplot2`, `naniar`, `VIM` czy `corrplot`.
+Dodatkowo użyto pakietów wspierających modelowanie statystyczne i ocenę
+jakości modeli, m.in. . `leaps`, `pROC`, `caret` oraz narzędzi do
+tworzenia interaktywnych tabel i wykresów, takich jak `gt`,
+`kableExtra`, `plotly` i `networkD3`.
 
 ```{r zaladuj_biblioteki, message=FALSE, echo=FALSE, warning=FALSE}
 library(readr)

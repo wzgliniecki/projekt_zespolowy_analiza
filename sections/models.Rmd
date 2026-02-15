@@ -1,13 +1,19 @@
+---
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
 # Modelowanie predykcyjne decyzji kredytowych z wykorzystaniem regresji logistycznej
 
 Celem odpowiedzi na pytania badawcze, zbudowane zostaną 3 modele.
 
-1. **Model 1**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - wszystkie zmienne
-2. **Model 2**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (Approved vs reszta) - tylko zmienne finansowe
-3. **Model 3**: Regresja logistyczna wielokategoryczna dla wszystkich decyzji - co możemy wywnioskować na temat danych kategorii?
+1.  **Model 1**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (*Zatwierdzone* vs reszta) - wszystkie zmienne
+2.  **Model 2**: Logitowy model przewidujący czy aplikacja zostanie zaakceptowana czy odrzucona? (*Zatwierdzone* vs reszta) - tylko zmienne finansowe
+3.  **Model 3**: Regresja logistyczna wielokategoryczna dla wszystkich decyzji - co możemy wywnioskować na temat danych kategorii?
 
 W dalszej części analizy porównana zostanie moc predykcyjna Modeli 1 i 2, aby ocenić, czy zmienne finansowe same w sobie są wystarczające do przewidywania decyzji kredytowej, czy też dodatkowe zmienne poprawiają dokładność modelu.
-A jeżeli tak to w jakim stopniu. 
+A jeżeli tak to w jakim stopniu.
 
 Pod każdym modelem zostaną wyświetlone tylko te wartości parametrów, które są statystycznie istotne, reszta została odfiltrowana, w celu lepszej czytelności wyników.
 
@@ -15,37 +21,33 @@ Pod każdym modelem zostaną wyświetlone tylko te wartości parametrów, które
 
 $$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k$$
 
-gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji. $\beta_n$ to $n-ta$ waga przypisana do zmiennej $X_n$. 
+gdzie $p$ to prawdopodobieństwo zatwierdzenia aplikacji.
+$\beta_n$ to $n-ta$ waga przypisana do zmiennej $X_n$.
 $\beta_0$ to wyraz wolny.
 
 Obliczając wartość takiego wyrażania otrzymujemy logit ilorazu szans, który wymaga dodatkowej interpretacji.
 
 Przykład:
 
-Załóżmy, że dla zmiennej \(X_1\) otrzymano wartość:
+Załóżmy, że dla zmiennej $X_1$ otrzymano wartość:
 
-\[
+$$
 \beta_1 = -0.4.
-\]
-Iloraz szans (odds ratio) obliczamy jako:
+$$ Iloraz szans (odds ratio) obliczamy jako:
 
-\[
+$$
 \text{OR}_1 = e^{\beta_1} = e^{-0.4} \approx 0.67.
-\]
+$$
 
 Interpretacja:
 
-Wzrost zmiennej \(X_1\) o jednostkę powoduje spadek szans zajścia zdarzenia o około \(33\%\), ponieważ
+Wzrost zmiennej $X_1$ o jednostkę powoduje spadek szans zajścia zdarzenia o około $33\%$, ponieważ
 
-
-\[
+$$
 0.67 - 1 = -0.33.
-\]
+$$
 
-
-
-Gdyby \(\beta_1\) było dodatnie, oznaczałoby to wzrost szans zajścia zdarzenia.
-
+Gdyby $\beta_1$ było dodatnie, oznaczałoby to wzrost szans zajścia zdarzenia.
 
 ## Postać modelu regresji logistycznej wielokategorowej
 
@@ -53,18 +55,14 @@ $$\log\left(\frac{P(Y=j)}{P(Y=0)}\right) = \beta_0^{(j)} + \sum_{i=1}^{k} \beta_
 
 znaczenie zmiennych identyczne jak w modelu logitowym, z dodatkowym indeksem $j$ oznaczającym kategorię docelową.
 
-Ze względu na charakter modelu, część zmiennych pokazuje dane dummy variables - może się okazać że statystycznie istotny jest np. tylko kredyt na samochód, a nie cała kategoria jako taka.
+Ze względu na charakter modelu, część zmiennych pokazuje dane dummy variables - może się okazać że statystycznie istotny jest np.
+tylko kredyt na samochód, a nie cała kategoria jako taka.
 
 Przykład interpretacji wartości logitu:
 
-Przykład interpretacji współczynnika w modelu regresji logistycznej wielokategorowej:
- Dla kategorii \(j\) względem kategorii referencyjnej (np. "Zatwierdzony") otrzymano: \[ \beta_i^{(j)} = 0.6. \] 
- Iloraz szans obliczamy jako: \[ \text{OR}_i^{(j)} = e^{0.6} \approx 1.82. \] 
- Interpretacja: Wzrost zmiennej \(X_i\) o jednostkę zwiększa szanse, że obserwacja trafi do kategorii \(j\), 
- a nie do kategorii referencyjnej, o około \(82\%\). 
+Przykład interpretacji współczynnika w modelu regresji logistycznej wielokategorowej: Dla kategorii $j$ względem kategorii referencyjnej (np. "*Zatwierdzony*") otrzymano: $$ \beta_i^{(j)} = 0.6. $$ Iloraz szans obliczamy jako: $$ \text{OR}_i^{(j)} = e^{0.6} \approx 1.82. $$ Interpretacja: Wzrost zmiennej $X_i$ o jednostkę zwiększa szanse, że obserwacja trafi do kategorii $j$, a nie do kategorii referencyjnej, o około $82\%$.
 
 Analogicznie - ujemny współczynnik zmniejszałby szansę.
-
 
 ```{r przygotowanie_danych_modelowanie, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Zmienne finansowe
@@ -103,7 +101,8 @@ dane_model <- dane_clean %>%
 ```
 
 ## Model 1: Binarna regresja logistyczna oparta na pełnym zestawie zmiennych
-Model ten oceni na bazie wszystkich dostępnych zmiennych czy aplikacja zostanie zatwierdzona czy odrzucona. 
+
+Model ten oceni na bazie wszystkich dostępnych zmiennych czy aplikacja zostanie *zatwierdzona* czy *odrzucona*.
 Zostanie użyty do późniejszego porównania z modelem 2, który będzie używał tylko zmiennych finansowych.
 Zostanie także zinterpretowany najsilniejszy predyktor modelu.
 
@@ -222,17 +221,18 @@ interpretacja_m1 <- data.frame(
 )
 ```
 
-
-Model osiąga wysoką czułość (0.967), co oznacza, że bardzo skutecznie identyfikuje przypadki `Approved`, natomiast niska specyficzność (0.3578) wskazuje, że słabo rozpoznaje wnioski odrzucane. 
+Model osiąga wysoką czułość (0.967), co oznacza, że bardzo skutecznie identyfikuje przypadki *Zatwierdzone*, natomiast niska specyficzność (0.3578) wskazuje, że słabo rozpoznaje wnioski odrzucane.
 AUC na poziomie 0.7908 sugeruje dobrą, choć nie idealną zdolność separacji klas, a dokładność równa 0.835 pokazuje stabilną ogólną skuteczność modelu.
 
-Najsilniejszym predyktorem jest zmienna `NAME_PORTFOLIOPOS`. Jest to zmienna typu dummy opisująca konkretną wartość przyjmowaną przez zmienną `NAME_PORTFOLIO`.
+Najsilniejszym predyktorem jest zmienna `NAME_PORTFOLIOPOS`.
+Jest to zmienna binarna opisująca konkretną wartość przyjmowaną przez zmienną `NAME_PORTFOLIO`.
 W tym wypadku oznacza ona kredyty przyznawane w punktach sprzedaży AGD/RTV oraz tym podobne niskokwotowe pożyczki.
-Iloraz szans w tym wypadku wynosi około 12.9 — oznacza to, że wnioski z portfela POS mają ponad dwunastokrotnie wyższe szanse akceptacji niż kategoria bazowa, przy kontroli pozostałych zmiennych.
-Interpretować należy to raczej jednak jako korelację niż konkretna przyczyna - takie wnioski z natury mają większą szansę na akceptację przed kredytodawcę, chociażby ze względu na mniejsze kwoty czy umowy banku ze sklepem.
+Iloraz szans w tym wypadku wynosi około 12.9 — oznacza to, że [wnioski z portfela POS mają ponad dwunastokrotnie wyższe szanse akceptacji]{.underline} niż kategoria bazowa, przy kontroli pozostałych zmiennych.
+Interpretować należy to raczej jednak jako korelację niż konkretną przyczynę - takie wnioski z natury mają większą szansę na akceptację przed kredytodawcę, chociażby ze względu na mniejsze kwoty czy umowy banku ze sklepem.
 
 ## Model 2: Binarna regresja logistyczna oparta wyłącznie na zmiennych finansowych
-Podobnie jak model 1, model 2 będzie przewidywał czy aplikacja zostanie zatwierdzona czy odrzucona.
+
+Podobnie jak model 1, model 2 będzie przewidywał czy aplikacja zostanie *zatwierdzona* czy *odrzucona*.
 Jednak cenem oceny istotności danych niefinansowych (np. cel pożyczki), zostaną użyte wyłącznie zmienne finansowe.
 
 ```{r model2_financial_only, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
@@ -304,7 +304,6 @@ gt(metryki_m2) %>%
   tab_options(table.font.size = "small")
 ```
 
-
 ```{r model2_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Wszystkie współczynniki modelu - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
 coef_full_m2 <- broom::tidy(model_m2) %>%
@@ -334,18 +333,19 @@ if (nrow(coef_full_m2) > 0) {
 }
 ```
 
-Model 2 osiąga wysoką czułość (0.9824), co oznacza, że niemal wszystkie przypadki `Approved` są poprawnie wykrywane, jednak bardzo niska specyficzność (0.1248) wskazuje, że model prawie w ogóle nie rozpoznaje odrzuceń. 
+Model 2 osiąga wysoką czułość (0.9824), co oznacza, że niemal wszystkie przypadki *Zatwierdzone* są poprawnie wykrywane, jednak bardzo niska specyficzność (0.1248) wskazuje, że model prawie w ogóle nie rozpoznaje odrzuceń.
 AUC na poziomie 0.7240 jest zauważalnie niższe niż w Modelu 1, a dokładność 0.7966 potwierdza, że model oparty wyłącznie na zmiennych finansowych ma ograniczoną zdolność separacji klas.
 
-Najsilniejszym predyktorem jest `RATE_DOWN_PAYMENT` z ilorazem szans około 350, co oznacza, że wyższy udział wkładu własnego dramatycznie zwiększa szanse akceptacji wniosku. 
-Sugeruje to że w wypadku porzucenia zmiennych pozafinansowych, wkład własny staje się kluczowym czynnikiem decyzyjnym.
- Jest to zgodne z intuicją biznesową - wysoki wkład własny oznacza większe środki kredytobiorcy, a do tego na starcie zmniejsza kwotę kredytu do spłaty.
-
+Najsilniejszym predyktorem jest `RATE_DOWN_PAYMENT` z ilorazem szans około 350, co oznacza, że [wyższy udział wkładu własnego]{.underline} dramatycznie [zwiększa szanse akceptacji]{.underline} wniosku.
+Sugeruje to, że w wypadku porzucenia zmiennych pozafinansowych, wkład własny staje się kluczowym czynnikiem decyzyjnym.
+Jest to zgodne z intuicją biznesową - wysoki wkład własny oznacza większe środki kredytobiorcy, a do tego na starcie zmniejsza kwotę kredytu do spłaty.
 
 ## Model 3: Wielokategorialna regresja logistyczna dla pełnego spektrum decyzji kredytowych
-Model ten pokazuje jakie są szanse przypisania do każdej z kategorii decyzji kredytowej, w porównaniu do kategorii referencyjnej "Zatwierdzony".
+
+Model ten pokazuje jakie są szanse przypisania do każdej z kategorii decyzji kredytowej, w porównaniu do kategorii referencyjnej "*Zatwierdzony*".
 Zmienne oceniające model takie jak wartość AIC zostały podane tylko dla informacji czytelnika - nie będzie go porównywać z poprzednimi modelami ze względu na inną naturę problemu.
 Zostanie dokonana także interpretacja najbardziej znaczącego współczynnika dla każdej kategorii.
+
 ```{r model3_multinomial, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
 # Przygotowanie danych dla modelu wielokategorycznego
 dane_m3_temp <- dane_model %>%
@@ -415,7 +415,6 @@ dane_m3 <- dane_m3_temp %>%
 
 ```
 
-
 ```{r model3_parametry, echo=FALSE, warning=FALSE, message=FALSE, cache=cache_models}
   # Tabela współczynników - FILTRUJEMY TYLKO ISTOTNE (p < 0.05)
   coef_m3_filtered <- data.frame(
@@ -448,16 +447,17 @@ dane_m3 <- dane_m3_temp %>%
   }
 
 ```
-Model 3 pokazuje, że każda z alternatywnych decyzji („Odmowa”, „Anulowany”, „Niewykorzystana oferta”) ma własny, odmienny profil predykcyjny względem kategorii referencyjnej `Zatwierdzony`.
 
-Dla kategorii `Odmowa` najsilniejszym predyktorem jest `CNT_PAYMENT` (współczynnik −17.39).
+Model 3 pokazuje, że każda z alternatywnych decyzji („*Odmowa*”, „*Anulowany*”, „*Niewykorzystana oferta*”) ma własny, odmienny profil predykcyjny względem kategorii referencyjnej „*Zatwierdzony"*.
+
+Dla kategorii *Odmowa* najsilniejszym predyktorem jest `CNT_PAYMENT` (współczynnik −17.39).
 Dłuższy okres kredytowania będzie korelował z wysoką kwotą kredytu, a także z gorszą sytuacją finansową klienta.
 
-Dla kategorii `Anulowany` najbardziej wyróżnia się `NAME_CONTRACT_TYPERevolving loans` (współczynnik −46.09).
-Revolving loans to kredyty odnawialne, które klienci mogą spłacać i ponownie wykorzystywać w ramach przyznanego limitu. 
-Dane te wyłapują więc najpewniej ludzi, którzy zrezygnowali z takiego produktu po pewnym czasie, a nie "anulowane" kredyty w sensie formalnym.
+Dla kategorii *Anulowany* najbardziej wyróżnia się `NAME_CONTRACT_TYPERevolving loans` (współczynnik −46.09).
+Revolving loans to kredyty odnawialne, które klienci mogą spłacać i ponownie wykorzystywać w ramach przyznanego limitu.
+Dane te wyłapują więc najpewniej ludzi, którzy zrezygnowali z takiego produktu po pewnym czasie, a nie "*anulowane*" kredyty w sensie formalnym.
 
-Dla kategorii `Niewykorzystana oferta` najsilniejszym predyktorem jest dummy variable `CHANNEL_TYPECredit and cash offices` (współczynnik 11.12).
+Dla kategorii *Niewykorzystana oferta* najsilniejszym predyktorem jest zmienna binarna `CHANNEL_TYPECredit and cash offices` (współczynnik 11.12).
 Wskazuje to na specyfikę kanału, w którym klienci częściej rezygnują po otrzymaniu poprzedniego kredytu w siedzibie banku.
 Grupa która była w stanie otrzymać i spłacić poprzedni kredyt, jest najbardziej skłonna do zrezygnowania z nowej oferty, pomimo akceptacji.
 Można uznać że mają oni największe środki i najmniejszą potrzebę zaciągania kolejnych zobowiązań, wobec czego oferta kredytowa jest dla nich mniej atrakcyjna.
@@ -516,18 +516,17 @@ Można uznać że mają oni największe środki i najmniejszą potrzebę zaciąg
 
 
 ```
-Dane te pokazują że zmienne niefinansowe mają realny wpływ na dopasownie modelu. Niższa wartość AIC mówi nam że model 1 lepiej
-opisuje zależność między cechami klienta a decyzją kredytową niż model 2, nie uwzględniający danych w stylu celu pożyczki.
 
-Model 2 ma jednak wyższą czułość (sensitivity), co oznacza że lepiej wykrywa faktyczne zatwierdzenia kredytów, jednak kosztem
-większej ilości fałszywych alarmów. Model jest więc zbyt optymistyczny.
+Dane te pokazują że zmienne niefinansowe mają realny wpływ na dopasownie modelu.
+Niższa wartość AIC mówi nam że model 1 lepiej opisuje zależność między cechami klienta a decyzją kredytową niż model 2, nie uwzględniający danych w stylu celu pożyczki.
+
+Model 2 ma jednak wyższą czułość (sensitivity), co oznacza że lepiej wykrywa faktyczne zatwierdzenia kredytów, jednak kosztem większej ilości fałszywych alarmów.
+Model jest więc zbyt optymistyczny.
 
 Specyficzność (specificity) jest wyższa w modelu 1, co oznacza że lepiej identyfikuje odmowy kredytów.
 
-Różnica w R2 McFaddena między modelami jest bardzo wyraźna: Model 1 osiąga 0.2348, podczas gdy Model 2 jedynie 0.0986.
- W logitach wartości powyżej 0.2 uznaje się za dobre dopasowanie, natomiast wartości poniżej 0.1 wskazują na słabą moc wyjaśniającą.
-  Oznacza to, że zmienne niefinansowe znacząco zwiększają zdolność modelu do wyjaśniania decyzji kredytowych,
-   a Model 2 — pozbawiony tych informacji — traci dużą część struktury zależności obecnej w danych.
+Różnica w *R2 McFaddena* między modelami jest bardzo wyraźna: Model 1 osiąga 0.2348, podczas gdy Model 2 jedynie 0.0986.
+W logitach wartości powyżej 0.2 uznaje się za dobre dopasowanie, natomiast wartości poniżej 0.1 wskazują na słabą moc wyjaśniającą.
+Oznacza to, że zmienne niefinansowe znacząco zwiększają zdolność modelu do wyjaśniania decyzji kredytowych, a Model 2 — pozbawiony tych informacji — traci dużą część struktury zależności obecnej w danych.
 
-Analiza modeli wydaje się potwierdzać tezę, że dane niefinansowe mają istotny wpływ na decyzje kredytowe
- i ich uwzględnienie jest niezbędne do budowy skutecznych modeli predykcyjnych. 
+Analiza modeli wydaje się potwierdzać tezę, że [dane niefinansowe mają istotny wpływ na decyzje kredytowe]{.underline} i ich uwzględnienie jest niezbędne do budowy skutecznych modeli predykcyjnych.

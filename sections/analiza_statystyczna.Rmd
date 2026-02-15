@@ -4,7 +4,7 @@ W tej sekcji przeprowadzamy ilościową analizę kluczowych zmiennych w zbiorze 
 
 ## Statystyki opisowe kluczowych zmiennych numerycznych
 
-Poniższa tabela przedstawia podstawowe statystyki opisowe dla kluczowych zmiennych numerycznych wykorzystanych w analizie. Obejmują one zarówno zmienne finansowe i  czasowe opisujące przebieg procesu kredytowego.
+Poniższa tabela przedstawia podstawowe statystyki opisowe dla kluczowych zmiennych numerycznych wykorzystanych w analizie. Obejmują one zarówno zmienne **finansowe** i **czasowe** opisujące przebieg procesu kredytowego.
 
 W zmiennych, w których wartość 0 oznaczała brak danych wynikający z imputacji (m.in. `AMT_ANNUITY`, `CNT_PAYMENT`, `AMT_DOWN_PAYMENT`, `RATE_DOWN_PAYMENT`, `AMT_GOODS_PRICE`), zera zostały wyłączone z obliczeń, aby nie zaniżały średnich i kwartylów. W pozostałych przypadkach zera zostały zachowane jako wartości rzeczywiste.
 
@@ -103,39 +103,37 @@ stats_summary %>%
 
 Zmienne numeryczne można podzielić na trzy główne grupy:
 
-- Kwoty finansowe
-  - `AMT_ANNUITY` – rata kredytu
-  - `AMT_APPLICATION` – kwota wnioskowana
-  - `AMT_CREDIT` – kwota przyznana
-  - `AMT_DOWN_PAYMENT` – wkład własny
-  - `AMT_GOODS_PRICE` – wartość towaru
-  - `RATE_DOWN_PAYMENT` – procent wkładu własnego
-  
-Mają one bardzo szeroki zakres wartości (od kilku tysięcy do ponad 3 mln). Do tego charakteryzyją się wysoką skośnością i kurtozą, co oznacza obecność ekstremalnie dużych kwot. Mediany natomiast są znacznie niższe od średnich, co potwierdza, że większość klientów bierze mniejsze kredyty, a tylko nieliczni bardzo duże.
+-   **Kwoty finansowe**
+    -   `AMT_ANNUITY` – rata kredytu
+    -   `AMT_APPLICATION` – kwota wnioskowana
+    -   `AMT_CREDIT` – kwota przyznana
+    -   `AMT_DOWN_PAYMENT` – wkład własny
+    -   `AMT_GOODS_PRICE` – wartość towaru
+    -   `RATE_DOWN_PAYMENT` – procent wkładu własnego
 
-- Parametry harmonogramu
-  - `CNT_PAYMENT` – liczba rat
+Mają one bardzo **szeroki zakres wartości** (od kilku tysięcy do ponad 3 mln). Do tego charakteryzyją się **wysoką skośnością i kurtozą**, co oznacza obecność ekstremalnie dużych kwot. Mediany natomiast są **znacznie niższe** od średnich, co potwierdza, że większość klientów bierze mniejsze kredyty, a tylko nieliczni bardzo duże.
 
-Dominują krótkie i średnie okresy spłaty. Mediana liczby rat to 12, średnia 18, ale maksymalnie występuje 84 raty, co tworzy skośność 1.62. Oznacza to, że większość klientów wybiera krótkie lub średnie okresy spłaty, a długie harmonogramy są rzadkie.
+-   **Parametry harmonogramu**
+    -   `CNT_PAYMENT` – liczba rat
 
-- Zmienne czasowe (dni względem decyzji)
-  - `DAYS_DECISION` -  dni między złożeniem wniosku a decyzją kredytową
-  - `DAYS_FIRST_DRAWING` - dni do pierwszego uruchomienia środków
-  - `DAYS_FIRST_DUE` - dni do pierwszej raty
-  - `DAYS_LAST_DUE` - dni do ostatniej raty
-  - `DAYS_TERMINATION`  - dni do zakończenia kontraktu
+Dominują **krótkie i średnie** okresy spłaty. Mediana liczby rat to 12, średnia 18, ale maksymalnie występuje 84 raty, co tworzy skośność 1.62. Oznacza to, że większość klientów wybiera krótkie lub średnie okresy spłaty, a długie harmonogramy są rzadkie.
+
+-   **Zmienne czasowe** (dni względem decyzji)
+    -   `DAYS_DECISION` - dni między złożeniem wniosku a decyzją kredytową
+    -   `DAYS_FIRST_DRAWING` - dni do pierwszego uruchomienia środków
+    -   `DAYS_FIRST_DUE` - dni do pierwszej raty
+    -   `DAYS_LAST_DUE` - dni do ostatniej raty
+    -   `DAYS_TERMINATION` - dni do zakończenia kontraktu
 
 Zmienne czasowe opisują harmonogram i przebieg procesu kredytowego w odniesieniu do daty decyzji. `DAYS_DECISION` ze średnią: −884, i medianą −588 - większość decyzji zapada ok. 1,5 roku po pierwszym kontakcie klienta. Mediana i oba kwartyle `DAYS_FIRST_DRAWING` równe −632 wskazują, że pierwsze uruchomienie środków jest planowane w bardzo podobnym momencie względem decyzji dla niemal wszystkich klientów. `DAYS_FIRST_DUE` , `DAYS_LAST_DUE` i `DAYS_TERMINATION` mają dużą rozpiętość, co odzwierciedla różne długości kredytów i różne harmonogramy spłat. `DAYS_FIRST_DUE` jest najbardziej odległy od decyzji, bo opisuje początek harmonogramu. `DAYS_LAST_DUE` i `DAYS_TERMINATION` są do siebie bardzo zbliżone, bo oba opisują koniec cyklu kredytowego.
 
 ## Standaryzacja parametrów kredytowych i analiza odchyleń od wartości przeciętnych
 
-Przeprowadzono analizę standaryzowanych wartości (Z-score) wybranych zmiennych ilościowych związanych z konstrukcją kredytu: wysokość raty (`AMT_ANNUITY`), kwotę wnioskowaną (`AMT_APPLICATION`), wkład własny (`AMT_DOWN_PAYMENT`) oraz liczbę rat (`CNT_PAYMENT`). Standaryzacja pozwala porównywać te zmienne na wspólnej skali, niezależnie od ich jednostek i poziomu wartości.
-Z-score mierzy, o ile typowych odchyleń dana obserwacja odbiega od średniej. 
-Wartości:
+Przeprowadzono analizę standaryzowanych wartości (*Z-score*) wybranych zmiennych ilościowych związanych z konstrukcją kredytu: wysokość raty (`AMT_ANNUITY`), kwotę wnioskowaną (`AMT_APPLICATION`), wkład własny (`AMT_DOWN_PAYMENT`) oraz liczbę rat (`CNT_PAYMENT`). Standaryzacja pozwala porównywać te zmienne na wspólnej skali, niezależnie od ich jednostek i poziomu wartości. Z-score mierzy, o ile typowych odchyleń dana obserwacja odbiega od średniej. Wartości:
 
-- Z > 0 - obserwacje powyżej średniej,
-- Z < 0 – obserwacje poniżej średniej,
-- |Z| > 2 -  obserwacje dość nietypowe względem reszty danych.
+-   Z \> 0 - obserwacje powyżej średniej,
+-   Z \< 0 – obserwacje poniżej średniej,
+-   \|Z\| \> 2 - obserwacje dość nietypowe względem reszty danych.
 
 ```{r standaryzacja_zmiennych, echo=FALSE}
 # Przygotowanie danych - fokus na zmiennych związanych z kwotami i ratami
@@ -174,32 +172,31 @@ z_summary <- data_standardized %>%
 kable(z_summary, digits = 3, caption = "Średnie wartości Z-score dla zmiennych w podziale na status kontraktu")
 ```
 
-Klienci anulujący mają raty wyraźnie poniżej niż przeciętne (`AMT_ANNUITY` = –0.786), ale wnioskują o wyższe kwoty niż średnia (`AMT_APPLICATION` = 1.407). Wkład własny jest nieco poniżej średniej, a harmonogram spłaty również jest dłuższy. Są to klienci, którzy wnioskują o wysokie kwoty kredytu, ale przy niższych ratach i krótszym harmonogramie spłaty. Widać tu próbę uzyskania dużego finansowania przy relatywnie niskim obciążeniu miesięcznym, co może prowadzić do rezygnacji w trakcie procesu.
+Klienci *anulujący* mają raty wyraźnie **poniżej** niż przeciętne (`AMT_ANNUITY` = –0.786), ale wnioskują o **wyższe** kwoty niż średnia (`AMT_APPLICATION` = 1.407). Wkład własny jest nieco **poniżej średniej**, a harmonogram spłaty również jest **dłuższy**. Są to klienci, którzy wnioskują o wysokie kwoty kredytu, ale przy niższych ratach i krótszym harmonogramie spłaty. Widać tu próbę uzyskania dużego finansowania przy relatywnie niskim obciążeniu miesięcznym, co może prowadzić do rezygnacji w trakcie procesu.
 
-Wartości dla niewykorzystanej oferty są najbardziej „poniżej średniej” ze wszystkich statusów. Wszystkie Z‑score są ujemne i zbliżone do siebie. Raty, kwoty wnioskowane, wkład własny i liczba rat są niższe niż przeciętnie. To klienci o najmniejszych parametrach kredytowych — niskie kwoty, niskie raty, krótkie harmonogramy. Oferta była lekka finansowo, ale mimo to nie została wykorzystana.
+Wartości dla *niewykorzystanej oferty* są najbardziej „poniżej średniej” ze wszystkich statusów. Wszystkie Z‑score są ujemne i zbliżone do siebie. Raty, kwoty wnioskowane, wkład własny i liczba rat są **niższe niż przeciętnie**. To klienci o najmniejszych parametrach kredytowych — niskie kwoty, niskie raty, krótkie harmonogramy. Oferta była lekka finansowo, ale mimo to nie została wykorzystana.
 
-Profil dla odmowy jest umiarkowanie powyżej średniej. Klienci wnioskują o wyższe kwoty niż przeciętnie (`AMT_APPLICATION` = 0.497) przy dłuższych okresie spłaty (`CNT_PAYMENT` = 0.542). Są to klienci, którzy wnioskują o większe kredyty i dłuższe harmonogramy, co zwiększa ryzyko i może prowadzić do negatywnej decyzji.
+Profil dla *odmowy* jest umiarkowanie **powyżej** średniej. Klienci wnioskują o **wyższe** kwoty niż przeciętnie (`AMT_APPLICATION` = 0.497) przy **dłuższych** okresie spłaty (`CNT_PAYMENT` = 0.542). Są to klienci, którzy wnioskują o większe kredyty i dłuższe harmonogramy, co zwiększa ryzyko i może prowadzić do negatywnej decyzji.
 
-Najbardziej „średni” profil dotyczy wniosków zatwierdzonych. Wszystkie Z‑score są bardzo blisko zera, co oznacza, że zatwierdzone wnioski mają parametry najbardziej zbliżone do średnich w populacji. Minimalnie niższa kwota wnioskowana i nieco wyższa liczba rat i ich wysokość. Zatwierdzane są wnioski najbardziej typowe, bez skrajności — ani bardzo wysokie, ani bardzo niskie wartości.
+Najbardziej „średni” profil dotyczy wniosków *zatwierdzonych*. Wszystkie Z‑score są bardzo blisko zera, co oznacza, że zatwierdzone wnioski mają parametry najbardziej **zbliżone do średnich** w populacji. Minimalnie niższa kwota wnioskowana i nieco wyższa liczba rat i ich wysokość. Zatwierdzane są wnioski najbardziej typowe, bez skrajności — ani bardzo wysokie, ani bardzo niskie wartości.
 
-Podsumowując to jednym zdaniem - im wniosek kredytowy był bliższy przeciętnemu tym większa była szansa na jego akceptację.
+Podsumowując to jednym zdaniem - [im wniosek kredytowy był bliższy przeciętnemu tym większa była szansa na jego akceptację]{.underline}.
 
 ## Ocena zależności pomiędzy zmiennymi kategorycznymi a statusem kontraktu z wykorzystaniem testu chi‑kwadrat
 
-W tej części analizie poddano zależności pomiędzy wybranymi zmiennymi kategorycznymi a statusem kontraktu kredytowego. Do oceny istotności statystycznej wykorzystano test chi‑kwadrat niezależności, który pozwala sprawdzić, czy rozkład kategorii danej zmiennej różni się pomiędzy grupami statusów.
+W tej części analizie poddano zależności pomiędzy [wybranymi zmiennymi kategorycznymi a statusem kontraktu kredytowego]{.underline}. Do oceny istotności statystycznej wykorzystano test **chi‑kwadrat** niezależności, który pozwala sprawdzić, czy rozkład kategorii danej zmiennej różni się pomiędzy grupami statusów.
 
-Test chi‑kwadrat porównuje liczebności obserwowane (rzeczywiste) z liczebnościami oczekiwanymi, które wystąpiłyby, gdyby zmienne były od siebie niezależne. Jeżeli różnice są duże, statystyka Chi² rośnie, a wartość p spada — co wskazuje na istotną zależność.
+Test chi‑kwadrat porównuje liczebności [obserwowane]{.underline} (rzeczywiste) z liczebnościami [oczekiwanymi]{.underline}, które wystąpiłyby, gdyby zmienne były od siebie niezależne. Jeżeli różnice są duże, statystyka Chi² [rośnie]{.underline}, a wartość p spada — co wskazuje na istotną zależność.
 
 W analizie uwzględniono trzy zmienne kategoryczne:
 
-- `CHANNEL_TYPE_GROUPED` – uproszczona wersja kanału sprzedaży, w której rzadkie kategorie (<5%) połączono w grupę „Inne”,
+-   `CHANNEL_TYPE_GROUPED` – uproszczona wersja kanału sprzedaży, w której rzadkie kategorie (\<5%) połączono w grupę „*Inne*”,
 
-- `NAME_CONTRACT_TYPE_PL` – typ kontraktu (gotówkowy, konsumencki, ratalny),
+-   `NAME_CONTRACT_TYPE_PL` – typ kontraktu (gotówkowy, konsumencki, ratalny),
 
-- `NAME_CLIENT_TYPE_PL` – typ klienta (nowy, stały, reaktywowany).
+-   `NAME_CLIENT_TYPE_PL` – typ klienta (nowy, stały, reaktywowany).
 
-Status kontraktu analizowano w czterech kategoriach:
-Zatwierdzony, Odmowa, Anulowany, Niewykorzystana oferta.
+Status kontraktu analizowano w czterech kategoriach: *Zatwierdzony, Odmowa, Anulowany, Niewykorzystana oferta*.
 
 Wszystkie testy spełniły warunki poprawności (brak zbyt małych liczebności oczekiwanych), co oznacza, że wyniki są statystycznie wiarygodne.
 
@@ -309,14 +306,14 @@ kable(
   caption = paste("Rozkład procentowy statusów dla", most_sig, "(% w wierszach)") ) %>%
   kable_styling(position = "center")
 ```
-Wszystkie trzy zmienne kategoryczne wykazały bardzo silną i istotną statystycznie zależność ze statusem kontraktu (p < 0.001). Oznacza to, że sposób pozyskania klienta, typ kontraktu oraz typ klienta są wyraźnie powiązane z prawdopodobieństwem zatwierdzenia, odmowy lub anulowania wniosku.
 
-Kanał sprzedaży to zmienna o najsilniejszej zależności ze statusem kontraktu (Chi² ≈ 7889). Rozkłady procentowe pokazują wyraźne różnice między kanałami: `Sklep`, `Regionalny/Lokalny` i `Ogólnokrajowy` mają najwyższe odsetki zatwierdzeń (89–82%). `Biura kredytowe i gotówkowe` oraz kategoria `Inne` mają znacznie wyższy udział anulowań i odmów. „Niewykorzystana oferta” pojawia się niemal wyłącznie w kanałach masowych (`Ogólnokrajowy`, `Sklep`), co sugeruje odmienny charakter tych wniosków. Wskazuje to, że kanał sprzedaży jest jednym z kluczowych czynników różnicujących jakość i finalny status wniosków.
+Wszystkie trzy zmienne kategoryczne wykazały **bardzo silną i istotną statystycznie** zależność ze statusem kontraktu (p \< 0.001). Oznacza to, że sposób pozyskania klienta, typ kontraktu oraz typ klienta są **wyraźnie powiązane** z prawdopodobieństwem zatwierdzenia, odmowy lub anulowania wniosku.
 
-Z kolei różne typy produktów mają odmienne profile ryzyka i akceptacji.
-Wynik Chi² ≈ 6649 potwierdza, że status kontraktu silnie zależy od rodzaju produktu (np. kredyt gotówkowy vs ratalny).
+**Kanał sprzedaży** to zmienna o najsilniejszej zależności ze statusem kontraktu (Chi² ≈ 7889). Rozkłady procentowe pokazują wyraźne różnice między kanałami: `Sklep`, `Regionalny/Lokalny` i `Ogólnokrajowy` mają najwyższe odsetki zatwierdzeń (89–82%). `Biura kredytowe i gotówkowe` oraz kategoria `Inne` mają znacznie wyższy udział anulowań i odmów. *„Niewykorzystana oferta”* pojawia się niemal wyłącznie w kanałach masowych (`Ogólnokrajowy`, `Sklep`), co sugeruje odmienny charakter tych wniosków. Wskazuje to, że kanał sprzedaży jest jednym z kluczowych czynników różnicujących jakość i finalny status wniosków.
 
-Zależność dla typu klienta również jest istotna (Chi² ≈ 2754). Nowi klienci, stali klienci i klienci reaktywowani różnią się prawdopodobieństwem zatwierdzenia i odmowy, co jest zgodne z praktyką kredytową — historia relacji z instytucją wpływa na decyzję.
+Z kolei różne typy produktów mają odmienne profile ryzyka i akceptacji. Wynik Chi² ≈ 6649 potwierdza, że status kontraktu **silnie zależy** od rodzaju produktu (np. kredyt gotówkowy vs ratalny).
+
+Zależność dla typu klienta również jest istotna (Chi² ≈ 2754). Nowi klienci, stali klienci i klienci reaktywowani **różnią się** prawdopodobieństwem zatwierdzenia i odmowy, co jest zgodne z praktyką kredytową — historia relacji z instytucją wpływa na decyzję.
 
 ## Analiza różnic w wysokości przyznanego finansowania w zależności od statusu kontraktu
 
@@ -334,23 +331,23 @@ ggstatsplot::ggbetweenstats(
 )+ scale_fill_manual(values = status_colors) + scale_color_manual(values = status_colors)
 ```
 
-- Istnieją istotne statystycznie różnice w wysokości przyznanych kwot kredytu między grupami kontraktowymi (Welch ANOVA: p < 2.23e−308, ω² = 0.61) — efekt jest bardzo silny.
+-   Istnieją [istotne]{.underline} statystycznie różnice w wysokości przyznanych kwot kredytu między grupami kontraktowymi (Welch ANOVA: p \< 2.23e−308, ω² = 0.61) — efekt jest bardzo silny.
 
-- Najniższe średnie kwoty występują w grupie Anulowany (≈ 21 754) oraz Niewykorzystana oferta (≈ 69 195) — sugeruje to, że niższe kwoty częściej kończą się rezygnacją lub brakiem realizacji.
+-   Najniższe średnie kwoty występują w grupie *Anulowany* (≈ 21 754) oraz *Niewykorzystana oferta* (≈ 69 195) — sugeruje to, że niższe kwoty częściej kończą się rezygnacją lub brakiem realizacji.
 
-- Najwyższe średnie kwoty przypadają na Odmowę (≈ 376 000) oraz Zatwierdzenie (≈ 203 000) — wskazuje to, że większe wnioski są częściej oceniane rygorystycznie, ale też częściej zatwierdzane.
+-   Najwyższe średnie kwoty przypadają na *Odmowę* (≈ 376 000) oraz *Zatwierdzenie* (≈ 203 000) — wskazuje to, że większe wnioski są częściej oceniane rygorystycznie, ale też częściej zatwierdzane.
 
-- Test Games-Howell potwierdza, że każda para statusów różni się istotnie pod względem kwoty kredytu (wszystkie p < 1e−7).
+-   Test Games-Howell potwierdza, że każda para statusów różni się istotnie pod względem kwoty kredytu (wszystkie p \< 1e−7).
 
-- Wysoka kwota kredytu nie gwarantuje zatwierdzenia, ale jest silnie związana z decyzją końcową — może być traktowana jako wskaźnik ryzyka.
+-   Wysoka kwota kredytu [nie gwarantuje]{.underline} zatwierdzenia, ale jest [silnie związana]{.underline} z decyzją końcową — może być traktowana jako wskaźnik ryzyka.
 
-- Niskie kwoty częściej kończą się anulowaniem lub niewykorzystaniem, co może sugerować brak zaangażowania klienta lub niską wartość transakcyjną.
+-   Niskie kwoty częściej kończą się *anulowaniem* lub *niewykorzystaniem*, co może sugerować brak zaangażowania klienta lub niską wartość transakcyjną.
 
-- Segmentacja klientów według kwoty wnioskowanej może wspierać scoring ryzyka i optymalizację procesu decyzyjnego.
+-   Segmentacja klientów według kwoty wnioskowanej może wspierać scoring ryzyka i optymalizację procesu decyzyjnego.
 
 ## Wpływ typu klienta na wynik procesu kredytowego – analiza statystyczna
 
-Każdy słupek reprezentuje jedną kategorię statusu, a kolory wskazują typ klienta. Dodatkowo wykres zawiera wyniki testu chi‑kwadrat oraz miarę siły zależności (Cramér’s V), co pozwala ocenić istotność statystyczną obserwowanych różnic.
+Każdy słupek reprezentuje jedną kategorię statusu, a kolory wskazują typ klienta. Dodatkowo wykres zawiera wyniki testu *chi‑kwadra*t oraz miarę siły zależności (*Cramér’s V*), co pozwala ocenić istotność statystyczną obserwowanych różnic.
 
 ```{r ggbarstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbarstats(
@@ -370,23 +367,23 @@ ggstatsplot::ggbarstats(
   guides(fill = guide_legend(title = "Typ klienta")) # wymusza polski tytuł legendy
 ```
 
-- Zależność między typem klienta a statusem kontraktu jest istotna statystycznie  (χ² = 2770.34, p < 2.23e−308, Cramer's V = 0.19) — czyli umiarkowana siła powiązania.
+-   Zależność między typem klienta a statusem kontraktu jest [istotna]{.underline} statystycznie (χ² = 2770.34, p \< 2.23e−308, Cramer's V = 0.19) — czyli umiarkowana siła powiązania.
 
-- Stały klient dominuje w każdej grupie, szczególnie w anulowanych (93%) i niewykorzystanych ofertach (76%) — może wskazywać na niższe zaangażowanie lub powtarzalne wnioski bez finalizacji.
+-   Stały klient dominuje w każdej grupie, szczególnie w *anulowanych* (93%) i *niewykorzystanych ofertach* (76%) — może wskazywać na niższe zaangażowanie lub powtarzalne wnioski bez finalizacji.
 
-- Nowi klienci częściej otrzymują zatwierdzenie (28%) niż odmowę (18%) — może to sugerować preferencyjne traktowanie nowych wniosków lub lepszy scoring startowy.
+-   Nowi klienci częściej otrzymują *zatwierdzenie* (28%) niż *odmowę* (18%) — może to sugerować preferencyjne traktowanie nowych wniosków lub lepszy scoring startowy.
 
-- Reaktywowany klient (powrót po przerwie) ma niewielki udział we wszystkich statusach, ale nieco wyższy w zatwierdzonych (9%) — może wskazywać na umiarkowane zaufanie instytucji.
+-   Reaktywowany klient (powrót po przerwie) ma niewielki udział we wszystkich statusach, ale nieco wyższy w *zatwierdzonych* (9%) — może wskazywać na umiarkowane zaufanie instytucji.
 
-- Typ klienta może być użytecznym predyktorem decyzji kredytowej — szczególnie w połączeniu z historią aplikacji.
+-   Typ klienta może być użytecznym predyktorem decyzji kredytowej — szczególnie w połączeniu z historią aplikacji.
 
-- Stały klient nie zawsze oznacza wysoką skuteczność — warto rozważyć dodatkowe kryteria segmentacji.
+-   Stały klient nie zawsze oznacza wysoką skuteczność — warto rozważyć dodatkowe kryteria segmentacji.
 
-- Nowi klienci mogą być bardziej skłonni do finalizacji umowy, co może wspierać strategie pozyskiwania.
+-   Nowi klienci mogą być bardziej skłonni do finalizacji umowy, co może wspierać strategie pozyskiwania.
 
 ## Porównanie długości harmonogramu spłaty w grupach statusów kontraktu
 
-Wykres zawiera średnie wartości dla każdej grupy oraz wyniki testu Welch’a i porównań post hoc.
+Wykres zawiera średnie wartości dla każdej grupy oraz wyniki testu *Welch’a* i porównań *post hoc*.
 
 ```{r ggbetweenstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggbetweenstats(
@@ -401,23 +398,23 @@ ggstatsplot::ggbetweenstats(
   scale_color_manual(values = status_colors)
 ```
 
-- Różnice w liczbie rat między grupami kontraktowymi są bardzo silnie istotne statystycznie (Welch ANOVA: p < 2.23e−308, ω² = 0.79) — efekt jest ekstremalnie silny.
+-   Różnice w liczbie rat między grupami kontraktowymi są bardzo silnie [istotne]{.underline} statystycznie (Welch ANOVA: p \< 2.23e−308, ω² = 0.79) — efekt jest ekstremalnie silny.
 
-- Zatwierdzone kontrakty mają średnio 14 rat, a odrzucone aż 20 — może to wskazywać, że dłuższy okres spłaty zwiększa ryzyko odmowy.
+-   *Zatwierdzone* kontrakty mają średnio 14 rat, a *odrzucone* aż 20 — może to wskazywać, że dłuższy okres spłaty zwiększa ryzyko odmowy.
 
-- Anulowane i niewykorzystane oferty mają bardzo niską liczbę rat (średnio 1.16 i 0.21) — sugeruje to, że były to wnioski niepełne, testowe lub szybko wycofane.
+-   *Anulowane* i *niewykorzystane oferty* mają bardzo niską liczbę rat (średnio 1.16 i 0.21) — sugeruje to, że były to wnioski niepełne, testowe lub szybko wycofane.
 
-- Test Games-Howell potwierdza istotne różnice między wszystkimi grupami (wszystkie p < 1e−8).
+-   Test *Games-Howell* potwierdza istotne różnice między wszystkimi grupami (wszystkie p \< 1e−8).
 
-- Liczba rat może być silnym predyktorem decyzji kredytowej — szczególnie w połączeniu z kwotą kredytu i typem klienta.
+-   Liczba rat może być silnym predyktorem decyzji kredytowej — szczególnie w połączeniu z kwotą kredytu i typem klienta.
 
-- Dłuższy harmonogram spłaty może zwiększać ryzyko odmowy, co warto uwzględnić w scoringu.
+-   Dłuższy harmonogram spłaty może zwiększać ryzyko odmowy, co warto uwzględnić w scoringu.
 
-- Wnioski z minimalną liczbą rat często kończą się anulowaniem lub brakiem realizacji, co może wskazywać na niską jakość aplikacji.
+-   Wnioski z minimalną liczbą rat często kończą się anulowaniem lub brakiem realizacji, co może wskazywać na niską jakość aplikacji.
 
 ## Analiza zależności pomiędzy kwotą wnioskowaną a przyznaną w procesie kredytowym
 
-Wykres zawiera linię regresji oraz histogramy brzegowe, co pozwala jednocześnie ocenić siłę korelacji i rozkład obu zmiennych. Statystyki testowe wskazują na związek między tymi wartościami.
+Wykres zawiera linię regresji oraz histogramy brzegowe, co pozwala jednocześnie ocenić [siłę korelacji]{.underline} i [rozkład]{.underline} obu zmiennych. Statystyki testowe wskazują na związek między tymi wartościami.
 
 ```{r ggscatterstats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::ggscatterstats(
@@ -432,22 +429,22 @@ ggstatsplot::ggscatterstats(
 )
 ```
 
-- Zależność między kwotą wnioskowaną a przyznaną jest ekstremalnie silna  
-(r = 0.99, p < 2.23e−308) — niemal idealna korelacja liniowa.
+-   Zależność między kwotą wnioskowaną a przyznaną jest ekstremalnie silna\
+    (r = 0.99, p \< 2.23e−308) — niemal idealna korelacja liniowa.
 
-- Banki najczęściej przyznają dokładnie taką kwotę, o jaką klient wnioskował — co może świadczyć o dobrze skalibrowanym procesie oceny zdolności kredytowej.
+-   Banki najczęściej przyznają dokładnie taką kwotę, o jaką klient wnioskował — co może świadczyć o dobrze skalibrowanym procesie oceny zdolności kredytowej.
 
-- Odchylenia od linii regresji są rzadkie i niewielkie — wskazują na sporadyczne korekty (np. ograniczenia scoringowe, limity produktowe).
+-   Odchylenia od linii regresji są rzadkie i niewielkie — wskazują na sporadyczne korekty (np. ograniczenia scoringowe, limity produktowe).
 
-- Rozkłady kwot po obu osiach są podobne — potwierdzają, że w większości przypadków decyzja kredytowa nie modyfikuje kwoty wnioskowanej.
+-   Rozkłady kwot po obu osiach są podobne — potwierdzają, że w większości przypadków decyzja kredytowa nie modyfikuje kwoty wnioskowanej.
 
-- Proces decyzyjny jest silnie zautomatyzowany i zgodny z oczekiwaniami klienta — co może zwiększać satysfakcję i skracać czas obsługi.
+-   Proces decyzyjny jest silnie zautomatyzowany i zgodny z oczekiwaniami klienta — co może zwiększać satysfakcję i skracać czas obsługi.
 
-- Wysoka zgodność kwot może świadczyć o efektywnym dopasowaniu produktów do profilu klienta — warto analizować wyjątki jako potencjalne przypadki ryzyka lub niedopasowania.
+-   Wysoka zgodność kwot może świadczyć o efektywnym dopasowaniu produktów do profilu klienta — warto analizować wyjątki jako potencjalne przypadki ryzyka lub niedopasowania.
 
 ## Charakterystyka liczby rat wśród zatwierdzonych kontraktów kredytowych
 
-Histogram pokazuje zarówno częstość występowania poszczególnych wartości, jak i statystyki opisowe oraz wynik testu t‑Studenta, co pozwala ocenić, jak typowa jest liczba rat w tej grupie klientów.
+Histogram pokazuje zarówno [częstość występowania]{.underline} poszczególnych wartości, jak i [statystyki opisowe]{.underline} oraz wynik testu [t‑Studenta]{.underline}, co pozwala ocenić, jak typowa jest liczba rat w tej grupie klientów.
 
 ```{r ggshistostats, echo=FALSE, cache=cache_ggstats}
 ggstatsplot::gghistostats(
@@ -464,23 +461,23 @@ ggstatsplot::gghistostats(
     )
 ```
 
-- Średnia liczba rat wynosi 14.08, co wskazuje na preferencję dla kredytów średnioterminowych — ani bardzo krótkich, ani długoterminowych.
+-   Średnia liczba rat wynosi 14.08, co wskazuje na preferencję dla kredytów [średnioterminowych]{.underline} — ani bardzo krótkich, ani długoterminowych.
 
-- Rozkład jest skośny, z wyraźnym szczytem w przedziale 6–20 rat — najczęściej wybierane są kredyty rozłożone na 12–18 miesięcy.
+-   Rozkład jest [skośny]{.underline}, z wyraźnym szczytem w przedziale 6–20 rat — najczęściej wybierane są kredyty rozłożone na 12–18 miesięcy.
 
-- Statystyki testowe potwierdzają istotność rozkładu (t = 148.92, p < 2.23e−308, Hedges g = 1.19) — czyli liczba rat w zatwierdzonych kontraktach nie jest przypadkowa, lecz ma wyraźny wzorzec.
+-   Statystyki testowe potwierdzają istotność rozkładu (*t = 148.92, p \< 2.23e−308, Hedges g = 1.19*) — czyli liczba rat w zatwierdzonych kontraktach nie jest przypadkowa, lecz ma wyraźny wzorzec.
 
-- Długi ogon rozkładu sugeruje obecność kredytów długoterminowych, ale są one znacznie rzadsze — mogą dotyczyć wyższych kwot lub specyficznych produktów.
+-   Długi ogon rozkładu sugeruje obecność kredytów długoterminowych, ale są one znacznie rzadsze — mogą dotyczyć wyższych kwot lub specyficznych produktów.
 
-- Zatwierdzone kontrakty najczęściej mają liczbę rat zbliżoną do 12–18, co może być optymalnym punktem równowagi między dostępnością a ryzykiem.
+-   *Zatwierdzone* kontrakty najczęściej mają liczbę rat zbliżoną do 12–18, co może być optymalnym punktem równowagi między dostępnością a ryzykiem.
 
-- Kredyty krótkoterminowe (do 6 rat) są mniej popularne, co może wynikać z niskiej opłacalności lub ograniczonego popytu.
+-   Kredyty krótkoterminowe (do 6 rat) są mniej popularne, co może wynikać z niskiej opłacalności lub ograniczonego popytu.
 
-- Warto uwzględnić liczbę rat jako zmienną w scoringu ryzyka
+-   Warto uwzględnić liczbę rat jako zmienną w scoringu ryzyka
 
 ## Struktura typów umów kredytowych w populacji oraz ich powiązanie ze statusem kontraktu
 
-Dwa wykresy kołowe pokazują udział poszczególnych statusów w każdej grupie, a dodatkowe statystyki (test chi‑kwadrat, Cramér’s V) pozwalają ocenić siłę i istotność zależności między typem klienta a statusem kontraktu.
+Dwa wykresy kołowe pokazują [udział poszczególnych statusów]{.underline} w każdej grupie, a dodatkowe statystyki (*test chi‑kwadrat, Cramér’s V*) pozwalają ocenić siłę i istotność zależności między typem klienta a statusem kontraktu.
 
 ```{r ggpiestats, echo=FALSE, cache=cache_ggstats}
 ggpiestats(
@@ -499,23 +496,23 @@ ggpiestats(
   guides(fill = guide_legend(title = "Status kontraktu"))
 ```
 
-- Nowi klienci mają zdecydowanie wyższy odsetek zatwierdzonych wniosków — aż 94% z nich kończy się pozytywną decyzją, podczas gdy u stałych klientów to tylko 54%.
+-   Nowi klienci mają zdecydowanie wyższy odsetek *zatwierdzonych* wniosków — aż 94% z nich kończy się pozytywną decyzją, podczas gdy u stałych klientów to tylko 54%.
 
-- Stały klient częściej doświadcza odmowy (21%) i anulowania (24%), co może wskazywać na większą liczbę powtarzających się, nieefektywnych aplikacji lub niższą jakość wniosków.
+-   Stały klient częściej doświadcza *odmowy* (21%) i *anulowania* (24%), co może wskazywać na większą liczbę powtarzających się, nieefektywnych aplikacji lub niższą jakość wniosków.
 
-- Różnice są istotne statystycznie (χ² = 2593.64, p < 2.23e−308, Cramer's V = 0.34) — czyli typ klienta ma wyraźny wpływ na decyzję kredytową.
+-   Różnice są istotne statystycznie (*χ² = 2593.64, p \< 2.23e−308, Cramer's V = 0.34*) — czyli typ klienta ma [wyraźny wpływ]{.underline} na decyzję kredytową.
 
-- Nowi klienci rzadko są odrzucani (1%) lub anulują wniosek, co może świadczyć o większym zaangażowaniu lub lepszym dopasowaniu oferty.
+-   Nowi klienci rzadko są *odrzucani* (1%) lub *anulują* wniosek, co może świadczyć o większym zaangażowaniu lub lepszym dopasowaniu oferty.
 
-- Nowy klient to potencjalnie bardziej efektywny segment — warto go wspierać w procesie onboardingowym i utrzymaniu.
+-   Nowy klient to potencjalnie bardziej efektywny segment — warto go wspierać w procesie onboardingowym i utrzymaniu.
 
-- Stały klient nie gwarantuje zatwierdzenia — warto analizować historię aplikacyjną, jakość wniosków i kanał pozyskania.
+-   Stały klient nie gwarantuje zatwierdzenia — warto analizować historię aplikacyjną, jakość wniosków i kanał pozyskania.
 
-- Typ klienta powinien być uwzględniany w scoringu ryzyka i strategii sprzedażowej — szczególnie przy automatyzacji decyzji.
+-   Typ klienta powinien być uwzględniany w scoringu ryzyka i strategii sprzedażowej — szczególnie przy automatyzacji decyzji.
 
 ## Model regresji liniowej wyjaśniający kwotę kredytu na podstawie typu klienta i wkładu własnego
 
-Wykres przedstawia estymowane współczynniki regresji dla modelu liniowego, w którym zmienną zależną jest kwota przyznanego kredytu (`AMT_CREDIT`). Model uwzględnia dwa predyktory: typ klienta (`NAME_CLIENT_TYPE_PL`) oraz wkład własny (`AMT_DOWN_PAYMENT`). Wykres pokazuje wartość współczynnika β, przedział ufności, wartość statystyki t oraz poziom istotności dla każdego predyktora, co pozwala ocenić ich wpływ na kwotę kredytu.
+Wykres przedstawia estymowane współczynniki regresji dla modelu liniowego, w którym zmienną zależną jest [kwota przyznanego kredytu]{.underline} (`AMT_CREDIT`). Model uwzględnia dwa predyktory: typ klienta (`NAME_CLIENT_TYPE_PL`) oraz wkład własny (`AMT_DOWN_PAYMENT`). Wykres pokazuje wartość współczynnika β, przedział ufności, wartość statystyki t oraz poziom istotności dla każdego predyktora, co pozwala ocenić ich wpływ na kwotę kredytu.
 
 ```{r regresja, echo=FALSE, cache=cache_ggstats}
 model <- lm(AMT_CREDIT ~ NAME_CLIENT_TYPE_PL + AMT_DOWN_PAYMENT, data = dane_clean)
@@ -530,52 +527,52 @@ ggstatsplot::ggcoefstats(
         )
 ```
 
-- Wkład własny (`AMT_DOWN_PAYMENT`) ma istotny wpływ na kwotę kredytu  
-(β̂ = 0.23, p = 0.03) — im wyższy wkład własny, tym wyższa przyznana kwota. To zgodne z logiką ryzyka: klient angażujący własne środki otrzymuje większe finansowanie.
+-   Wkład własny (`AMT_DOWN_PAYMENT`) ma istotny wpływ na kwotę kredytu\
+    (*β̂ = 0.23, p = 0.03*) — [im wyższy wkład własny, tym wyższa przyznana kwota]{.underline}. To zgodne z logiką ryzyka: klient angażujący własne środki otrzymuje większe finansowanie.
 
-- Typ klienta nie ma istotnego wpływu na kwotę kredytu (Stały, Reaktywowany, Nowy — wszystkie p > 0.35) — różnice między typami są statystycznie nieistotne, co może oznaczać, że bank nie różnicuje kwoty kredytu ze względu na typ klienta, tylko inne czynniki (np. scoring, historia).
+-   Typ klienta nie ma istotnego wpływu na kwotę kredytu (Stały, Reaktywowany, Nowy — wszystkie p \> 0.35) — różnice między typami są statystycznie nieistotne, co może oznaczać, że bank nie różnicuje kwoty kredytu ze względu na typ klienta, tylko inne czynniki (np. scoring, historia).
 
-- Stały klient otrzymuje średnio wyższą kwotę niż nowy, ale różnica nie jest istotna — warto to zbadać w modelu z dodatkowymi zmiennymi (np. kanał, cel pożyczki).
+-   Stały klient otrzymuje średnio wyższą kwotę niż nowy, ale różnica nie jest istotna — warto to zbadać w modelu z dodatkowymi zmiennymi (np. kanał, cel pożyczki).
 
 ## Analiza wariancji parametrów kredytowych w zależności od statusu kontraktu (Welch ANOVA)
 
 W tej części przedstawiono trzy wykresy porównujące wybrane zmienne finansowe w zależności od statusu kontraktu:
 
-- kwotę wnioskowaną (`AMT_APPLICATION`),
+-   kwotę wnioskowaną (`AMT_APPLICATION`),
 
-- liczbę rat (`CNT_PAYMENT`),
+-   liczbę rat (`CNT_PAYMENT`),
 
-- kwotę raty (`AMT_ANNUITY`).
+-   kwotę raty (`AMT_ANNUITY`).
 
-Do analizy zastosowano test Welch ANOVA, który pozwala ocenić, czy średnie wartości danej zmiennej różnią się istotnie pomiędzy grupami statusów kontraktu. W odróżnieniu od klasycznej ANOVY, test Welch’a nie wymaga równości wariancji i dobrze sprawdza się przy danych skośnych oraz nierównych liczebnościach — co jest typowe dla danych kredytowych.
+Do analizy zastosowano test **Welch ANOVA**, który pozwala ocenić, czy średnie wartości danej zmiennej różnią się istotnie pomiędzy grupami statusów kontraktu. W odróżnieniu od klasycznej ANOVY, test Welch’a nie wymaga równości wariancji i dobrze sprawdza się przy danych skośnych oraz nierównych liczebnościach — co jest typowe dla danych kredytowych.
 
 Każdy wykres zawiera:
 
-- punkty obserwacji (rozrzut danych),
+-   punkty obserwacji (rozrzut danych),
 
-- średnią wartość oznaczoną jako μ_mean,
+-   średnią wartość oznaczoną jako μ_mean,
 
-- boxplot — który obrazuje rozkład danych w każdej grupie,
+-   boxplot — który obrazuje rozkład danych w każdej grupie,
 
-- wartość statystyki F_Welch,
+-   wartość statystyki F_Welch,
 
-- poziom istotności p,
+-   poziom istotności p,
 
-- miarę siły zależności — efekt wielkości ω² (omega squared),
+-   miarę siły zależności — efekt wielkości ω² (omega squared),
 
-- przedział ufności dla ω²,
+-   przedział ufności dla ω²,
 
-- oraz wyniki porównań parowych (test Games-Howell z korektą Holm).
+-   oraz wyniki porównań parowych (test Games-Howell z korektą Holm).
 
 Efekt wielkości ω² przyjmuje wartości od 0 do 1 i informuje, jak duża część zmienności zmiennej zależnej jest wyjaśniana przez zmienną grupującą (tu: status kontraktu).
 
-- ω² ≈ 0.01 – efekt słaby,
+-   ω² ≈ 0.01 – efekt słaby,
 
-- ω² ≈ 0.06 – efekt umiarkowany,
+-   ω² ≈ 0.06 – efekt umiarkowany,
 
-- ω² ≥ 0.14 – efekt silny,
+-   ω² ≥ 0.14 – efekt silny,
 
-- ω² ≥ 0.30 – efekt bardzo silny.
+-   ω² ≥ 0.30 – efekt bardzo silny.
 
 ### Różnice w kwocie wnioskowanej pomiędzy grupami statusów kontraktu (Welch ANOVA)
 
@@ -601,17 +598,17 @@ ggstatsplot::ggbetweenstats(
 )
 ```
 
-- Różnice między grupami są ekstremalnie istotne statystycznie, a efekt wielkości 𝜔2=0.82 — czyli bardzo silny.
+-   Różnice między grupami są ekstremalnie [istotne]{.underline} statystycznie, a efekt wielkości *𝜔2=0.82* — czyli bardzo silny.
 
-- Najwyższa średnia kwota wnioskowana występuje w grupie Anulowany (≈ 667 000), co może wskazywać na próbę uzyskania dużego finansowania, które nie zostało zrealizowane.
+-   Najwyższa średnia kwota wnioskowana występuje w grupie Anulowany (≈ 667 000), co może wskazywać na próbę uzyskania dużego finansowania, które nie zostało zrealizowane.
 
-- Odmowy mają średnią ≈ 384 000 — również wysoką, ale niższą niż anulowania.
+-   Odmowy mają średnią ≈ 384 000 — również wysoką, ale niższą niż anulowania.
 
-- Zatwierdzenia mają średnią ≈ 193 000 — czyli najbardziej „typowe” wnioski.
+-   Zatwierdzenia mają średnią ≈ 193 000 — czyli najbardziej „typowe” wnioski.
 
-- Niewykorzystane oferty mają najniższą średnią (≈ 70 000) — to aplikacje o niskiej wartości, które nie zostały sfinalizowane.
+-   Niewykorzystane oferty mają najniższą średnią (≈ 70 000) — to aplikacje o niskiej wartości, które nie zostały sfinalizowane.
 
-Wszystkie porównania parowe są istotne (p_Holm-adj < 1e−7), co potwierdza, że każda grupa różni się od pozostałych.
+Wszystkie porównania parowe są [istotne]{.underline} (*p_Holm-adj \< 1e−7*), co potwierdza, że każda grupa różni się od pozostałych.
 
 ## Analiza wariancji liczby rat w zależności od statusu kontraktu (Welch ANOVA)
 
@@ -627,16 +624,16 @@ ggstatsplot::ggbetweenstats(
 )
 ```
 
-- Tu również różnice między grupami są ekstremalnie istotne statystycznie  
-Test Welch’a wykazał bardzo silny efekt, a efekt wielkości 𝜔2= 0.79. Oznacza to, że status kontraktu wyjaśnia aż 79% zmienności liczby rat — to wartość ekstremalnie wysoka.
+-   Tu również różnice między grupami są ekstremalnie [istotne]{.underline} statystycznie\
+    Test Welch’a wykazał bardzo silny efekt, a efekt wielkości *𝜔2= 0.79.* Oznacza to, że status kontraktu wyjaśnia aż **79%** zmienności liczby rat — to wartość ekstremalnie wysoka.
 
-- Zatwierdzone kontrakty mają średnio 14.08 rat, co wskazuje na preferencję dla kredytów średnioterminowych — ani bardzo krótkich, ani długoterminowych.
+-   *Zatwierdzone* kontrakty mają średnio 14.08 rat, co wskazuje na preferencję dla kredytów średnioterminowych — ani bardzo krótkich, ani długoterminowych.
 
-- Odmowy charakteryzują się najwyższą średnią liczbą rat (20.25) — co może sugerować, że dłuższy okres spłaty zwiększa ryzyko negatywnej decyzji.
+-   *Odmowy* charakteryzują się najwyższą średnią liczbą rat (20.25) — co może sugerować, że dłuższy okres spłaty zwiększa ryzyko negatywnej decyzji.
 
-- Anulowane kontrakty mają średnio tylko 1.16 raty, a niewykorzystane oferty zaledwie 0.21 raty — to wskazuje na wnioski niepełne, testowe lub szybko wycofane.
+-   *Anulowane kontrakty* mają średnio tylko 1.16 raty, a niewykorzystane oferty zaledwie 0.21 raty — to wskazuje na wnioski niepełne, testowe lub szybko wycofane.
 
-- Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
+-   Wszystkie porównania parowe (*Games-Howell* z korektą *Holm*) są istotne statystycznie (*p \< 4.34e−08*), co potwierdza, że każda grupa różni się istotnie od pozostałych.
 
 ## Porównanie wysokości rat kredytowych pomiędzy grupami statusów kontraktu (Welch ANOVA)
 
@@ -652,15 +649,15 @@ ggstatsplot::ggbetweenstats(
 )
 ```
 
-- Trzeci wykres także pokazuje istotne różnice między grupami. Test Welch’a wykazał bardzo silny efekt, a efekt również wielkości 𝜔2= 0.79.
+-   Trzeci wykres także pokazuje [istotne]{.underline} różnice między grupami. Test Welch’a wykazał bardzo silny efekt, a efekt również wielkości *𝜔2= 0.79*.
 
-- Zatwierdzone kontrakty mają średnią ratę 14 832, co wskazuje na umiarkowane miesięczne obciążenie — typowe dla kredytów średnioterminowych.
+-   *Zatwierdzone* kontrakty mają średnią ratę 14 832, co wskazuje na umiarkowane miesięczne obciążenie — typowe dla kredytów średnioterminowych.
 
-- Odmowy charakteryzują się najwyższą średnią ratą (17 444) — co może sugerować, że wyższe miesięczne zobowiązania zwiększają ryzyko negatywnej decyzji.
+-   *Odmowy* charakteryzują się najwyższą średnią ratą (17 444) — co może sugerować, że wyższe miesięczne zobowiązania zwiększają ryzyko negatywnej decyzji.
 
-- Anulowane kontrakty mają średnio tylko 913, a niewykorzystane oferty zaledwie 212 — to wskazuje na aplikacje o bardzo niskim obciążeniu, które nie zostały sfinalizowane.
+-   *Anulowane kontrakty* mają średnio tylko 913, a niewykorzystane oferty zaledwie 212 — to wskazuje na aplikacje o bardzo niskim obciążeniu, które nie zostały sfinalizowane.
 
-- Wszystkie porównania parowe (Games-Howell z korektą Holm) są istotne statystycznie (p < 4.34e−08), co potwierdza, że każda grupa różni się istotnie od pozostałych.
+-   Wszystkie porównania parowe (*Games-Howell* z korektą *Holm*) są istotne statystycznie (*p \< 4.34e−08*), co potwierdza, że każda grupa różni się istotnie od pozostałych.
 
 ## Syntetyczne podsumowanie wyników analizy statystycznej parametrów kredytowych
 
@@ -668,25 +665,25 @@ Przeprowadzona analiza statystyczna pozwala bardzo precyzyjnie opisać profil kl
 
 **1. Zatwierdzone wnioski są najbardziej „typowe” w całej populacji**
 
-Zarówno wartości Z‑score, jak i statystyki opisowe pokazują, że zatwierdzone kontrakty mają parametry najbliższe średnim wartościom w zbiorze:
+Zarówno wartości *Z‑score*, jak i statystyki opisowe pokazują, że zatwierdzone kontrakty mają parametry najbliższe średnim wartościom w zbiorze:
 
-- kwoty wnioskowane i przyznane są umiarkowane,
+-   kwoty wnioskowane i przyznane są umiarkowane,
 
-- liczba rat jest średnia,
+-   liczba rat jest średnia,
 
-- wkład własny nie odbiega od przeciętnego.
+-   wkład własny nie odbiega od przeciętnego.
 
-To oznacza, że system preferuje wnioski bez skrajności — ani bardzo wysokich kwot, ani bardzo długich harmonogramów, ani nietypowych parametrów.
+To oznacza, że [system preferuje wnioski bez skrajności]{.underline} — ani bardzo wysokich kwot, ani bardzo długich harmonogramów, ani nietypowych parametrów.
 
 **2. Kwota kredytu i liczba rat są silnie powiązane ze statusem kontraktu**
 
-Wyniki testów ANOVA (Welch) i porównań post hoc pokazują ekstremalnie silne różnice między statusami:
+Wyniki testów ANOVA (*Welch*) i porównań *post hoc* pokazują ekstremalnie silne różnice między statusami:
 
-- **Odmowy** dotyczą wniosków o wysokie kwoty i długie okresy spłaty.
+-   **Odmowy** dotyczą wniosków o wysokie kwoty i długie okresy spłaty.
 
-- **Anulowania** i **niewykorzystane oferty** mają bardzo niskie kwoty i minimalną liczbę rat, co sugeruje niską jakość lub brak zaangażowania klienta.
+-   **Anulowania** i **niewykorzystane oferty** mają bardzo niskie kwoty i minimalną liczbę rat, co sugeruje niską jakość lub brak zaangażowania klienta.
 
-- **Zatwierdzenia** koncentrują się wokół wartości średnich.
+-   **Zatwierdzenia** koncentrują się wokół wartości średnich.
 
 To wskazuje, że parametry finansowe są jednym z najważniejszych predyktorów decyzji.
 
@@ -694,11 +691,11 @@ To wskazuje, że parametry finansowe są jednym z najważniejszych predyktorów 
 
 Testy chi‑kwadrat wykazały silną zależność między typem klienta a wynikiem procesu:
 
-- **Nowi klienci** mają najwyższy odsetek zatwierdzeń (94%) i najniższy odsetek odmów.
+-   **Nowi klienci** mają najwyższy odsetek zatwierdzeń (94%) i najniższy odsetek odmów.
 
-- **Stali klienci** częściej anulują lub są odrzucani — co może wynikać z powtarzalnych, niskiej jakości aplikacji.
+-   **Stali klienci** częściej anulują lub są odrzucani — co może wynikać z powtarzalnych, niskiej jakości aplikacji.
 
-- **Reaktywowany klient** ma umiarkowane wyniki, ale niewielki udział w populacji.
+-   **Reaktywowany klient** ma umiarkowane wyniki, ale niewielki udział w populacji.
 
 Wskazuje to, że historia relacji z instytucją nie jest jednoznacznym atutem — nowy klient może być bardziej wartościowy niż stały.
 
@@ -706,11 +703,11 @@ Wskazuje to, że historia relacji z instytucją nie jest jednoznacznym atutem �
 
 To jedna z najważniejszych obserwacji:
 
-- kanały masowe (Sklep, Ogólnokrajowy) mają najwyższe zatwierdzenia,
+-   kanały masowe (Sklep, Ogólnokrajowy) mają najwyższe zatwierdzenia,
 
-- kanały tradycyjne (Biura kredytowe, Inne) mają wysokie anulowania i odmowy,
+-   kanały tradycyjne (Biura kredytowe, Inne) mają wysokie anulowania i odmowy,
 
-- niewykorzystane oferty pojawiają się niemal wyłącznie w kanałach masowych.
+-   niewykorzystane oferty pojawiają się niemal wyłącznie w kanałach masowych.
 
 Oznacza to, że kanał pozyskania klienta jest kluczowym czynnikiem jakościowym i powinien być uwzględniany w scoringu oraz strategii sprzedażowej.
 
@@ -718,19 +715,20 @@ Oznacza to, że kanał pozyskania klienta jest kluczowym czynnikiem jakościowym
 
 Model regresji pokazał:
 
-- kwota kredytu: istotny predyktor — większy wkład własny → większa kwota kredytu,
+-   kwota kredytu: istotny predyktor — większy wkład własny → większa kwota kredytu,
 
-- typ klienta: brak istotności — bank nie różnicuje kwoty kredytu ze względu na typ klienta.
+-   typ klienta: brak istotności — bank nie różnicuje kwoty kredytu ze względu na typ klienta.
 
 To oznacza, że czynniki finansowe dominują nad demograficznymi w procesie ustalania kwoty.
 
 ## Implikacje analityczne i rekomendacje strategiczne wynikające z analizy statystycznej
-- Największe szanse na zatwierdzenie mają wnioski o parametrach bliskich średnim.
 
-- Kanał sprzedaży jest najważniejszym czynnikiem jakościowym — silniejszym niż typ klienta.
+-   Największe szanse na zatwierdzenie mają wnioski o parametrach bliskich średnim.
 
-- Nowi klienci są bardziej efektywnym segmentem niż stali.
+-   Kanał sprzedaży jest najważniejszym czynnikiem jakościowym — silniejszym niż typ klienta.
 
-- Długie harmonogramy i wysokie kwoty zwiększają ryzyko odmowy.
+-   Nowi klienci są bardziej efektywnym segmentem niż stali.
 
-- Niskie kwoty i minimalne liczby rat zwiększają ryzyko anulowania lub niewykorzystania oferty.
+-   Długie harmonogramy i wysokie kwoty zwiększają ryzyko odmowy.
+
+-   Niskie kwoty i minimalne liczby rat zwiększają ryzyko anulowania lub niewykorzystania oferty.
