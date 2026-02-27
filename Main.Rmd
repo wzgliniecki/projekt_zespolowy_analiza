@@ -1,6 +1,5 @@
 ---
 title: "Identyfikacja docelowych odbiorców pożyczki"
-author: "Julia Labuda (191145), Wojciech Zgliniecki (154790)"
 output:
   rmdformats::material:
     highlight: kate
